@@ -1,0 +1,11 @@
+# directories
+__pycache__
+log/*
+save/*
+train*
+test_*
+
+# file formats
+*.pt
+*.pth
+*.npy
