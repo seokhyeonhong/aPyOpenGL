@@ -1,7 +1,7 @@
 import glm
 import numpy as np
 
-from pymovis.vis import core
+from pymovis.vis.core import VAO, Vertex, Mesh
 
 def get_color_by_position(position):
     colors = []
@@ -10,66 +10,61 @@ def get_color_by_position(position):
         colors.append(normalized)
     return colors
 
-# plane
 #    v2----- v1
 #   /       /   
 #  v3------v0
-class Plane(core.Mesh):
+class Plane(Mesh):
     def __init__(self):
-        self.positions = [
+        positions, normals, tex_coords, indices = self.__get_vertices()
+        vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
+        vao = VAO(vertices, indices)
+        super().__init__(vao, vertices, indices)
+
+    def __get_vertices(self):
+        positions = [
             glm.vec3(0.5, 0.0, 0.5),   # v0
             glm.vec3(0.5, 0.0, -0.5),  # v1
             glm.vec3(-0.5, 0.0, -0.5), # v2
             glm.vec3(-0.5, 0.0, 0.5),  # v3
         ]
-        self.normals = [glm.vec3(0.0, 1.0, 0.0)] * 4
-        self.tex_coords = [
+        normals = [glm.vec3(0.0, 1.0, 0.0)] * 4
+        tex_coords = [
             glm.vec2(1.0, 0.0),
             glm.vec2(1.0, 1.0),
             glm.vec2(0.0, 1.0),
             glm.vec2(0.0, 0.0),
         ]
-        self.indices = [0, 1, 2, 2, 3, 0]
-        # self.line_indices = [0, 1, 1, 2, 2, 3, 3, 0]
-        vertices = core.to_vertex_array(self.positions, self.normals, self.tex_coords)
-        vao = core.VAO(vertices, self.indices)
-        super().__init__(vao, vertices, self.indices)
+        indices = [0, 1, 2, 2, 3, 0]
+        return positions, normals, tex_coords, indices
 
-class Cube(core.Mesh):
-    #    v6----- v5  
-    #   /|      /|   
-    #  v1------v0|   
-    #  | |     | |   
-    #  | v7----|-v4  
-    #  |/      |/    
-    #  v2------v3    
+#    v6----- v5  
+#   /|      /|   
+#  v1------v0|   
+#  | |     | |   
+#  | v7----|-v4  
+#  |/      |/    
+#  v2------v3    
+class Cube(Mesh):
     def __init__(self):
+        positions, normals, tex_coords, indices = self.__get_vertices()
+        vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
+        vao = VAO(vertices, indices)
+        super().__init__(vao, vertices, indices)
+
+    def __get_vertices(self):
         v = [
-            glm.vec3(0.5, 0.5, 0.5),
-            glm.vec3(-0.5, 0.5, 0.5),
-            glm.vec3(-0.5, -0.5, 0.5),
-            glm.vec3(0.5, -0.5, 0.5),
-            glm.vec3(0.5, -0.5, -0.5),
-            glm.vec3(0.5, 0.5, -0.5),
-            glm.vec3(-0.5, 0.5, -0.5),
-            glm.vec3(-0.5, -0.5, -0.5)
+            glm.vec3(0.5, 0.5, 0.5), glm.vec3(-0.5, 0.5, 0.5), glm.vec3(-0.5, -0.5, 0.5), glm.vec3(0.5, -0.5, 0.5),
+            glm.vec3(0.5, -0.5, -0.5), glm.vec3(0.5, 0.5, -0.5), glm.vec3(-0.5, 0.5, -0.5), glm.vec3(-0.5, -0.5, -0.5)
         ]
         n = [
-            glm.vec3(0.0, 0.0, 1.0),
-            glm.vec3(1.0, 0.0, 0.0),
-            glm.vec3(0.0, 1.0, 0.0),
-            glm.vec3(-1.0, 0.0, 0.0),
-            glm.vec3(0.0, -1.0, 0.0),
-            glm.vec3(0.0, 0.0, -1.0)
+            glm.vec3(0.0, 0.0, 1.0), glm.vec3(1.0, 0.0, 0.0), glm.vec3(0.0, 1.0, 0.0),
+            glm.vec3(-1.0, 0.0, 0.0), glm.vec3(0.0, -1.0, 0.0), glm.vec3(0.0, 0.0, -1.0)
         ]
         t = [
-            glm.vec2(1.0, 1.0),
-            glm.vec2(0.0, 1.0),
-            glm.vec2(0.0, 0.0),
-            glm.vec2(1.0, 0.0)
+            glm.vec2(1.0, 1.0), glm.vec2(0.0, 1.0), glm.vec2(0.0, 0.0), glm.vec2(1.0, 0.0)
         ]
 
-        self.positions = [
+        positions = [
             v[0], v[1], v[2], v[3], # front
             v[0], v[3], v[4], v[5], # right
             v[0], v[5], v[6], v[1], # top
@@ -78,7 +73,7 @@ class Cube(core.Mesh):
             v[4], v[7], v[6], v[5]  # back
         ]
 
-        self.normals = [
+        normals = [
             n[0], n[0], n[0], n[0], # front
             n[1], n[1], n[1], n[1], # right
             n[2], n[2], n[2], n[2], # top
@@ -87,7 +82,7 @@ class Cube(core.Mesh):
             n[5], n[5], n[5], n[5]  # back
         ]
 
-        self.tex_coords = [
+        tex_coords = [
             t[0], t[1], t[2], t[3], # front
             t[1], t[2], t[3], t[0], # right
             t[3], t[0], t[1], t[2], # top
@@ -96,7 +91,7 @@ class Cube(core.Mesh):
             t[2], t[3], t[0], t[1]  # back
         ]
 
-        self.indices = [
+        indices = [
             0, 1, 2, 2, 3, 0,       # front
             4, 5, 6, 6, 7, 4,       # right
             8, 9, 10, 10, 11, 8,    # top
@@ -113,24 +108,21 @@ class Cube(core.Mesh):
         #     16, 17, 17, 18, 18, 19, 19, 16, # bottom
         #     20, 21, 21, 22, 22, 23, 23, 20  # back
         # ]
+        return positions, normals, tex_coords, indices
 
-        vertices = core.to_vertex_array(self.positions, self.normals, self.tex_coords)
-        vao = core.VAO(vertices, self.indices)
-        super().__init__(vao, vertices, self.indices)
-
-class Sphere(core.Mesh):
+class Sphere(Mesh):
     def __init__(
         self,
         radius,
         stacks=16,
         sectors=16
     ):
-        self.positions, self.normals, self.tex_coords, self.indices = self.get_vertices(radius, stacks, sectors)
-        vertices = core.to_vertex_array(self.positions, self.normals, self.tex_coords)
-        vao = core.VAO(vertices, self.indices)
-        super().__init__(vao, vertices, self.indices)
+        positions, normals, tex_coords, indices = self.__get_vertices(radius, stacks, sectors)
+        vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
+        vao = VAO(vertices, indices)
+        super().__init__(vao, vertices, indices)
 
-    def get_vertices(self, radius, stacks, sectors):
+    def __get_vertices(self, radius, stacks, sectors):
         # TODO: Optimization using numpy (e.g. without for loops)
         """
         theta: angle between up-axis(=y) and the point on the sphere
@@ -170,108 +162,7 @@ class Sphere(core.Mesh):
                     indices.append(p2 + 1)
 
         return positions, normals, tex_coords, indices
-# class Sphere(Primitives):
-#         self.radius, self.subh, self.suba = radius, subh, suba
-#         self.positions, self.indices, self.normals, self.tex_coords = self.get_vertices()
-#         self.colors = get_color_by_pos(self.positions)
-#         self.material = material
-
-#         super().__init__(self.positions, self.colors, self.normals, self.tex_coords)
-
-#         self.element_buff = glGenBuffers(1)
-#         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.element_buff)
-#         glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
-
-#     def get_vertices(self):
-#         y, rst = [], []
-#         cp, sp = [], []
-#         for i in range(self.subh+1):
-#             theta = i * np.pi / self.subh
-#             y.append(self.radius * np.cos(theta))
-#             rst.append(self.radius * np.sin(theta))
-#         for i in range(self.suba+1):
-#             phi = 2 * np.pi * i / self.suba
-#             cp.append(np.cos(phi))
-#             sp.append(np.sin(phi))
-
-#         positions, normals, tex_coords = [], [], []
-#         for i in range(self.subh):
-#             for j in range(self.suba):
-#                 vx0, vy0, vz0 = sp[j] * rst[i], y[i], cp[j] * rst[i]
-#                 vx1, vy1, vz1 = sp[j] * rst[i+1], y[i+1], cp[j] * rst[i+1]
-#                 vx2, vy2, vz2 = sp[j+1] * rst[i], y[i], cp[j+1] * rst[i]
-#                 vx3, vy3, vz3 = sp[j+1] * rst[i+1], y[i+1], cp[j+1] * rst[i+1]
-
-#                 if i < self.subh - 1:
-#                     positions.append([vx0, vy0, vz0])
-#                     positions.append([vx1, vy1, vz1])
-#                     positions.append([vx3, vy3, vz3])
-
-#                     normals.append([vx0 / self.radius, vy0 / self.radius, vz0 / self.radius])
-#                     normals.append([vx1 / self.radius, vy1 / self.radius, vz1 / self.radius])
-#                     normals.append([vx3 / self.radius, vy3 / self.radius, vz3 / self.radius])
-                    
-#                     u = np.arctan2(vx0 / self.radius, vz0 / self.radius) / (2 * np.pi) + 0.5
-#                     v = vy0 / self.radius * 0.5 + 0.5
-#                     tex_coords.append([u, v])
-
-#                     u = np.arctan2(vx1 / self.radius, vz1 / self.radius) / (2 * np.pi) + 0.5
-#                     v = vy1 / self.radius * 0.5 + 0.5
-#                     tex_coords.append([u, v])
-
-#                     u = np.arctan2(vx3 / self.radius, vz3 / self.radius) / (2 * np.pi) + 0.5
-#                     v = vy3 / self.radius * 0.5 + 0.5
-#                     tex_coords.append([u, v])
-
-#                 if i > 0:
-#                     positions.append([vx3, vy3, vz3])
-#                     positions.append([vx2, vy2, vz2])
-#                     positions.append([vx0, vy0, vz0])
-
-#                     normals.append([vx3 / self.radius, vy3 / self.radius, vz3 / self.radius])
-#                     normals.append([vx2 / self.radius, vy2 / self.radius, vz2 / self.radius])
-#                     normals.append([vx0 / self.radius, vy0 / self.radius, vz0 / self.radius])
-
-#                     u = np.arctan2(vx3 / self.radius, vz3 / self.radius) / (2 * np.pi) + 0.5
-#                     v = vy3 / self.radius * 0.5 + 0.5
-#                     tex_coords.append([u, v])
-
-#                     u = np.arctan2(vx2 / self.radius, vz2 / self.radius) / (2 * np.pi) + 0.5
-#                     v = vy2 / self.radius * 0.5 + 0.5
-#                     tex_coords.append([u, v])
-
-#                     u = np.arctan2(vx0 / self.radius, vz0 / self.radius) / (2 * np.pi) + 0.5
-#                     v = vy0 / self.radius * 0.5 + 0.5
-#                     tex_coords.append([u, v])
-
-#         positions = np.array(positions, dtype=np.float32).flatten()
-#         indices = np.array([i for i in range(len(positions) // 3)], dtype=np.uint32)
-#         normals = np.array(normals, dtype=np.float32).flatten()
-#         tex_coords = np.array(tex_coords, dtype=np.float32).flatten()
-#         return positions, indices, normals, tex_coords
-
-#     def render(self, shader: Shader, render_wireframe: bool=False):
-#         if self.material != None:
-#             shader.set_int("colorMode", 0)
-#             self.material.update(shader)
-#         else:
-#             shader.set_int("colorMode", 1)
-
-#         glBindVertexArray(self.vao)
-#         glEnable(GL_POLYGON_OFFSET_FILL)
-#         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-#         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.element_buff)
-#         glDrawElements(GL_TRIANGLES, len(self.indices), GL_UNSIGNED_INT, None)
-
-#         if render_wireframe == True:
-#             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-#             glLineWidth(2)
-#             shader.set_int("colorMode", 2)
-#             shader.set_vec4("uColor", glm.vec4(0))
-#             glDrawElements(GL_TRIANGLES, len(self.indices), GL_UNSIGNED_INT, None)
-
-#         glDisable(GL_POLYGON_OFFSET_FILL)
-
+        
 # class Cylinder(Primitives):
 #     def __init__(self,
 #                  radius: float,

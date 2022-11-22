@@ -183,9 +183,9 @@ class Q:
     @staticmethod
     def from_E(e: torch.Tensor, order: str) -> torch.Tensor:
         axis = {
-            'x': torch.tensor([1, 0, 0], dtype=torch.float32),
-            'y': torch.tensor([0, 1, 0], dtype=torch.float32),
-            'z': torch.tensor([0, 0, 1], dtype=torch.float32)
+            'x': torch.tensor([1, 0, 0], dtype=torch.float32, device=e.device),
+            'y': torch.tensor([0, 1, 0], dtype=torch.float32, device=e.device),
+            'z': torch.tensor([0, 0, 1], dtype=torch.float32, device=e.device)
         }
 
         q0 = Q.from_A(e[..., 0], axis[order[0]])

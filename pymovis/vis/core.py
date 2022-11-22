@@ -1,35 +1,31 @@
+from __future__ import annotations
+
 import numpy as np
 from OpenGL.GL import *
 import glm
 
-def to_vertex_array(positions, normals, tex_coords):
-    res = []
-    for i in range(len(positions)):
-        res.append(Vertex(positions[i], normals[i], tex_coords[i]))
-    return res
-
 class VAO:
-    def __init__(self, vertex_array, indices):
-        self.vao_id        = glGenVertexArrays(1)
-        self.vbos          = glGenBuffers(3)
-        self.ebo           = glGenBuffers(1)
+    def __init__(self, vertex_array: list[Vertex], indices) -> None:
+        self.__id          = glGenVertexArrays(1)
+        self.__vbos        = glGenBuffers(3)
+        self.__ebo         = glGenBuffers(1)
         self.indices_count = len(indices)
 
-        glBindVertexArray(self.vao_id)
+        glBindVertexArray(self.__id)
         # glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
         # glBufferData(GL_ARRAY_BUFFER, Vertex.sizeof(), vertex_array, GL_STATIC_DRAW)
         # glBufferData(GL_ARRAY_BUFFER, Vertex.sizeof() * len(vertex_array), vertex_array, GL_STATIC_DRAW)
 
         # position
         data = np.array([v.position for v in vertex_array]).flatten()
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbos[0])
+        glBindBuffer(GL_ARRAY_BUFFER, self.__vbos[0])
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
 
         # normal
         data = np.array([v.normal for v in vertex_array]).flatten()
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbos[1])
+        glBindBuffer(GL_ARRAY_BUFFER, self.__vbos[1])
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(1)
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
@@ -43,18 +39,22 @@ class VAO:
 
         # tex_coord
         data = np.array([v.uv for v in vertex_array]).flatten()
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbos[2])
+        glBindBuffer(GL_ARRAY_BUFFER, self.__vbos[2])
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(2)
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
 
         # indices
         indices = np.array(indices, dtype=np.uint32)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.ebo)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.__ebo)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL_STATIC_DRAW)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
+
+    @property
+    def id(self):
+        return self.__id
 
 class Vertex:
     def __init__(
@@ -63,29 +63,44 @@ class Vertex:
         normal  :glm.vec3=glm.vec3(0),
         uv      :glm.vec2=glm.vec2(0)
     ):
-        self.position = position
-        self.normal   = normal
-        self.uv       = uv
+        self.__position = position
+        self.__normal   = normal
+        self.__uv       = uv
     
-    # @staticmethod
-    # def sizeof():
-    #     return glm.sizeof(glm.vec3) + glm.sizeof(glm.vec3)
+    @property
+    def position(self):
+        return self.__position
     
-    # @staticmethod
-    # def offsetof(field):
-    #     offset_dict = {
-    #         "position": 0,
-    #         "normal": glm.sizeof(glm.vec3),
-    #     }
-    #     return ctypes.c_void_p(offset_dict[field])
+    @property
+    def normal(self):
+        return self.__normal
+
+    @property
+    def uv(self):
+        return self.__uv
+
+    @staticmethod
+    def make_vertex_array(positions, normals, tex_coords):
+        res = []
+        for i in range(len(positions)):
+            res.append(Vertex(positions[i], normals[i], tex_coords[i]))
+        return res
+
 
 class Mesh:
     def __init__(
         self,
         vao     : VAO,
-        vertices: list, # Vertex
-        indices : list  # int
+        vertices: list[Vertex],
+        indices : list[int]
     ):
-        self.vao      = vao
-        self.vertices = vertices
-        self.indices  = indices
+        self.__vao      = vao
+        self.__vertices = vertices
+        self.__indices  = indices
+    
+    @property
+    def vao(self):
+        return self.__vao
+
+    def __get_vertices(self):
+        pass
