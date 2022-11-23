@@ -9,7 +9,7 @@ class VAO:
         self.__id          = glGenVertexArrays(1)
         self.__vbos        = glGenBuffers(3)
         self.__ebo         = glGenBuffers(1)
-        self.indices_count = len(indices)
+        self.__indices     = indices
 
         glBindVertexArray(self.__id)
         # glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
@@ -55,6 +55,10 @@ class VAO:
     @property
     def id(self):
         return self.__id
+    
+    @property
+    def indices_count(self):
+        return len(self.__indices)
 
 class Vertex:
     def __init__(
@@ -101,6 +105,3 @@ class Mesh:
     @property
     def vao(self):
         return self.__vao
-
-    def __get_vertices(self):
-        pass

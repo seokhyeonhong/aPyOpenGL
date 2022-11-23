@@ -82,9 +82,9 @@ class MultiLinear(nn.Module):
         self.weight = nn.Parameter(torch.Tensor(num_layers, in_features, out_features))
         self.bias = nn.Parameter(torch.Tensor(num_layers, 1, out_features)) if bias == True else None
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
-        if self.bias != None:
+        if self.bias is not None:
             nn.init.zeros_(self.bias)
 
     def forward(self, x):
         x = torch.matmul(x, self.weight)
-        return x if self.bias == None else x + self.bias
+        return x if self.bias is None else x + self.bias

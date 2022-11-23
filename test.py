@@ -9,8 +9,8 @@ class MyApp(App):
         # t = glm.vec3(glm.sin(glfw.get_time()))
         # Render.sphere().set_scale(.5).set_material(glm.vec3(1, 0,0)).draw()
         Render.plane().set_texture("example.png").set_scale(50).set_uv_repeat(5).draw()
-        Render.sphere().set_texture("example.png").draw()
-        Render.cube().set_position(1, 0.5, 1).draw()
+        Render.cone().set_position(0, 1.0, 0).set_texture("example.png").draw()
+        # Render.cube().set_position(1, 0.5, 1).draw()
 
 if __name__ == "__main__":
     app = MyApp()

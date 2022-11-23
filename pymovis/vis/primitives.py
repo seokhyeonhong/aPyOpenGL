@@ -162,7 +162,61 @@ class Sphere(Mesh):
                     indices.append(p2 + 1)
 
         return positions, normals, tex_coords, indices
+
+class Cone(Mesh):
+    def __init__(
+        self,
+        radius,
+        height,
+        sectors=16
+    ):
+        positions, normals, tex_coords, indices = self.__get_vertices(radius, height, sectors)
+        vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
+        vao = VAO(vertices, indices)
+        super().__init__(vao, vertices, indices)
+    
+    def __get_vertices(self, radius, height, sectors):
+        positions, normals, tex_coords = [], [], []
+        indices = []
+
+        half_height = height * 0.5
+
+        # side 
+        positions.append(glm.vec3(0, half_height, 0))
+        normals.append(glm.vec3(0, 1, 0))
+        tex_coords.append(glm.vec2(0.5, 0.5))
+
+        theta = np.linspace(0, 2 * np.pi, sectors+1)
+        x = radius * np.sin(theta)
+        z = radius * np.cos(theta)
+
+        for i in range(sectors+1):
+            positions.append(glm.vec3(x[i], -half_height, z[i]))
+            normals.append(glm.vec3(x[i] / radius, 0, z[i] / radius))
+            tex_coords.append(glm.vec2(x[i] / radius * 0.5 + 0.5, z[i] / radius * 0.5 + 0.5))
         
+        for i in range(sectors):
+            indices.append(0)
+            indices.append(i+1)
+            indices.append(i+2)
+
+        # bottom
+        positions.append(glm.vec3(0, -half_height, 0))
+        normals.append(glm.vec3(0, -1, 0))
+        tex_coords.append(glm.vec2(0.5, 0.5))
+
+        for i in range(sectors+1):
+            positions.append(glm.vec3(x[i], -half_height, z[i]))
+            normals.append(glm.vec3(0, -1, 0))
+            tex_coords.append(glm.vec2(x[i] / radius * 0.5 + 0.5, z[i] / radius * 0.5 + 0.5))
+
+        for i in range(sectors):
+            indices.append(sectors+2)
+            indices.append(sectors+4+i)
+            indices.append(sectors+3+i)
+        return positions, normals, tex_coords, indices
+
+
 # class Cylinder(Primitives):
 #     def __init__(self,
 #                  radius: float,
@@ -255,99 +309,6 @@ class Sphere(Mesh):
 #             for i in range(3):
 #                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.element_buff[i])
 #                 glDrawElements(drawing_mode[i], self.indices[i].nbytes, GL_UNSIGNED_INT, None)
-
-#         glDisable(GL_POLYGON_OFFSET_FILL)
-
-# class Cone(Primitives):
-#     def __init__(self,
-#                  radius: float,
-#                  height: float,
-#                  n:      int,
-#                  material=None):
-#         self.radius, self.height, self.n = radius, height, n
-#         self.positions, self.indices, self.normals, self.tex_coords = self.get_vertices()
-#         self.colors = get_color_by_pos(self.positions)
-#         self.material = material
-
-#         super().__init__(self.positions, self.colors, self.normals, self.tex_coords)
-
-#         self.element_buff = glGenBuffers(2)
-#         for i in range(2):
-#             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.element_buff[i])
-#             glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices[i].nbytes, self.indices[i], GL_STATIC_DRAW)
-    
-#     def get_vertices(self):
-#         positions = []
-#         side_idx, bottom_idx = [], []
-#         normals = []
-#         # TODO: texture coordinates for bottom side
-#         tex_coords = []
-
-#         half_height = self.height * 0.5
-
-#         # side 
-#         positions.append([0, half_height, 0])
-#         normals.append([0, 1, 0])
-#         side_idx.append(0)
-#         tex_coords.append([0.5, 0.5])
-
-#         for i in range(self.n+1):
-#             theta = 2.0 * np.pi * i / self.n
-#             x = self.radius * np.sin(theta)
-#             z = self.radius * np.cos(theta)
-
-#             positions.append([x, -half_height, z])
-#             normals.append([x / self.radius, 0, z / self.radius])
-#             side_idx.append(i+1)
-#             tex_coords.append([x / self.radius * 0.5 + 0.5, z / self.radius * 0.5 + 0.5])
-
-#         # bottom
-#         positions.append([0, -half_height, 0])
-#         normals.append([0, -1, 0])
-#         bottom_idx.append(self.n+2)
-#         tex_coords.append([0.5, 0.5])
-
-#         for i in range(self.n+1):
-#             theta = 2.0 * np.pi * i / self.n
-#             x = self.radius * np.sin(theta)
-#             z = self.radius * np.cos(theta)
-
-#             positions.append([x, -half_height, z])
-#             normals.append([0, -1, 0])
-#             bottom_idx.append(self.n + 3 + i)
-#             tex_coords.append([x / self.radius * 0.5 + 0.5, z / self.radius * 0.5 + 0.5])
-        
-#         positions = np.array(positions, dtype=np.float32).flatten()
-#         side_idx = np.array(side_idx, dtype=np.uint32)
-#         bottom_idx = np.array(bottom_idx, dtype=np.uint32)
-#         normals = np.array(normals, dtype=np.float32).flatten()
-#         tex_coords = np.array(tex_coords, dtype=np.float32).flatten()
-#         return positions, (side_idx, bottom_idx), normals, tex_coords
-    
-#     def render(self, shader: Shader, render_wireframe: bool=False):
-#         if self.material != None:
-#             shader.set_int("colorMode", 0)
-#             self.material.update(shader)
-#         else:
-#             shader.set_int("colorMode", 1)
-
-#         glBindVertexArray(self.vao)
-
-#         glEnable(GL_POLYGON_OFFSET_FILL)
-#         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-
-#         for i in range(2):
-#             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.element_buff[i])
-#             glDrawElements(GL_TRIANGLE_FAN, self.indices[i].nbytes, GL_UNSIGNED_INT, None)
-        
-#         if render_wireframe:
-#             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-#             glLineWidth(2)
-#             shader.set_int("colorMode", 2)
-#             shader.set_vec4("uColor", glm.vec4(0))
-#             for i in range(2):
-#                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.element_buff[i])
-#                 glDrawElements(GL_TRIANGLE_FAN, self.indices[i].nbytes, GL_UNSIGNED_INT, None)
 
 #         glDisable(GL_POLYGON_OFFSET_FILL)
 

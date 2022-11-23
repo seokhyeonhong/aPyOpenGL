@@ -65,7 +65,7 @@ class RenderOptions:
         return self._uv_repeat
 
     def set_position(self, x, y=None, z=None):
-        if y == None and z == None:
+        if y is None and z is None:
             self._position = glm.vec3(x)
         elif y != None and z != None:
             self._position = glm.vec3(x, y, z)
@@ -76,7 +76,7 @@ class RenderOptions:
         return self
     
     def set_scale(self, x, y=None, z=None):
-        if y == None and z == None:
+        if y is None and z is None:
             self._scale = glm.vec3(x)
         elif y != None and z != None:
             self._scale = glm.vec3(x, y, z)
@@ -96,7 +96,7 @@ class RenderOptions:
         return self
     
     def set_uv_repeat(self, u, v=None):
-        if v == None:
+        if v is None:
             self._uv_repeat = glm.vec2(u)
         else:
             self._uv_repeat = glm.vec2(u, v)
@@ -179,6 +179,13 @@ class Render:
         return Render.render_options(Render._sphere)
     
     @staticmethod
+    def cone(radius=0.5, height=1, sectors=16):
+        if not hasattr(Render, "_cone"):
+            Render._cone = Cone(radius, height, sectors)
+        return RenderOptions(Render._cone, Render.primitive_shader, Render.draw_phong)
+        # return Render.render_options(Render._cone)
+
+    @staticmethod
     def plane():
         if not hasattr(Render, "_plane"):
             Render._plane = Plane()
@@ -186,7 +193,9 @@ class Render:
 
     @staticmethod
     def draw_phong(option: RenderOptions, shader: Shader):
-        if option == None or shader == None:
+        if option is None or shader is None:
+            return
+        if Render.render_mode == RenderMode.SHADOW:
             return
 
         shader.use()
@@ -237,7 +246,9 @@ class Render:
     
     @staticmethod
     def draw_shadow(option: RenderOptions, shader: Shader):
-        if option == None or shader == None:
+        if option is None or shader is None:
+            return
+        if Render.render_mode != RenderMode.SHADOW:
             return
         
         shader.use()

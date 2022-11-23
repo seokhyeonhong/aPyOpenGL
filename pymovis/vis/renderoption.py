@@ -56,7 +56,7 @@ class RenderOptions:
         return self
     
     def set_scale(self, x, y=None, z=None):
-        if y == None and z == None:
+        if y is None and z is None:
             self._scale = glm.vec3(x)
         else:
             self._scale = glm.vec3(x, y, z)
@@ -76,7 +76,7 @@ class RenderOptions:
         return self
     
     def set_uv_repeat(self, x, y=None):
-        if y == None:
+        if y is None:
             self._uv_repeat = glm.vec2(x)
         else:
             self._uv_repeat = glm.vec2(x, y)

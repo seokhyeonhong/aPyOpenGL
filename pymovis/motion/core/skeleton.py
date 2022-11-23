@@ -32,7 +32,7 @@ class Skeleton:
     def add_joint(self, joint_name, parent_id=None):
         joint_id = len(self.joints)
 
-        if parent_id == None:
+        if parent_id is None:
             assert len(self.joints) == 0, "Only one root joint is allowed"
             self.parent_id.append(-1)
             self.children_id.append([])
