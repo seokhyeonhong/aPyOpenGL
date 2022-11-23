@@ -30,21 +30,23 @@ class SlidingWindowDataset(Dataset):
             
     def load_windows(self, path):
         # load pickle file if exists
-        # pkl_path = os.path.join(path, "dataset.pkl")
-        # if os.path.exists(pkl_path):
-        #     with open(pkl_path, "rb") as f:
-        #         motions = pickle.load(f)
-        # else:
-        files = []
-        for f in os.listdir(path):
-            if f.endswith(".bvh"):
-                files.append(os.path.join(path, f))
-        motions = bvh.load_parallel(files, v_forward=self.v_forward, v_up=self.v_up)
-        # with open(pkl_path, "wb") as f:
-        #     pickle.dump(motions, f)
-
+        pkl_path = os.path.join(path, "dataset.pkl")
+        if os.path.exists(pkl_path):
+            print("Loading dataset from pickle file...")
+            with open(pkl_path, "rb") as f:
+                motions = pickle.load(f)
+        else:
+            files = []
+            for f in os.listdir(path):
+                if f.endswith(".bvh"):
+                    files.append(os.path.join(path, f))
+            motions = bvh.load_parallel(files, v_forward=self.v_forward, v_up=self.v_up)
+            with open(pkl_path, "wb") as f:
+                pickle.dump(motions, f)
+            
         windows = []
-        for m in motions:
+        for idx, m in enumerate(motions):
+            print(f"Creating windows... {idx+1}/{len(motions)}", end="\r")
             for start in range(0, m.num_frames - self.window_size, self.window_offset):
                 end = start + self.window_size
                 windows.append(m.make_window(start, end))

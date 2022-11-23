@@ -14,7 +14,7 @@ Glossary:
 - p: Position
 """
 
-def normalize(x, axis=-1, eps=1e-8):
+def normalize(x, axis=-1, eps=npconst.EPSILON()):
     res = x / (np.linalg.norm(x, axis=axis, keepdims=True) + eps)
     return res
 

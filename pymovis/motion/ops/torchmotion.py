@@ -17,7 +17,7 @@ Glossary:
 - p: Position
 """
 
-def normalize(x, dim=-1, eps=1e-8):
+def normalize(x, dim=-1, eps=torchconst.EPSILON()):
     return F.normalize(x, p=2, dim=dim, eps=eps)
 
 class R:

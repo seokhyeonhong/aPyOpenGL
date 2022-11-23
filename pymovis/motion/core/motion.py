@@ -6,7 +6,7 @@ import copy
 from pymovis.motion.core.skeleton import Skeleton
 from pymovis.motion.core.pose import Pose
 from pymovis.motion.ops import npmotion
-from pymovis.motion.utils import npconst
+from pymovis.motion.utils import util, npconst
 
 class Motion:
     def __init__(
