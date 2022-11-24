@@ -8,6 +8,7 @@ from pymovis.vis.material import Material
 from pymovis.vis.shader import Shader
 from pymovis.vis.primitives import Cube
 from pymovis.vis.renderoption import RenderOptions
+from pymovis.vis.texture import Texture
 from pymovis.vis import glconst
 
 class RenderMode(Enum):
@@ -15,7 +16,7 @@ class RenderMode(Enum):
     SHADOW = 1
 
 class RenderInfo:
-    sky_color         = glm.vec4(0.5, 0.5, 0.5, 1.0)
+    sky_color         = glm.vec4(1.0)
     cam_position      = glm.vec3(0)
     cam_projection    = glm.mat4(1)
     cam_view          = glm.mat4(1)
@@ -105,6 +106,7 @@ class RenderOptions:
 class Render:
     render_mode = RenderMode.PHONG
     render_info = RenderInfo()
+    primitive_meshes = {}
 
     @staticmethod
     def initialize_shaders():
@@ -168,15 +170,15 @@ class Render:
 
     @staticmethod
     def cube():
-        if not hasattr(Render, "_cube"):
-            Render._cube = Cube()
-        return Render.render_options(Render._cube)
+        if Render.primitive_meshes.get("cube") is None:
+            Render.primitive_meshes["cube"] = Cube()
+        return Render.render_options(Render.primitive_meshes["cube"])
 
     @staticmethod
     def sphere(radius=0.5, stacks=32, sectors=32):
-        if not hasattr(Render, "_sphere"):
-            Render._sphere = Sphere(radius, stacks, sectors)
-        return Render.render_options(Render._sphere)
+        if Render.primitive_meshes.get("sphere") is None:
+            Render.primitive_meshes["sphere"] = Sphere(radius, stacks, sectors)
+        return Render.render_options(Render.primitive_meshes["sphere"])
     
     @staticmethod
     def cone(radius=0.5, height=1, sectors=16):
@@ -187,9 +189,9 @@ class Render:
 
     @staticmethod
     def plane():
-        if not hasattr(Render, "_plane"):
-            Render._plane = Plane()
-        return Render.render_options(Render._plane)
+        if Render.primitive_meshes.get("plane") is None:
+            Render.primitive_meshes["plane"] = Plane()
+        return Render.render_options(Render.primitive_meshes["plane"])
 
     @staticmethod
     def draw_phong(option: RenderOptions, shader: Shader):
@@ -281,3 +283,8 @@ class Render:
         Render.render_info.light_color       = light.color * light.intensity
         Render.render_info.light_attenuation = light.attenuation
         Render.render_info.light_matrix      = light.get_view_projection_matrix()
+    
+    @staticmethod
+    def clear():
+        Render.primitive_meshes.clear()
+        Texture.clear()

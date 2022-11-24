@@ -55,6 +55,6 @@ class Pose:
         if not hasattr(self, "joint_sphere"):
             self.joint_sphere = Sphere(0.07)
 
-        _, global_p = R.fk(self.local_R, self.root_p, self.skeleton.get_bone_offsets(), self.skeleton.parent_id)
+        _, global_p = R.fk(self.local_R, self.root_p, self.skeleton)
         for i in range(self.skeleton.num_joints):
             Render.render_options(self.joint_sphere).set_position(global_p[i]).draw()

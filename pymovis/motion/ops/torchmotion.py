@@ -41,6 +41,11 @@ class R:
         return global_R, global_p
     
     @staticmethod
+    def fk_position(r, root_p, skeleton):
+        _, global_p = R.fk(r, root_p, skeleton)
+        return global_p
+
+    @staticmethod
     def from_E(e: torch.Tensor, order: str, radians: bool=True) -> torch.Tensor:
         """
         :param e: (..., 3)

@@ -50,7 +50,7 @@ class Motion:
     def from_torch(cls, skeleton, local_R, root_p, fps=30.0):
         poses = []
         for i in range(local_R.shape[0]):
-            pose = Pose.from_numpy(skeleton, local_R[i].numpy(), root_p[i].numpy())
+            pose = Pose.from_numpy(skeleton, local_R[i].cpu().numpy(), root_p[i].cpu().numpy())
             poses.append(pose)
         return cls("motion", skeleton, poses, fps=fps)
 

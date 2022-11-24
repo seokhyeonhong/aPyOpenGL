@@ -45,3 +45,7 @@ class Texture:
 
     def get_texture_id(self):
         return self._texture_id
+    
+    @staticmethod
+    def clear():
+        Texture.texture_id_map.clear()

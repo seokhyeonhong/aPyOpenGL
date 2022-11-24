@@ -3,7 +3,7 @@ from OpenGL.GL import *
 import glfw
 from pymovis.vis.camera import Camera
 from pymovis.vis.light import DirectionalLight, PointLight
-
+from pymovis.vis.render import Render
 class App:
     def __init__(
         self,
@@ -54,6 +54,8 @@ class App:
     def key_callback(self, window, key, scancode, action, mods):
         if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
             glfw.set_window_should_close(window, True)
+            Render.clear()
+            
         # elif key == glfw.KEY_F1 and action == glfw.PRESS:
         #     Render.set_render_mode(RenderMode.PHONG)
         # elif key == glfw.KEY_F2 and action == glfw.PRESS:
