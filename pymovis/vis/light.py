@@ -36,7 +36,7 @@ class DirectionalLight(Light):
     """
     def __init__(
         self,
-        direction=glm.vec3(-1),
+        direction=glm.vec3(-1, -4, -1),
         focus_position=glm.vec3(0),
         color=glm.vec3(1.0),
         intensity=1.0,

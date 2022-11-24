@@ -1,4 +1,6 @@
+from __future__ import annotations
 from enum import Enum
+
 from OpenGL.GL import *
 import glfw
 import glm
@@ -103,6 +105,14 @@ class RenderOptions:
             self._uv_repeat = glm.vec2(u, v)
         return self
 
+class RenderOptionsVec:
+    def __init__(self, options: list[RenderOptions]):
+        self.options = options
+    
+    def draw(self):
+        for option in self.options:
+            option.draw()
+
 class Render:
     render_mode = RenderMode.PHONG
     render_info = RenderInfo()
@@ -182,9 +192,8 @@ class Render:
     
     @staticmethod
     def cone(radius=0.5, height=1, sectors=16):
-        if not hasattr(Render, "_cone"):
-            Render._cone = Cone(radius, height, sectors)
-        return RenderOptions(Render._cone, Render.primitive_shader, Render.draw_phong)
+        if Render.primitive_meshes.get("cone") is None:
+            Render.primitive_meshes["cone"] = Cone(radius, height, sectors)
         # return Render.render_options(Render._cone)
 
     @staticmethod
@@ -192,6 +201,29 @@ class Render:
         if Render.primitive_meshes.get("plane") is None:
             Render.primitive_meshes["plane"] = Plane()
         return Render.render_options(Render.primitive_meshes["plane"])
+    
+    @staticmethod
+    def cylinder(radius=0.5, height=1, sectors=16):
+        if Render.primitive_meshes.get("cylinder") is None:
+            Render.primitive_meshes["cylinder"] = Cylinder(radius, height, sectors)
+        return Render.render_options(Render.primitive_meshes["cylinder"])
+
+    @staticmethod
+    def arrow():
+        if Render.primitive_meshes.get("arrow") is None:
+            R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
+            x_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0.9, 0, 0).set_orientation(R_x).set_material(albedo=glm.vec3(1, 0, 0))
+            x_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0.4, 0, 0).set_orientation(R_x).set_material(albedo=glm.vec3(1, 0, 0))
+
+            y_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.9, 0).set_material(albedo=glm.vec3(0, 1, 0))
+            y_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.4, 0).set_material(albedo=glm.vec3(0, 1, 0))
+
+            R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
+            z_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.9).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1))
+            z_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.4).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1))
+
+            Render.primitive_meshes["arrow"] = RenderOptionsVec([x_head, x_body, y_head, y_body, z_head, z_body])
+        return Render.primitive_meshes["arrow"]
 
     @staticmethod
     def draw_phong(option: RenderOptions, shader: Shader):

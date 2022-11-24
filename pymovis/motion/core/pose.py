@@ -1,4 +1,5 @@
 import numpy as np
+import glm
 
 from pymovis.motion.core.skeleton import Skeleton
 from pymovis.motion.ops.npmotion import R
@@ -39,6 +40,10 @@ class Pose:
     def from_numpy(cls, skeleton, local_R, root_p):
         return cls(skeleton, local_R, root_p)
 
+    @classmethod
+    def from_torch(cls, skeleton, local_R, root_p):
+        return cls(skeleton, local_R.cpu().numpy(), root_p.cpu().numpy())
+
     @property
     def forward(self):
         return self.local_R[0] @ self.skeleton.v_forward
@@ -51,10 +56,10 @@ class Pose:
     def left(self):
         return np.cross(self.up, self.forward)
     
-    def draw(self):
+    def draw(self, albedo=glm.vec3(1.0, 0.0, 0.0)):
         if not hasattr(self, "joint_sphere"):
-            self.joint_sphere = Sphere(0.07)
+            self.joint_sphere = Sphere(0.05)
 
         _, global_p = R.fk(self.local_R, self.root_p, self.skeleton)
         for i in range(self.skeleton.num_joints):
-            Render.render_options(self.joint_sphere).set_position(global_p[i]).draw()
+            Render.render_options(self.joint_sphere).set_position(global_p[i]).set_material(albedo=albedo).draw()
