@@ -6,7 +6,7 @@ from pymovis.motion.ops.npmotion import R
 from pymovis.motion.utils import npconst
 
 from pymovis.vis.render import Render
-from pymovis.vis.primitives import Sphere
+from pymovis.vis.primitives import Sphere, Cylinder
 
 class Pose:
     """
@@ -59,7 +59,20 @@ class Pose:
     def draw(self, albedo=glm.vec3(1.0, 0.0, 0.0)):
         if not hasattr(self, "joint_sphere"):
             self.joint_sphere = Sphere(0.05)
+            self.joint_bone   = Cylinder(0.03, 1.0)
 
         _, global_p = R.fk(self.local_R, self.root_p, self.skeleton)
         for i in range(self.skeleton.num_joints):
             Render.render_options(self.joint_sphere).set_position(global_p[i]).set_material(albedo=albedo).draw()
+            if i != 0:
+                parent_pos = global_p[self.skeleton.parent_id[i]]
+
+                center = glm.vec3((parent_pos + global_p[i]) / 2)
+                dist = np.linalg.norm(parent_pos - global_p[i])
+                dir = glm.vec3((global_p[i] - parent_pos) / dist)
+
+                axis = glm.cross(glm.vec3(0, 1, 0), dir)
+                angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
+                rotation = glm.rotate(glm.mat4(1.0), angle, axis)
+                
+                Render.render_options(self.joint_bone).set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_material(albedo=albedo).draw()

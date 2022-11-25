@@ -10,7 +10,8 @@ class MyApp(App):
         # Render.sphere().set_scale(.5).set_material(glm.vec3(1, 0,0)).draw()
         Render.plane().set_texture("example.png").set_scale(50).set_uv_repeat(5).draw()
         Render.arrow().draw()
-        # Render.cube().set_position(1, 0.5, 1).draw()
+        Render.cube().set_position(1, 0.5, 1).draw()
+        Render.sphere().set_position(3, 0.5, 1).set_texture("example.png").draw()
 
 if __name__ == "__main__":
     app = MyApp()

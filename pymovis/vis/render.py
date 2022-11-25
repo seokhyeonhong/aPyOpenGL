@@ -238,9 +238,9 @@ class Render:
         shader.set_mat4("P", Render.render_info.cam_projection)
         shader.set_mat4("V", Render.render_info.cam_view)
         shader.set_vec3("viewPosition", Render.render_info.cam_position)
-        shader.set_vec4("light.vector", Render.render_info.light_vector)
-        shader.set_vec3("light.color", Render.render_info.light_color)
-        shader.set_vec3("light.attenuation", Render.render_info.light_attenuation)
+        shader.set_vec4("uLight.vector", Render.render_info.light_vector)
+        shader.set_vec3("uLight.color", Render.render_info.light_color)
+        shader.set_vec3("uLight.attenuation", Render.render_info.light_attenuation)
         shader.set_mat4("lightSpaceMatrix", Render.render_info.light_matrix)
 
         # update model
@@ -251,23 +251,23 @@ class Render:
         shader.set_mat4("M", transform)
 
         # set textures
-        shader.set_int("material.albedoMap", 0)
+        shader.set_int("uMaterial.albedoMap", 0)
         if option.get_texture_id() != None:
-            shader.set_int("material.id", 0)
+            shader.set_int("uMaterial.id", 0)
             glActiveTexture(GL_TEXTURE0)
             glBindTexture(GL_TEXTURE_2D, option.get_texture_id())
         else:
-            shader.set_int("material.id", -1)
+            shader.set_int("uMaterial.id", -1)
         
-        shader.set_int("shadowMap", 1)
+        shader.set_int("uShadowMap", 1)
         glActiveTexture(GL_TEXTURE1)
         glBindTexture(GL_TEXTURE_2D, Render.depth_map)
             
         # set material
-        shader.set_vec3("material.diffuse", option._material.get_diffuse())
-        shader.set_vec3("material.specular", option._material.get_specular())
-        shader.set_float("material.shininess", option._material.get_shininess())
-        shader.set_vec3("material.albedo", option._material.get_albedo())
+        shader.set_vec3("uMaterial.diffuse", option._material.get_diffuse())
+        shader.set_vec3("uMaterial.specular", option._material.get_specular())
+        shader.set_float("uMaterial.shininess", option._material.get_shininess())
+        shader.set_vec3("uMaterial.albedo", option._material.get_albedo())
 
         shader.set_vec2("uvScale", option.get_uv_repeat())
 

@@ -99,63 +99,65 @@ class DetailTransformer(nn.Module):
         self.d_model = d_model
         self.d_ff = d_ff
         
-        self.encoder = MLP(dof+1, [d_model], d_model, activation=nn.PReLU(), activation_at_last=True)
-        self.relative_pos_enc = MLP(1, [d_model], d_model // num_heads, activation=nn.PReLU(), activation_at_last=False)
+        # encoders
+        self.encoder = nn.Sequential(
+            nn.Linear(dof * 2, d_model),
+            nn.PReLU(),
+            nn.Linear(d_model, d_model),
+            nn.PReLU(),
+        )
+        self.relative_pos_enc = nn.Sequential(
+            nn.Linear(1, d_model),
+            nn.PReLU(),
+            nn.Linear(d_model, d_model // num_heads),
+        )
+
+        # Transformer layers
         self.layer_norm = nn.LayerNorm(d_model, eps=torchconst.EPSILON())
-        
         self.layers = nn.ModuleList()
         for _ in range(num_layers):
             self.layers.append(MultiHeadAttention(d_model, head_dim=d_model // num_heads, output_dim=d_model, num_heads=num_heads, dropout=0))
-            self.layers.append(MLP(d_model, [d_ff], d_model, activation=nn.PReLU(), activation_at_last=False))
-        self.decoder = MLP(d_model, [d_model], dof + 4, activation=nn.PReLU(), activation_at_last=False)
+            self.layers.append(nn.Sequential(
+                nn.Linear(d_model, d_ff),
+                nn.PReLU(),
+                nn.Linear(d_ff, d_model),
+            ))
+        
+        # decoder
+        self.decoder = nn.Sequential(
+            nn.Linear(d_model, d_model),
+            nn.PReLU(),
+            nn.Linear(d_model, dof + 4),
+        )
 
     def forward(self, x, mask_in):
+        """
+        :param x: (B, T, D)
+        :param mask_in: (B, T, D)
+        """
+        B, T, D = x.shape
+        device = x.device
+
         h_ctx = self.encoder(torch.cat([x, mask_in], dim=-1))
 
-        E_rel = self.relative_pos_enc(torch.arange(-h_ctx.shape[1] + 1, h_ctx.shape[1], device=h_ctx.device, dtype=torch.float32)[None, :, None])
-        mask_atten = torch.zeros(x.shape[0], self.num_heads, x.shape[1], x.shape[1], device=h_ctx.device, dtype=torch.float32)
+        # relative distance range: [-T+1, ..., T-1], 2T-1 values in total
+        rel_dist = torch.arange(-T+1, T, device=device, dtype=torch.float32)
+        E_rel = self.relative_pos_enc(rel_dist.unsqueeze(-1)) # (2T-1, d_model)
 
+        # m_atten: (B, num_heads, T, T)
+        mask_atten = torch.zeros(B, self.num_heads, T, T, device=device, dtype=torch.float32)
+
+        # Transformer layers
         for i in range(len(self.layers) // 2):
             h_ctx = h_ctx + self.layers[i*2](self.layer_norm(h_ctx), E_rel=E_rel, mask=mask_atten)
             h_ctx = h_ctx + self.layers[i*2+1](self.layer_norm(h_ctx))
+        
+        # decoder
         y = self.decoder(h_ctx)
         y, contacts = torch.split(y, [self.dof, 4], dim=-1)
+        
         return y, torch.sigmoid(contacts)
 
-class DetailTransformerResidual(nn.Module):
-    def __init__(self, dof, num_layers=6, num_heads=8, d_model=512, d_ff=2048):
-        super(DetailTransformerResidual, self).__init__()
-        if d_model % num_heads != 0:
-            raise ValueError(f"d_model must be divisible by num_heads, but d_model={d_model} and num_heads={num_heads}")
-
-        self.dof = dof
-        self.num_layers = num_layers
-        self.num_heads = num_heads
-        self.d_model = d_model
-        self.d_ff = d_ff
-
-        self.encoder = MLP(dof+1, [d_model], d_model, activation=nn.PReLU(), activation_at_last=True)
-        self.relative_pos_enc = MLP(1, [d_model], d_model // num_heads, activation=nn.PReLU(), activation_at_last=False)
-        self.layer_norm = nn.LayerNorm(d_model, eps=torchconst.EPSILON())
-        
-        self.layers = nn.ModuleList()
-        for _ in range(num_layers):
-            self.layers.append(MultiHeadAttention(d_model, head_dim=d_model // num_heads, output_dim=d_model, num_heads=num_heads, dropout=0))
-            self.layers.append(MLP(d_model, [d_ff], d_model, activation=nn.PReLU(), activation_at_last=False))
-        self.decoder = MLP(d_model, [d_model], dof + 4, activation=nn.PReLU(), activation_at_last=False)
-
-    def forward(self, x, mask_in):
-        h_ctx = self.encoder(torch.cat([x, mask_in], dim=-1))
-
-        E_rel = self.relative_pos_enc(torch.arange(-h_ctx.shape[1] + 1, h_ctx.shape[1], device=h_ctx.device, dtype=torch.float32)[None, :, None])
-        mask_atten = torch.zeros(x.shape[0], self.num_heads, x.shape[1], x.shape[1], device=h_ctx.device, dtype=torch.float32)
-
-        for i in range(len(self.layers) // 2):
-            h_ctx = h_ctx + self.layers[i*2](self.layer_norm(h_ctx), E_rel=E_rel, mask=mask_atten)
-            h_ctx = h_ctx + self.layers[i*2+1](self.layer_norm(h_ctx))
-        y = self.decoder(h_ctx)
-        y, contacts = torch.split(y, [self.dof, 4], dim=-1)
-        return y + x, torch.sigmoid(contacts)
 
 class PhaseTransformer(nn.Module):
     def __init__(self, dof, num_layers=6, num_heads=8, d_model=512, d_ff=2048):
