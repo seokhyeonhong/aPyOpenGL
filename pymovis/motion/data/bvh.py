@@ -31,6 +31,11 @@ def load(filename, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()
     if not filename.endswith(".bvh"):
         print(f"{filename} is not a bvh file.")
         return
+    
+    if not isinstance(v_up, np.ndarray):
+        v_up = np.array(v_up)
+    if not isinstance(v_forward, np.ndarray):
+        v_forward = np.array(v_forward)
 
     assert v_up.shape == (3,) and v_forward.shape == (3,), f"v_up and v_forward must be 3D vectors, but got {v_up.shape} and {v_forward.shape}."
 

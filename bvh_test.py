@@ -25,13 +25,9 @@ class MotionApp(App):
 if __name__ == "__main__":
     # import time
     # t = time.time()
-    motion = bvh.load("pymovis/motion/data/sample.bvh")
-    motion.align_by_frame(100)
+    motion = bvh.load("pymovis/motion/data/sample.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0])
+    motion.align_by_frame(200)
     print(motion.poses[100].forward)
-    # print(time.time() - t)
-    # exit()
-    
-    # # check how many memory is used
 
     app = MotionApp(motion)
     AppManager.run(app)
