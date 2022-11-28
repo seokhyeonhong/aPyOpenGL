@@ -30,6 +30,7 @@ struct Material {
     vec3      diffuse;
     vec3      specular;
     float     shininess;
+    float     alpha;
     sampler2D albedoMap;
 };
 uniform Material uMaterial;
@@ -135,6 +136,7 @@ void main()
     {
         FragColor = BlinnPhong(uMaterial.albedo);
     }
+    FragColor.a = uMaterial.alpha;
     // vec3 fogColor = vec3(0.5);
     // float d = length(fPosition - viewPosition);
     // float fogFactor = clamp((d - 10.0) / 10.0, 0.0, 1.0);

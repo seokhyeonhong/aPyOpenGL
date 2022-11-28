@@ -291,22 +291,3 @@ class Cylinder(Mesh):
                 indices.append(index_offset + i)
         
         return positions, normals, tex_coords, indices
-
-# class Arrow(Primitives):
-#     def __init__(self,
-#                  length: float,
-#                  radius: float,
-#                  material=None):
-#         self.length, self.radius = length, radius
-#         self.material = material
-        
-#         self.body = Cylinder(radius, length * 0.8, 16, material)
-#         self.head = Cone(radius * 2, length * 0.2, 16, material)
-    
-#     def render(self, shader: Shader, R: glm.mat4=glm.mat4(1.0)):
-#         M = glm.translate(glm.mat4(1.0), glm.vec3(0, self.length * 0.4, 0))
-#         shader.set_mat4("M", R * M)
-#         self.body.render(shader, False)
-#         M = glm.translate(glm.mat4(1.0), glm.vec3(0, self.length * 0.9, 0))
-#         shader.set_mat4("M", R * M)
-#         self.head.render(shader, False)

@@ -13,6 +13,7 @@ class Material:
         self._diffuse    = glm.vec3(diffuse)
         self._specular   = glm.vec3(specular)
         self._shininess  = shininess
+        self._alpha      = 1.0
         self._albedo_map = Texture()
     
     def get_albedo(self):
@@ -30,6 +31,9 @@ class Material:
     def get_shininess(self):
         return self._shininess
     
+    def get_alpha(self):
+        return self._alpha
+    
     def set_texture(self, filename):
         # TODO: Add other types of maps (e.g. specular map, normal map, ...)
         self._albedo_map.set_texture(filename)
@@ -45,3 +49,6 @@ class Material:
     
     def set_shininess(self, shininess):
         self._shininess = shininess
+    
+    def set_alpha(self, alpha):
+        self._alpha = alpha

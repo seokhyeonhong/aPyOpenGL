@@ -50,6 +50,7 @@ class SlidingWindowDataset(Dataset):
             for start in range(0, m.num_frames - self.window_size, self.window_offset):
                 end = start + self.window_size
                 windows.append(m.make_window(start, end))
+        print()
         return windows
     
     def get_skeleton(self):

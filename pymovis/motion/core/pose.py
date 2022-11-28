@@ -63,7 +63,11 @@ class Pose:
 
         _, global_p = R.fk(self.local_R, self.root_p, self.skeleton)
         for i in range(self.skeleton.num_joints):
-            Render.render_options(self.joint_sphere).set_position(global_p[i]).set_material(albedo=albedo).draw()
+            Render.render_options(self.joint_sphere)\
+                .set_position(global_p[i])\
+                .set_material(albedo=albedo)\
+                .draw()
+
             if i != 0:
                 parent_pos = global_p[self.skeleton.parent_id[i]]
 
@@ -75,4 +79,9 @@ class Pose:
                 angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
                 rotation = glm.rotate(glm.mat4(1.0), angle, axis)
                 
-                Render.render_options(self.joint_bone).set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_material(albedo=albedo).draw()
+                Render.render_options(self.joint_bone)\
+                    .set_position(center)\
+                    .set_orientation(rotation)\
+                    .set_scale(glm.vec3(1.0, dist, 1.0))\
+                    .set_material(albedo=albedo)\
+                    .draw()

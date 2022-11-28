@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import copy
+import glm
 
 from pymovis.motion.core.skeleton import Skeleton
 from pymovis.motion.core.pose import Pose
@@ -119,13 +120,13 @@ class Motion:
     """
     Rendering
     """
-    def render_by_time(self, time):
-        frame = int(time * self.fps)
-        print(frame)
-        self.poses[frame].draw()
+    def render_by_time(self, time, albedo=glm.vec3(1, 0, 0)):
+        frame = min(int(time * self.fps), self.num_frames - 1)
+        self.poses[frame].draw(albedo=albedo)
     
-    def render_by_frame(self, frame):
-        self.poses[frame].draw()
+    def render_by_frame(self, frame, albedo=glm.vec3(1, 0, 0)):
+        frame = min(frame, self.num_frames - 1)
+        self.poses[frame].draw(albedo=albedo)
 
     """
     Motion features

@@ -104,6 +104,10 @@ class RenderOptions:
         else:
             self._uv_repeat = glm.vec2(u, v)
         return self
+    
+    def set_alpha(self, alpha):
+        self._material.set_alpha(alpha)
+        return self
 
 class RenderOptionsVec:
     def __init__(self, options: list[RenderOptions]):
@@ -268,6 +272,7 @@ class Render:
         shader.set_vec3("uMaterial.specular", option._material.get_specular())
         shader.set_float("uMaterial.shininess", option._material.get_shininess())
         shader.set_vec3("uMaterial.albedo", option._material.get_albedo())
+        shader.set_float("uMaterial.alpha", option._material.get_alpha())
 
         shader.set_vec2("uvScale", option.get_uv_repeat())
 
