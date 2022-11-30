@@ -26,7 +26,7 @@ uniform mat4 lightSpaceMatrix;
 void main()
 {
     fPosition      = vec3(M * vec4(vPosition, 1.0));
-    fNormal        = transpose(inverse(mat3(M))) * vNormal;
+    fNormal        = normalize(transpose(inverse(mat3(M))) * vNormal);
     fTexCoord      = vTexCoord;
     fPosLightSpace = lightSpaceMatrix * vec4(fPosition, 1.0);
     gl_Position    = P * V * vec4(fPosition, 1.0);

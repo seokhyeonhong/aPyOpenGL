@@ -17,7 +17,7 @@ class Plane(Mesh):
     def __init__(self):
         positions, normals, tex_coords, indices = self.get_vertices()
         vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
-        vao = VAO(vertices, indices)
+        vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao, vertices, indices)
 
     def get_vertices(self):
@@ -48,7 +48,7 @@ class Cube(Mesh):
     def __init__(self):
         positions, normals, tex_coords, indices = self.get_vertices()
         vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
-        vao = VAO(vertices, indices)
+        vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao, vertices, indices)
 
     def get_vertices(self):
@@ -119,7 +119,7 @@ class Sphere(Mesh):
     ):
         positions, normals, tex_coords, indices = self.get_vertices(radius, stacks, sectors)
         vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
-        vao = VAO(vertices, indices)
+        vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao, vertices, indices)
 
     def get_vertices(self, radius, stacks, sectors):
@@ -172,7 +172,7 @@ class Cone(Mesh):
     ):
         positions, normals, tex_coords, indices = self.get_vertices(radius, height, sectors)
         vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
-        vao = VAO(vertices, indices)
+        vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao, vertices, indices)
     
     def get_vertices(self, radius, height, sectors):
@@ -226,7 +226,7 @@ class Cylinder(Mesh):
     ):
         positions, normals, tex_coords, indices = self.get_vertices(radius, height, sectors)
         vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
-        vao = VAO(vertices, indices)
+        vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao, vertices, indices)
     
     def get_vertices(self, radius, height, sectors):

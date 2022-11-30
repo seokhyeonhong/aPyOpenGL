@@ -12,6 +12,7 @@ class MyApp(App):
         Render.arrow().draw()
         Render.cube().set_position(1, 0.5, 1).draw()
         Render.sphere().set_position(3, 0.5, 1).set_texture("example.png").draw()
+        Render.text("Rendering").set_position(3, 0, 0).draw()
 
 if __name__ == "__main__":
     app = MyApp()

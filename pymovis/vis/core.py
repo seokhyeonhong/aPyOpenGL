@@ -5,27 +5,37 @@ from OpenGL.GL import *
 import glm
 
 class VAO:
-    def __init__(self, vertex_array: list[Vertex], indices) -> None:
-        self.__id          = glGenVertexArrays(1)
-        self.__vbos        = glGenBuffers(3)
-        self.__ebo         = glGenBuffers(1)
-        self.__indices     = indices
+    def __init__(self, id=None, vbos=None, ebo=None, indices=None) -> None:
+        self.__id      = id
+        self.__vbos    = vbos
+        self.__ebo     = ebo
+        self.__indices = indices
 
-        glBindVertexArray(self.__id)
+    @classmethod
+    def from_vertex_array(cls, vertex_array: list[Vertex], indices) -> VAO:
+        """
+        Constructor from a list of vertices and indices
+        """
+        id          = glGenVertexArrays(1)
+        vbos        = glGenBuffers(3)
+        ebo         = glGenBuffers(1)
+        indices     = indices
+
+        glBindVertexArray(id)
         # glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
         # glBufferData(GL_ARRAY_BUFFER, Vertex.sizeof(), vertex_array, GL_STATIC_DRAW)
         # glBufferData(GL_ARRAY_BUFFER, Vertex.sizeof() * len(vertex_array), vertex_array, GL_STATIC_DRAW)
 
         # position
         data = np.array([v.position for v in vertex_array]).flatten()
-        glBindBuffer(GL_ARRAY_BUFFER, self.__vbos[0])
+        glBindBuffer(GL_ARRAY_BUFFER, vbos[0])
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
 
         # normal
         data = np.array([v.normal for v in vertex_array]).flatten()
-        glBindBuffer(GL_ARRAY_BUFFER, self.__vbos[1])
+        glBindBuffer(GL_ARRAY_BUFFER, vbos[1])
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(1)
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
@@ -39,23 +49,25 @@ class VAO:
 
         # tex_coord
         data = np.array([v.uv for v in vertex_array]).flatten()
-        glBindBuffer(GL_ARRAY_BUFFER, self.__vbos[2])
+        glBindBuffer(GL_ARRAY_BUFFER, vbos[2])
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(2)
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
 
         # indices
         indices = np.array(indices, dtype=np.uint32)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.__ebo)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL_STATIC_DRAW)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
-    @property
-    def id(self):
-        return self.__id
+        return cls(id, vbos, ebo, indices)
     
+    @property
+    def id(self) -> int:
+        return self.__id
+
     @property
     def indices_count(self):
         return len(self.__indices)

@@ -90,9 +90,11 @@ class Motion:
         forward_from = self.poses[frame].forward
         forward_from = npmotion.normalize(forward_from * npconst.XZ())
         forward_to   = npmotion.normalize(forward * npconst.XZ())
+        # print("from: ", forward_from, "to: ", forward_to)
+        # breakpoint()
 
         # if forward_from and forward_to are (nearly) parallel, do nothing
-        if np.dot(forward_from, forward_to) > 0.999:
+        if np.dot(forward_from, forward_to) > 0.999999:
             return
         
         axis = npmotion.normalize(np.cross(forward_from, forward_to))
@@ -140,7 +142,7 @@ class Motion:
     def get_root_v(self):
         return self.global_v[:, 0, :]
 
-    def get_contacts(self, lfoot_idx, rfoot_idx, velfactor=0.0002, keep_shape=False):
+    def get_contacts(self, lfoot_idx, rfoot_idx, velfactor=2e-6, keep_shape=False):
         """
         Extracts binary tensors of feet contacts
 
@@ -150,7 +152,7 @@ class Motion:
         :param velfactor: velocity threshold to consider a joint moving or not
         :return: binary tensors of left foot contacts and right foot contacts
         """
-        contacts_l = np.linalg.norm(self.global_v[:, lfoot_idx], axis=-1) < velfactor
-        contacts_r = np.linalg.norm(self.global_v[:, rfoot_idx], axis=-1) < velfactor
-
-        return np.concatenate([contacts_l, contacts_r], axis=-1, dtype=np.float32)
+        contacts_l = np.sum(self.global_v[:, lfoot_idx] ** 2, axis=-1) < velfactor
+        contacts_r = np.sum(self.global_v[:, rfoot_idx] ** 2, axis=-1) < velfactor
+        res = np.concatenate([contacts_l, contacts_r], axis=-1, dtype=np.float32)
+        return res

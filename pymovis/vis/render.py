@@ -11,6 +11,7 @@ from pymovis.vis.shader import Shader
 from pymovis.vis.primitives import Cube
 from pymovis.vis.renderoption import RenderOptions
 from pymovis.vis.texture import Texture
+from pymovis.vis.text import FontTexture
 from pymovis.vis import glconst
 
 class RenderMode(Enum):
@@ -41,6 +42,8 @@ class RenderOptions:
         self._scale       = glm.vec3(1)
         self._material    = Material()
         self._uv_repeat   = glm.vec2(1)
+        self._text        = ""
+        self._fixed_text  = False
         self._draw_func   = draw_func
     
     def get_vao(self):
@@ -61,11 +64,20 @@ class RenderOptions:
     def get_scale(self):
         return self._scale
     
+    def get_material(self):
+        return self._material
+
     def get_texture_id(self):
         return self._material.get_albedo_map().get_texture_id()
     
     def get_uv_repeat(self):
         return self._uv_repeat
+
+    def get_text(self):
+        return self._text
+    
+    def get_fixed_text(self):
+        return self._fixed_text
 
     def set_position(self, x, y=None, z=None):
         if y is None and z is None:
@@ -105,6 +117,10 @@ class RenderOptions:
             self._uv_repeat = glm.vec2(u, v)
         return self
     
+    def set_text(self, text: str):
+        self._text = text
+        return self
+    
     def set_alpha(self, alpha):
         self._material.set_alpha(alpha)
         return self
@@ -121,11 +137,13 @@ class Render:
     render_mode = RenderMode.PHONG
     render_info = RenderInfo()
     primitive_meshes = {}
+    font_texture = None
 
     @staticmethod
     def initialize_shaders():
         Render.primitive_shader = Shader("basic.vs", "basic.fs")
         Render.shadow_shader    = Shader("shadow.vs", "shadow.fs")
+        Render.text_shader      = Shader("text.vs", "text.fs")
         Render._generate_shadow_buffer()
     
     @staticmethod
@@ -174,14 +192,6 @@ class Render:
         else:
             return RenderOptions(p, Render.primitive_shader, Render.draw_phong)
 
-    # TODO: implement this
-    # @staticmethod
-    # def render_options_vec(vec):
-    #     if Render.render_mode == RenderMode.SHADOW:
-    #         return RenderOptions(vec, Render.shadow_shader, Render.draw_shadow)
-    #     else:
-    #         return RenderOptions(vec, Render.primitive_shader, Render.draw_phong)
-
     @staticmethod
     def cube():
         if Render.primitive_meshes.get("cube") is None:
@@ -225,9 +235,21 @@ class Render:
             R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
             z_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.9).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1))
             z_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.4).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1))
-
             Render.primitive_meshes["arrow"] = RenderOptionsVec([x_head, x_body, y_head, y_body, z_head, z_body])
         return Render.primitive_meshes["arrow"]
+
+    @staticmethod
+    def text(t: str):
+        if Render.font_texture is None:
+            Render.font_texture = FontTexture()
+
+        if Render.render_mode == RenderMode.SHADOW:
+            return RenderOptions(VAO(), None, Render.draw_shadow)
+        else:
+            res = RenderOptions(VAO(), Render.text_shader, Render.draw_text)
+            res.set_text(t)
+            res.set_material(albedo=glm.vec3(0))
+            return res
 
     @staticmethod
     def draw_phong(option: RenderOptions, shader: Shader):
@@ -307,6 +329,73 @@ class Render:
 
         # unbind vao
         glBindVertexArray(0)
+
+    @staticmethod
+    def draw_text(option: RenderOptions, shader: Shader):
+        if option is None or shader is None:
+            return
+            
+        x = 0
+        y = 0
+        scale = option.get_scale().x / glconst.TEXT_RESOLUTION
+
+        # shader settings
+        shader.use()
+        
+        if option.get_fixed_text():
+            # TODO: implement here
+            pass
+        else:
+            shader.set_mat4("P", Render.render_info.cam_projection)
+            shader.set_mat4("V", Render.render_info.cam_view)
+
+            T = glm.translate(glm.mat4(1.0), option.get_position())
+            R = glm.mat4(option.get_orientation())
+            S = glm.scale(glm.mat4(1.0), option.get_scale())
+            transform = T * R * S
+            shader.set_mat4("M", transform)
+
+        shader.set_int("uText", 0)
+        shader.set_vec3("uTextColor", option.get_material().get_albedo())
+
+        glActiveTexture(GL_TEXTURE0)
+        glBindVertexArray(Render.font_texture.vao)
+
+        for c in option.get_text():
+            ch = Render.font_texture.character(c)
+
+            xpos = x + ch.bearing.x * scale
+            ypos = y - (ch.size.y - ch.bearing.y) * scale
+
+            w = ch.size.x * scale
+            h = ch.size.y * scale
+
+            vertices = np.array([
+                xpos,     ypos + h,   0.0, 0.0,
+                xpos,     ypos,       0.0, 1.0,
+                xpos + w, ypos,       1.0, 1.0,
+
+                xpos,     ypos + h,   0.0, 0.0,
+                xpos + w, ypos,       1.0, 1.0,
+                xpos + w, ypos + h,   1.0, 0.0
+            ], dtype=np.float32)
+
+            # render glyph texture
+            glBindTexture(GL_TEXTURE_2D, ch.texture_id)
+
+            # update content of VBO memory
+            glBindBuffer(GL_ARRAY_BUFFER, Render.font_texture.vbo)
+            glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.nbytes, vertices)
+            glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+            # render quad
+            glDrawArrays(GL_TRIANGLES, 0, 6)
+
+            x += (ch.advance >> 6) * scale
+        
+        glBindVertexArray(0)
+        glBindTexture(GL_TEXTURE_2D, 0)
+
 
     @staticmethod
     def update_render_view(app, width, height):

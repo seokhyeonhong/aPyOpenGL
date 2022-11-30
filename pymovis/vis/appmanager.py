@@ -1,6 +1,5 @@
 import glfw
 from OpenGL.GL import *
-from PIL import Image
 import glm
 
 from pymovis.vis.app import App
@@ -130,16 +129,3 @@ class AppManager:
     
     def _on_resize(self, window, width, height):
         self._app.on_resize(window, width, height)
-
-    def capture_screen():
-        viewport = glGetIntegerv(GL_VIEWPORT)
-        x = viewport[0]
-        y = viewport[1]
-        width = viewport[2]
-        height = viewport[3]
-        glPixelStorei(GL_PACK_ALIGNMENT, 1)
-        data = glReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE)
-        image = Image.frombytes("RGB", (width, height), data)
-        image = image.transpose(Image.FLIP_TOP_BOTTOM)
-        return image
-    

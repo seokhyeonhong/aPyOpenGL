@@ -51,8 +51,6 @@ class Shader:
         glDeleteShader(self.fragment_shader)
         if self.geometry_shader != None:
             glDeleteShader(self.geometry_shader)
-
-        return self
         
     def use(self):
         glUseProgram(self.program)

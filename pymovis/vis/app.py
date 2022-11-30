@@ -1,9 +1,11 @@
 from OpenGL.GL import *
+from PIL import Image
 
 import glfw
 from pymovis.vis.camera import Camera
 from pymovis.vis.light import DirectionalLight, PointLight
 from pymovis.vis.render import Render
+
 class App:
     def __init__(
         self,
@@ -21,6 +23,9 @@ class App:
         self.width = width
         self.height = height
         self.io = self.IO()
+
+        Render.render_info.width = width
+        Render.render_info.height = height
 
     class IO:
         def __init__(self):
@@ -104,3 +109,37 @@ class App:
         glViewport(0, 0, width, height)
         self.width = width
         self.height = height
+
+        Render.render_info.width = width
+        Render.render_info.height = height
+    
+    # def capture_screen(self):
+    #     viewport = glGetIntegerv(GL_VIEWPORT)
+    #     x = viewport[0]
+    #     y = viewport[1]
+    #     width = self.width
+    #     height = self.height
+    #     glReadBuffer(GL_FRONT)
+    #     data = glReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE)
+    #     image = Image.frombytes("RGB", (width, height), data)
+    #     image = image.transpose(Image.FLIP_TOP_BOTTOM)
+    #     return image
+    
+    # def make_video(self, captures):
+    #     import imageio
+    #     import os
+    #     import shutil
+    #     import time
+
+    #     print("Making video...")
+    #     start_time = time.time()
+    #     video = imageio.get_writer(
+    #         os.path.join(self.capture_path, "capture.mp4"), fps=60
+    #     )
+    #     for image in captures:
+    #         video.append_data(image)
+    #     video.close()
+    #     print("Done! Elapsed time: {:.2f}s".format(time.time() - start_time))
+    #     print("Removing captures...")
+    #     shutil.rmtree(self.capture_path)
+    #     print("Done!")

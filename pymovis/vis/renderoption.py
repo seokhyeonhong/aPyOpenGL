@@ -24,7 +24,7 @@ class RenderOptions:
         return self._mesh.vao
 
     def get_vao_id(self):
-        return self._mesh.vao.vao_id
+        return self._mesh.vao.id
     
     def draw(self):
         self._draw_func(self, self._shader)

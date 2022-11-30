@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 
+from pymovis.motion.core.skeleton import Skeleton
 from pymovis.motion.data import bvh
 from pymovis.motion.utils import npconst
 
@@ -24,15 +25,16 @@ class SlidingWindowDataset(Dataset):
         self.v_up = np.array(v_up, dtype=np.float32)
 
         self.windows = self.load_windows(path)
-        if align_at != None:
-             for w in self.windows:
-                w.align_by_frame(align_at, self.v_forward)
+        if align_at is not None:
+            print("Aligning motions ...")
+            for w in self.windows:
+                w.align_by_frame(align_at)
             
     def load_windows(self, path):
         # load pickle file if exists
         pkl_path = os.path.join(path, "dataset.pkl")
         if os.path.exists(pkl_path):
-            print("Loading dataset from pickle file...")
+            print("Loading dataset from pickle file ...")
             with open(pkl_path, "rb") as f:
                 motions = pickle.load(f)
         else:
@@ -46,14 +48,14 @@ class SlidingWindowDataset(Dataset):
             
         windows = []
         for idx, m in enumerate(motions):
-            print(f"Creating windows... {idx+1}/{len(motions)}", end="\r")
+            print(f"Creating windows ... {idx+1}/{len(motions)}", end="\r")
             for start in range(0, m.num_frames - self.window_size, self.window_offset):
                 end = start + self.window_size
                 windows.append(m.make_window(start, end))
         print()
         return windows
     
-    def get_skeleton(self):
+    def get_skeleton(self) -> Skeleton:
         return self.windows[0].skeleton
     
     def set_dataset(self, *args):
