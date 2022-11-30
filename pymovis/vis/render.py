@@ -141,7 +141,7 @@ class Render:
 
     @staticmethod
     def initialize_shaders():
-        Render.primitive_shader = Shader("basic.vs", "basic.fs")
+        Render.primitive_shader = Shader("phong.vs", "phong.fs")
         Render.shadow_shader    = Shader("shadow.vs", "shadow.fs")
         Render.text_shader      = Shader("text.vs", "text.fs")
         Render._generate_shadow_buffer()
