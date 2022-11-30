@@ -9,10 +9,11 @@ def get_color_by_position(position):
         normalized = glm.normalize(p)
         colors.append(normalized)
     return colors
-
-#    v2----- v1
-#   /       /   
-#  v3------v0
+"""
+   v2----- v1
+  /        / 
+ v3------v0
+"""
 class Plane(Mesh):
     def __init__(self):
         positions, normals, tex_coords, indices = self.get_vertices()
@@ -36,14 +37,15 @@ class Plane(Mesh):
         ]
         indices = [0, 1, 2, 2, 3, 0]
         return positions, normals, tex_coords, indices
-
-#    v6----- v5  
-#   /|      /|   
-#  v1------v0|   
-#  | |     | |   
-#  | v7----|-v4  
-#  |/      |/    
-#  v2------v3    
+"""
+   v6----- v5
+  /|      /| 
+ v1------v0| 
+ | |     | | 
+ | v7----|-v4
+ |/      |/  
+ v2------v3  
+"""
 class Cube(Mesh):
     def __init__(self):
         positions, normals, tex_coords, indices = self.get_vertices()

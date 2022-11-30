@@ -1,23 +1,23 @@
 #version 430
 
-/**
- * input vertex data
- */
+// --------------------------------------------
+// input vertex data
+// --------------------------------------------
 layout(location=0) in vec3 vPosition;
 layout(location=1) in vec3 vNormal;
 layout(location=2) in vec2 vTexCoord;
 
-/**
- * output vertex data
- */
+// --------------------------------------------
+// output vertex data
+// --------------------------------------------
 out vec3 fPosition;
 out vec3 fNormal;
 out vec2 fTexCoord;
 out vec4 fPosLightSpace;
 
-/**
- * uniform data
- */
+// --------------------------------------------
+// uniform data
+// --------------------------------------------
 uniform mat4 P;
 uniform mat4 V;
 uniform mat4 M;

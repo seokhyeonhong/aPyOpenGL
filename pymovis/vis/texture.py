@@ -7,20 +7,20 @@ class TextureType(Enum):
     ALBEDO = 0
 
 class Texture:
-    texture_id_map = {}
+    texture_id_map = {} # texture map to avoid loading the same texture twice
+    
     def __init__(
         self,
         filename=None
     ):
-        self._filename = filename
-        self._texture_id = self.set_texture(filename, False) if filename != None else None
+        self.__texture_id = Texture.texture_id_map[filename] if filename in Texture.texture_id_map else None
 
     def set_texture(self, filename, nearest=False):
         if filename in Texture.texture_id_map:
-            self._texture_id = Texture.texture_id_map[filename]
+            self.__texture_id = Texture.texture_id_map[filename]
         else:
-            self._texture_id = glGenTextures(1)
-            glBindTexture(GL_TEXTURE_2D, self._texture_id)
+            self.__texture_id = glGenTextures(1)
+            glBindTexture(GL_TEXTURE_2D, self.__texture_id)
 
             curr_path = os.path.dirname(os.path.abspath(__file__))
             texture_path = os.path.join(curr_path, "texture", filename)
@@ -41,10 +41,11 @@ class Texture:
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
             
-            Texture.texture_id_map[filename] = self._texture_id
+            Texture.texture_id_map[filename] = self.__texture_id
 
-    def get_texture_id(self):
-        return self._texture_id
+    @property
+    def texture_id(self):
+        return self.__texture_id
     
     @staticmethod
     def clear():

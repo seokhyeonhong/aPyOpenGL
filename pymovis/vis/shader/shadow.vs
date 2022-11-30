@@ -1,13 +1,13 @@
 #version 430
 
-/**
- * input vertex data
- */
+// --------------------------------------------
+// input vertex data
+// --------------------------------------------
 layout(location=0) in vec3 vPosition;
 
-/**
- * uniform data
- */
+// --------------------------------------------
+// uniform data
+// --------------------------------------------
 uniform mat4 lightSpaceMatrix;
 uniform mat4 M;
 

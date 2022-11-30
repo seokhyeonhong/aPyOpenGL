@@ -1,8 +1,12 @@
+from __future__ import annotations
+from enum import Enum
+
+from OpenGL.GL import *
+import glfw
 import glm
 
 from pymovis.vis.primitives import *
 from pymovis.vis.material import Material
-from pymovis.vis.primitives import Cube
 
 class RenderOptions:
     def __init__(
@@ -18,6 +22,8 @@ class RenderOptions:
         self._scale       = glm.vec3(1)
         self._material    = Material()
         self._uv_repeat   = glm.vec2(1)
+        self._text        = ""
+        self._text_fixed  = False
         self._draw_func   = draw_func
     
     def get_vao(self):
@@ -38,17 +44,26 @@ class RenderOptions:
     def get_scale(self):
         return self._scale
     
+    def get_material(self):
+        return self._material
+
     def get_texture_id(self):
-        return self._material.get_albedo_map().get_texture_id()
+        return self._material.albedo_map.texture_id
     
     def get_uv_repeat(self):
         return self._uv_repeat
 
+    def get_text(self):
+        return self._text
+    
+    def get_text_fixed(self):
+        return self._text_fixed
+
     def set_position(self, x, y=None, z=None):
-        if y != None and z != None:
-            self._position = glm.vec3(x, y, z)
-        else:
+        if y is None and z is None:
             self._position = glm.vec3(x)
+        elif y != None and z != None:
+            self._position = glm.vec3(x, y, z)
         return self
 
     def set_orientation(self, orientation):
@@ -58,7 +73,7 @@ class RenderOptions:
     def set_scale(self, x, y=None, z=None):
         if y is None and z is None:
             self._scale = glm.vec3(x)
-        else:
+        elif y != None and z != None:
             self._scale = glm.vec3(x, y, z)
         return self
 
@@ -75,9 +90,25 @@ class RenderOptions:
         self._material.set_texture(filename)
         return self
     
-    def set_uv_repeat(self, x, y=None):
-        if y is None:
-            self._uv_repeat = glm.vec2(x)
+    def set_uv_repeat(self, u, v=None):
+        if v is None:
+            self._uv_repeat = glm.vec2(u)
         else:
-            self._uv_repeat = glm.vec2(x, y)
+            self._uv_repeat = glm.vec2(u, v)
         return self
+    
+    def set_text(self, text: str):
+        self._text = text
+        return self
+    
+    def set_alpha(self, alpha):
+        self._material.set_alpha(alpha)
+        return self
+
+class RenderOptionsVec:
+    def __init__(self, options: list[RenderOptions]):
+        self.options = options
+    
+    def draw(self):
+        for option in self.options:
+            option.draw()

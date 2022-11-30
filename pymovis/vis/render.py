@@ -9,7 +9,7 @@ from pymovis.vis.primitives import *
 from pymovis.vis.material import Material
 from pymovis.vis.shader import Shader
 from pymovis.vis.primitives import Cube
-from pymovis.vis.renderoption import RenderOptions
+from pymovis.vis.renderoption import RenderOptions, RenderOptionsVec
 from pymovis.vis.texture import Texture
 from pymovis.vis.text import FontTexture
 from pymovis.vis import glconst
@@ -28,111 +28,6 @@ class RenderInfo:
     light_attenuation = glm.vec3(0)
     light_matrix      = glm.mat4(1)
 
-class RenderOptions:
-    def __init__(
-        self,
-        mesh,
-        shader,
-        draw_func
-    ):
-        self._mesh        = mesh
-        self._shader      = shader
-        self._position    = glm.vec3(0)
-        self._orientation = glm.mat3(1)
-        self._scale       = glm.vec3(1)
-        self._material    = Material()
-        self._uv_repeat   = glm.vec2(1)
-        self._text        = ""
-        self._fixed_text  = False
-        self._draw_func   = draw_func
-    
-    def get_vao(self):
-        return self._mesh.vao
-
-    def get_vao_id(self):
-        return self._mesh.vao.id
-    
-    def draw(self):
-        self._draw_func(self, self._shader)
-
-    def get_position(self):
-        return self._position
-
-    def get_orientation(self):
-        return self._orientation
-
-    def get_scale(self):
-        return self._scale
-    
-    def get_material(self):
-        return self._material
-
-    def get_texture_id(self):
-        return self._material.get_albedo_map().get_texture_id()
-    
-    def get_uv_repeat(self):
-        return self._uv_repeat
-
-    def get_text(self):
-        return self._text
-    
-    def get_fixed_text(self):
-        return self._fixed_text
-
-    def set_position(self, x, y=None, z=None):
-        if y is None and z is None:
-            self._position = glm.vec3(x)
-        elif y != None and z != None:
-            self._position = glm.vec3(x, y, z)
-        return self
-
-    def set_orientation(self, orientation):
-        self._orientation = glm.mat3(orientation)
-        return self
-    
-    def set_scale(self, x, y=None, z=None):
-        if y is None and z is None:
-            self._scale = glm.vec3(x)
-        elif y != None and z != None:
-            self._scale = glm.vec3(x, y, z)
-        return self
-
-    def set_material(self, albedo=None, diffuse=None, specular=None):
-        if albedo != None:
-            self._material.set_albedo(albedo)
-        if diffuse != None:
-            self._material.set_diffuse(diffuse)
-        if specular != None:
-            self._material.set_specular(specular)
-        return self
-
-    def set_texture(self, filename):
-        self._material.set_texture(filename)
-        return self
-    
-    def set_uv_repeat(self, u, v=None):
-        if v is None:
-            self._uv_repeat = glm.vec2(u)
-        else:
-            self._uv_repeat = glm.vec2(u, v)
-        return self
-    
-    def set_text(self, text: str):
-        self._text = text
-        return self
-    
-    def set_alpha(self, alpha):
-        self._material.set_alpha(alpha)
-        return self
-
-class RenderOptionsVec:
-    def __init__(self, options: list[RenderOptions]):
-        self.options = options
-    
-    def draw(self):
-        for option in self.options:
-            option.draw()
-
 class Render:
     render_mode = RenderMode.PHONG
     render_info = RenderInfo()
@@ -144,10 +39,10 @@ class Render:
         Render.primitive_shader = Shader("phong.vs", "phong.fs")
         Render.shadow_shader    = Shader("shadow.vs", "shadow.fs")
         Render.text_shader      = Shader("text.vs", "text.fs")
-        Render._generate_shadow_buffer()
+        Render.generate_shadow_buffer()
     
     @staticmethod
-    def _generate_shadow_buffer():
+    def generate_shadow_buffer():
         # create depth texture
         depth_map_fbo = glGenFramebuffers(1)
         depth_map = glGenTextures(1)
@@ -239,7 +134,7 @@ class Render:
         return Render.primitive_meshes["arrow"]
 
     @staticmethod
-    def text(t: str):
+    def text(t):
         if Render.font_texture is None:
             Render.font_texture = FontTexture()
 
@@ -247,7 +142,7 @@ class Render:
             return RenderOptions(VAO(), None, Render.draw_shadow)
         else:
             res = RenderOptions(VAO(), Render.text_shader, Render.draw_text)
-            res.set_text(t)
+            res.set_text(str(t))
             res.set_material(albedo=glm.vec3(0))
             return res
 
@@ -278,7 +173,7 @@ class Render:
 
         # set textures
         shader.set_int("uMaterial.albedoMap", 0)
-        if option.get_texture_id() != None:
+        if option.get_texture_id() is not None:
             shader.set_int("uMaterial.id", 0)
             glActiveTexture(GL_TEXTURE0)
             glBindTexture(GL_TEXTURE_2D, option.get_texture_id())
@@ -290,11 +185,11 @@ class Render:
         glBindTexture(GL_TEXTURE_2D, Render.depth_map)
             
         # set material
-        shader.set_vec3("uMaterial.diffuse", option._material.get_diffuse())
-        shader.set_vec3("uMaterial.specular", option._material.get_specular())
-        shader.set_float("uMaterial.shininess", option._material.get_shininess())
-        shader.set_vec3("uMaterial.albedo", option._material.get_albedo())
-        shader.set_float("uMaterial.alpha", option._material.get_alpha())
+        shader.set_vec3("uMaterial.diffuse", option._material.diffuse)
+        shader.set_vec3("uMaterial.specular", option._material.specular)
+        shader.set_float("uMaterial.shininess", option._material.shininess)
+        shader.set_vec3("uMaterial.albedo", option._material.albedo)
+        shader.set_float("uMaterial.alpha", option._material.alpha)
 
         shader.set_vec2("uvScale", option.get_uv_repeat())
 
@@ -342,7 +237,7 @@ class Render:
         # shader settings
         shader.use()
         
-        if option.get_fixed_text():
+        if option.get_text_fixed():
             # TODO: implement here
             pass
         else:
@@ -356,7 +251,7 @@ class Render:
             shader.set_mat4("M", transform)
 
         shader.set_int("uText", 0)
-        shader.set_vec3("uTextColor", option.get_material().get_albedo())
+        shader.set_vec3("uTextColor", option.get_material().albedo)
 
         glActiveTexture(GL_TEXTURE0)
         glBindVertexArray(Render.font_texture.vao)
@@ -414,3 +309,4 @@ class Render:
     def clear():
         Render.primitive_meshes.clear()
         Texture.clear()
+        Render.font_texture = None

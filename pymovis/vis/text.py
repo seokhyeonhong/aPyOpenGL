@@ -6,24 +6,19 @@ import glm
 
 from pymovis.vis import glconst
 
-class Character:
-    def __init__(
-        self,
-        texture_id: int,
-        size: glm.ivec2,
-        bearing: glm.ivec2,
-        advance: int
-    ):
-        self.texture_id = texture_id
-        self.size = size
-        self.bearing = bearing
-        self.advance = advance
 
 class FontTexture:
     def __init__(
         self,
         font_filename="consola.ttf"
     ):
+        class Character:
+            def __init__(self, texture_id: int, size: glm.ivec2, bearing: glm.ivec2, advance: int):
+                self.texture_id = texture_id
+                self.size = size
+                self.bearing = bearing
+                self.advance = advance
+
         self.character_map = {}
 
         face = ft.Face(self.get_font_path(font_filename))
@@ -84,5 +79,5 @@ class FontTexture:
         font_path = os.path.join(curr_path, "font", font_filename)
         return font_path
     
-    def character(self, c) -> Character:
+    def character(self, c):
         return self.character_map[c]

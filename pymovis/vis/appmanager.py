@@ -110,9 +110,7 @@ class AppManager:
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
         elif key == glfw.KEY_F2 and action == glfw.PRESS:
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
-
-        # elif key == glfw.KEY_F3 and action == glfw.PRESS:
-        #     Render.set_render_mode(RenderMode.PHONG_WIREFRAME, width, height)
+            
         self._app.key_callback(window, key, scancode, action, mods)
 
     def _on_mouse_move(self, window, xpos, ypos):

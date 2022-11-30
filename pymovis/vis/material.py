@@ -9,46 +9,52 @@ class Material:
         specular=glm.vec3(0.1),
         shininess=10.0
     ):
-        self._albedo     = glm.vec3(albedo)
-        self._diffuse    = glm.vec3(diffuse)
-        self._specular   = glm.vec3(specular)
-        self._shininess  = shininess
-        self._alpha      = 1.0
-        self._albedo_map = Texture()
+        self.__albedo     = glm.vec3(albedo)
+        self.__diffuse    = glm.vec3(diffuse)
+        self.__specular   = glm.vec3(specular)
+        self.__shininess  = shininess
+        self.__alpha      = 1.0
+        self.__albedo_map = Texture()
     
-    def get_albedo(self):
-        return self._albedo
+    @property
+    def albedo(self):
+        return self.__albedo
     
-    def get_diffuse(self):
-        return self._diffuse
+    @property
+    def diffuse(self):
+        return self.__diffuse
     
-    def get_specular(self):
-        return self._specular
+    @property
+    def specular(self):
+        return self.__specular
 
-    def get_albedo_map(self):
-        return self._albedo_map
+    @property
+    def albedo_map(self):
+        return self.__albedo_map
     
-    def get_shininess(self):
-        return self._shininess
+    @property
+    def shininess(self):
+        return self.__shininess
     
-    def get_alpha(self):
-        return self._alpha
+    @property
+    def alpha(self):
+        return self.__alpha
     
     def set_texture(self, filename):
         # TODO: Add other types of maps (e.g. specular map, normal map, ...)
-        self._albedo_map.set_texture(filename)
+        self.__albedo_map.set_texture(filename)
     
     def set_albedo(self, albedo):
-        self._albedo = glm.vec3(albedo)
+        self.__albedo = glm.vec3(albedo)
     
     def set_diffuse(self, diffuse):
-        self._diffuse = glm.vec3(diffuse)
+        self.__diffuse = glm.vec3(diffuse)
     
     def set_specular(self, specular):
-        self._specular = glm.vec3(specular)
+        self.__specular = glm.vec3(specular)
     
     def set_shininess(self, shininess):
-        self._shininess = shininess
+        self.__shininess = shininess
     
     def set_alpha(self, alpha):
-        self._alpha = alpha
+        self.__alpha = alpha
