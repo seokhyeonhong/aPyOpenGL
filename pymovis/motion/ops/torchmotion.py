@@ -101,22 +101,20 @@ class R:
         y = torch.cross(z, x, dim=-1)
         return torch.stack([x, y, z], dim=-2) # (..., 3, 3)
 
-    # def from_Q(q: torch.Tensor) -> torch.Tensor:
-    #     """
-    #     :param q: (..., 4)
-    #     """
-    #     if q.shape[-1] != 4:
-    #         raise ValueError(f"q.shape[-1] = {q.shape[-1]} != 4")
+    def from_Q(q: torch.Tensor) -> torch.Tensor:
+        """
+        :param q: (..., 4)
+        """
+        if q.shape[-1] != 4:
+            raise ValueError(f"q.shape[-1] = {q.shape[-1]} != 4")
         
-    #     q = normalize(q, dim=-1)
-    #     w, x, y, z = q[..., 0], q[..., 1], q[..., 2], q[..., 3]
+        q = normalize(q, dim=-1)
+        w, x, y, z = torch.unbind(q, dim=-1)
 
-    #     r0 = torch.stack([2(w*w + x*x) - 1, ])
-    #     return torch.stack([
-    #         [1-2*y*y-2*z*z, 2*x*y-2*z*w, 2*x*z+2*y*w],
-    #         [2*x*y+2*z*w, 1-2*x*x-2*z*z, 2*y*z-2*x*w],
-    #         [2*x*z-2*y*w, 2*y*z+2*x*w, 1-2*x*x-2*y*y]
-    #     ], dim=-2)
+        row0 = torch.stack([2*(w*w + x*x) - 1, 2*(x*y - w*z), 2*(x*z + w*y)], dim=-1)
+        row1 = torch.stack([2*(w*z + x*y), 2*(w*w + y*y) - 1, 2*(y*z - w*x)], dim=-1)
+        row2 = torch.stack([2*(x*z - w*y), 2*(w*x + y*z), 2*(w*w + z*z) - 1], dim=-1)
+        return torch.stack([row0, row1, row2], dim=-2) # (..., 3, 3)
 
     @staticmethod
     def inv(r: torch.Tensor) -> torch.Tensor:

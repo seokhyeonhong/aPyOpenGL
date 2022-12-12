@@ -8,5 +8,5 @@ class Joint:
         name  :str,
         offset:np.ndarray=npconst.P_ZERO()
     ):
-        self.name = name
+        self.name   = name
         self.offset = offset

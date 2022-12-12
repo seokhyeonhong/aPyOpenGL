@@ -12,20 +12,13 @@ class App:
         camera = Camera(),
         light = DirectionalLight(),
         capture=False,
-        width=1920,
-        height=1080,
         capture_path="capture",
     ):
         self.camera = camera
         self.light = light
         self.capture = capture
         self.capture_path = capture_path
-        self.width = width
-        self.height = height
         self.io = self.IO()
-
-        Render.render_info.width = width
-        Render.render_info.height = height
 
     class IO:
         def __init__(self):
@@ -107,11 +100,6 @@ class App:
 
     def on_resize(self, window, width, height):
         glViewport(0, 0, width, height)
-        self.width = width
-        self.height = height
-
-        Render.render_info.width = width
-        Render.render_info.height = height
     
     # def capture_screen(self):
     #     viewport = glGetIntegerv(GL_VIEWPORT)

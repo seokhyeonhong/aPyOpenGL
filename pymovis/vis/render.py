@@ -9,7 +9,7 @@ from pymovis.vis.primitives import *
 from pymovis.vis.material import Material
 from pymovis.vis.shader import Shader
 from pymovis.vis.primitives import Cube
-from pymovis.vis.renderoption import RenderOptions, RenderOptionsVec
+# from pymovis.vis.renderoption import RenderOptions, RenderOptionsVec
 from pymovis.vis.texture import Texture
 from pymovis.vis.text import FontTexture
 from pymovis.vis import glconst
@@ -29,6 +29,9 @@ class RenderInfo:
     light_matrix      = glm.mat4(1)
 
 class Render:
+    """
+    This class is reposible for global rendering state and functions.
+    """
     render_mode = RenderMode.PHONG
     render_info = RenderInfo()
     primitive_meshes = {}
@@ -89,49 +92,37 @@ class Render:
 
     @staticmethod
     def cube():
-        if Render.primitive_meshes.get("cube") is None:
-            Render.primitive_meshes["cube"] = Cube()
-        return Render.render_options(Render.primitive_meshes["cube"])
+        return RenderOptions(Cube(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def sphere(radius=0.5, stacks=32, sectors=32):
-        if Render.primitive_meshes.get("sphere") is None:
-            Render.primitive_meshes["sphere"] = Sphere(radius, stacks, sectors)
-        return Render.render_options(Render.primitive_meshes["sphere"])
+        return RenderOptions(Sphere(radius, stacks, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
     
     @staticmethod
     def cone(radius=0.5, height=1, sectors=16):
-        if Render.primitive_meshes.get("cone") is None:
-            Render.primitive_meshes["cone"] = Cone(radius, height, sectors)
-        # return Render.render_options(Render._cone)
+        return RenderOptions(Cone(radius, height, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def plane():
-        if Render.primitive_meshes.get("plane") is None:
-            Render.primitive_meshes["plane"] = Plane()
-        return Render.render_options(Render.primitive_meshes["plane"])
+        return RenderOptions(Plane(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
     
     @staticmethod
     def cylinder(radius=0.5, height=1, sectors=16):
-        if Render.primitive_meshes.get("cylinder") is None:
-            Render.primitive_meshes["cylinder"] = Cylinder(radius, height, sectors)
-        return Render.render_options(Render.primitive_meshes["cylinder"])
+        return RenderOptions(Cylinder(radius, height, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def arrow():
-        if Render.primitive_meshes.get("arrow") is None:
-            R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
-            x_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0.9, 0, 0).set_orientation(R_x).set_material(albedo=glm.vec3(1, 0, 0))
-            x_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0.4, 0, 0).set_orientation(R_x).set_material(albedo=glm.vec3(1, 0, 0))
+        R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
+        x_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0.9, 0, 0).set_orientation(R_x).set_material(albedo=glm.vec3(1, 0, 0)).set_color_mode(True)
+        x_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0.4, 0, 0).set_orientation(R_x).set_material(albedo=glm.vec3(1, 0, 0)).set_color_mode(True)
 
-            y_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.9, 0).set_material(albedo=glm.vec3(0, 1, 0))
-            y_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.4, 0).set_material(albedo=glm.vec3(0, 1, 0))
+        y_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.9, 0).set_material(albedo=glm.vec3(0, 1, 0)).set_color_mode(True)
+        y_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.4, 0).set_material(albedo=glm.vec3(0, 1, 0)).set_color_mode(True)
 
-            R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
-            z_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.9).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1))
-            z_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.4).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1))
-            Render.primitive_meshes["arrow"] = RenderOptionsVec([x_head, x_body, y_head, y_body, z_head, z_body])
-        return Render.primitive_meshes["arrow"]
+        R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
+        z_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.9).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1)).set_color_mode(True)
+        z_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.4).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1)).set_color_mode(True)
+        return RenderOptionsVec([x_head, x_body, y_head, y_body, z_head, z_body])
 
     @staticmethod
     def text(t):
@@ -165,18 +156,18 @@ class Render:
         shader.set_mat4("lightSpaceMatrix", Render.render_info.light_matrix)
 
         # update model
-        T = glm.translate(glm.mat4(1.0), option.get_position())
-        R = glm.mat4(option.get_orientation())
-        S = glm.scale(glm.mat4(1.0), option.get_scale())
+        T = glm.translate(glm.mat4(1.0), option.position)
+        R = glm.mat4(option.orientation)
+        S = glm.scale(glm.mat4(1.0), option.scale)
         transform = T * R * S
         shader.set_mat4("M", transform)
 
         # set textures
         shader.set_int("uMaterial.albedoMap", 0)
-        if option.get_texture_id() is not None:
+        if option.texture_id is not None:
             shader.set_int("uMaterial.id", 0)
             glActiveTexture(GL_TEXTURE0)
-            glBindTexture(GL_TEXTURE_2D, option.get_texture_id())
+            glBindTexture(GL_TEXTURE_2D, option.texture_id)
         else:
             shader.set_int("uMaterial.id", -1)
         
@@ -185,17 +176,18 @@ class Render:
         glBindTexture(GL_TEXTURE_2D, Render.depth_map)
             
         # set material
-        shader.set_vec3("uMaterial.diffuse", option._material.diffuse)
-        shader.set_vec3("uMaterial.specular", option._material.specular)
-        shader.set_float("uMaterial.shininess", option._material.shininess)
-        shader.set_vec3("uMaterial.albedo", option._material.albedo)
-        shader.set_float("uMaterial.alpha", option._material.alpha)
+        shader.set_bool("uColorMode", option.color_mode)
+        shader.set_vec3("uMaterial.diffuse", option.material.diffuse)
+        shader.set_vec3("uMaterial.specular", option.material.specular)
+        shader.set_float("uMaterial.shininess", option.material.shininess)
+        shader.set_vec3("uMaterial.albedo", option.material.albedo)
+        shader.set_float("uMaterial.alpha", option.material.alpha)
 
-        shader.set_vec2("uvScale", option.get_uv_repeat())
+        shader.set_vec2("uvScale", option.uv_repeat)
 
         # final rendering
-        glBindVertexArray(option.get_vao_id())
-        glDrawElements(GL_TRIANGLES, option.get_vao().indices_count, GL_UNSIGNED_INT, None)
+        glBindVertexArray(option.vao.id)
+        glDrawElements(GL_TRIANGLES, option.vao.indices_count, GL_UNSIGNED_INT, None)
 
         # unbind vao
         glBindVertexArray(0)
@@ -210,16 +202,16 @@ class Render:
         shader.use()
 
         shader.set_mat4("lightSpaceMatrix", Render.render_info.light_matrix)
-        T = glm.translate(glm.mat4(1.0), option.get_position())
-        R = glm.mat4(option.get_orientation())
-        S = glm.scale(glm.mat4(1.0), option.get_scale())
+        T = glm.translate(glm.mat4(1.0), option.position)
+        R = glm.mat4(option.orientation)
+        S = glm.scale(glm.mat4(1.0), option.scale)
         transform = T * R * S
         shader.set_mat4("M", transform)
 
         # final rendering
         glCullFace(GL_FRONT)
-        glBindVertexArray(option.get_vao_id())
-        glDrawElements(GL_TRIANGLES, option.get_vao().indices_count, GL_UNSIGNED_INT, None)
+        glBindVertexArray(option.vao.id)
+        glDrawElements(GL_TRIANGLES, option.vao.indices_count, GL_UNSIGNED_INT, None)
         glCullFace(GL_BACK)
 
         # unbind vao
@@ -232,31 +224,31 @@ class Render:
             
         x = 0
         y = 0
-        scale = option.get_scale().x / glconst.TEXT_RESOLUTION
+        scale = option.scale.x / glconst.TEXT_RESOLUTION
 
         # shader settings
         shader.use()
         
-        if option.get_text_fixed():
+        if option.text_fixed:
             # TODO: implement here
-            pass
+            raise NotImplementedError()
         else:
             shader.set_mat4("P", Render.render_info.cam_projection)
             shader.set_mat4("V", Render.render_info.cam_view)
 
-            T = glm.translate(glm.mat4(1.0), option.get_position())
-            R = glm.mat4(option.get_orientation())
-            S = glm.scale(glm.mat4(1.0), option.get_scale())
+            T = glm.translate(glm.mat4(1.0), option.position)
+            R = glm.mat4(option.orientation)
+            S = glm.scale(glm.mat4(1.0), option.scale)
             transform = T * R * S
             shader.set_mat4("M", transform)
 
         shader.set_int("uText", 0)
-        shader.set_vec3("uTextColor", option.get_material().albedo)
+        shader.set_vec3("uTextColor", option.material.albedo)
 
         glActiveTexture(GL_TEXTURE0)
         glBindVertexArray(Render.font_texture.vao)
 
-        for c in option.get_text():
+        for c in option.text:
             ch = Render.font_texture.character(c)
 
             xpos = x + ch.bearing.x * scale
@@ -310,3 +302,110 @@ class Render:
         Render.primitive_meshes.clear()
         Texture.clear()
         Render.font_texture = None
+
+class RenderOptions:
+    """
+    Rendering options for a primitive (e.g. position, orientation, material, etc.)
+    """
+    def __init__(
+        self,
+        mesh,
+        shader,
+        draw_func,
+        shadow_shader=None,
+        shadow_func=None,
+    ):
+        self.mesh          = mesh
+        self.shader        = shader
+        self.shadow_shader = shadow_shader
+
+        # transformation
+        self.position      = glm.vec3(0)
+        self.orientation   = glm.mat3(1)
+        self.scale         = glm.vec3(1)
+
+        # material  
+        self.material      = Material()
+        self.uv_repeat     = glm.vec2(1)
+        self.text          = ""
+        self.text_fixed    = False
+        self.color_mode    = False
+
+        self.draw_func     = draw_func
+        self.shadow_func   = shadow_func
+
+    @property
+    def vao(self):
+        return self.mesh.vao
+
+    @property
+    def texture_id(self):
+        return self.material.albedo_map.texture_id
+
+    def draw(self):
+        if Render.render_mode == RenderMode.SHADOW:
+            if self.shadow_func is not None:
+                self.shadow_func(self, self.shadow_shader)
+        else:
+            self.draw_func(self, self.shader)
+
+    def set_position(self, x, y=None, z=None):
+        if y is None and z is None:
+            self.position = glm.vec3(x)
+        elif y != None and z != None:
+            self.position = glm.vec3(x, y, z)
+        return self
+
+    def set_orientation(self, orientation):
+        self.orientation = glm.mat3(orientation)
+        return self
+    
+    def set_scale(self, x, y=None, z=None):
+        if y is None and z is None:
+            self.scale = glm.vec3(x)
+        elif y != None and z != None:
+            self.scale = glm.vec3(x, y, z)
+        return self
+
+    def set_material(self, albedo=None, diffuse=None, specular=None):
+        if albedo != None:
+            self.material.set_albedo(albedo)
+        if diffuse != None:
+            self.material.set_diffuse(diffuse)
+        if specular != None:
+            self.material.set_specular(specular)
+        return self
+
+    def set_texture(self, filename):
+        self.material.set_texture(filename)
+        return self
+    
+    def set_uv_repeat(self, u, v=None):
+        if v is None:
+            self.uv_repeat = glm.vec2(u)
+        else:
+            self.uv_repeat = glm.vec2(u, v)
+        return self
+    
+    def set_text(self, text: str):
+        self.text = text
+        return self
+    
+    def set_alpha(self, alpha):
+        self.material.set_alpha(alpha)
+        return self
+    
+    def set_color_mode(self, color_mode):
+        self.color_mode = color_mode
+        return self
+
+class RenderOptionsVec:
+    """
+    Multiple rendering options for a primitive
+    """
+    def __init__(self, options: list[RenderOptions]):
+        self.options = options
+    
+    def draw(self):
+        for option in self.options:
+            option.draw()

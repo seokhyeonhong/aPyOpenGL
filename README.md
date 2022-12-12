@@ -1,4 +1,5 @@
-// TODO: Update and organize the contents
+# Python Framework for Motion Data
+<!-- TODO: Update and organize the contents -->
 
 ## Python FBX SDK Installation on Windows
 First, it is highly recommended to use Python 3.3 since it is much easier to install Python FBX SDK than in others, but if you are using another version, you can try as follows.
@@ -34,3 +35,8 @@ It would contain 3 files (fbx.pyd, FbxCommon.py, fbxsip.pyd), and you should mov
 NOTE: No white spaces in all paths are allowed. Move and rename the path where those files without spaces.
 
 If interpreting PythonBindings.py fails, you can try changing the variable vcCompiler and vsCompiler to what you are using.
+
+### Acknowledgements
+The overall structure of the visual modules is inspired by [aOpenGL](https://github.com/ltepenguin/aOpenGL) repository and [LearnOpenGL](https://learnopengl.com/)
+
+The BVH data and motion-related operations are inspired by [fairmotion](https://github.com/facebookresearch/fairmotion) and [LaFAN1](https://github.com/ubisoft/ubisoft-laforge-animation-dataset) repositories

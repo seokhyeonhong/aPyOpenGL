@@ -12,42 +12,53 @@ class AppManager:
     """
     def __init__(
         self,
-        app: App
+        app: App=None,
+        width: int=1920,
+        height: int=1080,
     ):
         self._app = app
         self._do_capture = False
+        self.width = width
+        self.height = height
     
     @classmethod
-    def run(cls, app: App):
-        app_manager = AppManager(app)
+    def initialize(cls):
+        app_manager = AppManager()
         app_manager._initialize()
-        app_manager._start_loop()
+        return app_manager
+
+    def run(self, app: App):
+        self._app = app
+        self._start_loop()
 
     def _initialize(self):
         glfw.init()
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+
+        self.window = glfw.create_window(self.width, self.height, "Vis", None, None)
+        if not self.window:
+            glfw.terminate()
+            raise Exception("Failed to create GLFW window")
+        
+        glfw.make_context_current(self.window)
+        glfw.swap_interval(1)
+
+        glfw.set_framebuffer_size_callback(self.window, self._on_resize)
+        glfw.set_key_callback(self.window, self._on_key_down)
+        glfw.set_cursor_pos_callback(self.window, self._on_mouse_move)
+        glfw.set_mouse_button_callback(self.window, self._on_mouse_button_click)
+        glfw.set_scroll_callback(self.window, self._on_scroll)
+        glfw.set_error_callback(self._on_error)
+
+        # intialize shaders
+        Render.initialize_shaders()
     
     def _start_loop(self):
         if not isinstance(self._app, App):
             raise Exception("Invalid app type")
             
-        window = glfw.create_window(self._app.width, self._app.height, "Vis", None, None)
-        if not window:
-            glfw.terminate()
-            raise Exception("Failed to create GLFW window")
-        
-        glfw.make_context_current(window)
-        glfw.swap_interval(1)
-
-        glfw.set_framebuffer_size_callback(window, self._on_resize)
-        glfw.set_key_callback(window, self._on_key_down)
-        glfw.set_cursor_pos_callback(window, self._on_mouse_move)
-        glfw.set_mouse_button_callback(window, self._on_mouse_button_click)
-        glfw.set_scroll_callback(window, self._on_scroll)
-        glfw.set_error_callback(self._on_error)
-
         # global OpenGL state
         glEnable(GL_DEPTH_TEST)
         glDepthFunc(GL_LESS)
@@ -63,13 +74,11 @@ class AppManager:
         # glEnable(GL_LINE_SMOOTH)
         # glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
 
-        # intialize shaders
-        Render.initialize_shaders()
 
         # main loop
         glfw.set_time(0)
-        while glfw.window_should_close(window) == False:
-            width, height = glfw.get_window_size(window)
+        while glfw.window_should_close(self.window) == False:
+            width, height = glfw.get_window_size(self.window)
             
             # sky color
             sky_color = Render.sky_color()
@@ -97,11 +106,11 @@ class AppManager:
 
             # event
             glfw.poll_events()
-            glfw.swap_buffers(window)
+            glfw.swap_buffers(self.window)
 
             # TODO: screen capture
         
-        glfw.destroy_window(window)
+        glfw.destroy_window(self.window)
         glfw.terminate()
 
     def _on_key_down(self, window, key, scancode, action, mods):
@@ -126,4 +135,9 @@ class AppManager:
         self._app.on_error(error, description)
     
     def _on_resize(self, window, width, height):
+        self.width = width
+        self.height = height
+
+        Render.render_info.width = width
+        Render.render_info.height = height
         self._app.on_resize(window, width, height)

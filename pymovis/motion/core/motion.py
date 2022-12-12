@@ -12,16 +12,16 @@ from pymovis.motion.utils import util, npconst
 class Motion:
     def __init__(
         self,
-        name: str,
+        name:     str,
         skeleton: Skeleton,
-        poses: list[Pose],
+        poses:    list[Pose],
         global_v: np.ndarray = None,
-        fps: float=30.0,
+        fps:      float=30.0,
     ):
-        self.name = name
-        self.skeleton = skeleton
-        self.poses = poses
-        self.fps = fps
+        self.name      = name
+        self.skeleton  = skeleton
+        self.poses     = poses
+        self.fps       = fps
         self.frametime = 1.0 / fps
 
         # local rotations and root positions are stored separately from the poses
@@ -29,7 +29,7 @@ class Motion:
         self.local_R = np.stack([pose.local_R for pose in poses], axis=0)
         self.root_p  = np.stack([pose.root_p for pose in poses], axis=0)
         if global_v is None:
-            _, global_p = npmotion.R.fk(self.local_R, self.root_p, self.skeleton)
+            _, global_p   = npmotion.R.fk(self.local_R, self.root_p, self.skeleton)
             self.global_v = global_p[1:] - global_p[:-1]
             self.global_v = np.pad(self.global_v, ((1, 0), (0, 0), (0, 0)), "edge")
         else:
@@ -45,7 +45,7 @@ class Motion:
         for i in range(local_R.shape[0]):
             pose = Pose.from_numpy(skeleton, local_R[i], root_p[i])
             poses.append(pose)
-        return cls("motion", skeleton, poses, fps=fps)
+        return cls("default", skeleton, poses, fps=fps)
 
     @classmethod
     def from_torch(cls, skeleton, local_R, root_p, fps=30.0):
@@ -53,7 +53,7 @@ class Motion:
         for i in range(local_R.shape[0]):
             pose = Pose.from_numpy(skeleton, local_R[i].cpu().numpy(), root_p[i].cpu().numpy())
             poses.append(pose)
-        return cls("motion", skeleton, poses, fps=fps)
+        return cls("default", skeleton, poses, fps=fps)
 
     def make_window(self, start, end):
         return Motion(
@@ -79,7 +79,7 @@ class Motion:
         frame = int(time * self.fps)
         return self.poses[frame]
 
-    """
+    """ 
     Alignment functions
     """
     def align_to_origin_by_frame(self, frame):

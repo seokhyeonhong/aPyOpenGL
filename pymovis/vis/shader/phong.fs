@@ -17,7 +17,6 @@ out vec4 FragColor;
 // uniform
 // --------------------------------------------
 uniform bool uColorMode;
-uniform vec3 uColor;
 uniform vec2 uvScale;
 uniform sampler2D uShadowMap;
 
@@ -126,7 +125,7 @@ void main()
     vec2 uv = fTexCoord * uvScale;
     if (uColorMode)
     {
-        FragColor = vec4(uColor, 1.0);
+        FragColor = vec4(uMaterial.albedo, 1.0);
     }
     else if (uMaterial.id >= 0)
     {
