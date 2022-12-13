@@ -11,7 +11,6 @@ from pymovis.vis.appmanager import AppManager
 class MotionApp(App):
     def __init__(self, motion: Motion):
         super().__init__()
-        self.__a = 5
         self.motion = motion
         self.pose = self.motion.poses[0]
 
@@ -27,7 +26,8 @@ if __name__ == "__main__":
     # t = time.time()
     motion = bvh.load("pymovis/motion/data/sample.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0])
     motion.align_by_frame(200)
-    print(motion.poses[100].forward)
+    print(motion.poses[200].forward)
 
+    app_manager = AppManager.initialize()
     app = MotionApp(motion)
-    AppManager.run(app)
+    app_manager.run(app)

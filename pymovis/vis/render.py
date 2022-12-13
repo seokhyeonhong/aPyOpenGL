@@ -15,7 +15,7 @@ from pymovis.vis.text import FontTexture
 from pymovis.vis import glconst
 
 class RenderMode(Enum):
-    PHONG = 0
+    PHONG  = 0
     SHADOW = 1
 
 class RenderInfo:
@@ -30,7 +30,7 @@ class RenderInfo:
 
 class Render:
     """
-    This class is reposible for global rendering state and functions.
+    Global rendering state and functions
     """
     render_mode = RenderMode.PHONG
     render_info = RenderInfo()
@@ -112,16 +112,21 @@ class Render:
 
     @staticmethod
     def arrow():
-        R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
-        x_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0.9, 0, 0).set_orientation(R_x).set_material(albedo=glm.vec3(1, 0, 0)).set_color_mode(True)
-        x_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0.4, 0, 0).set_orientation(R_x).set_material(albedo=glm.vec3(1, 0, 0)).set_color_mode(True)
+        cone_radius = 0.07
+        cone_height = 0.2
+        cylinder_radius = 0.03
+        cylinder_height = 0.8
 
-        y_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.9, 0).set_material(albedo=glm.vec3(0, 1, 0)).set_color_mode(True)
-        y_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.4, 0).set_material(albedo=glm.vec3(0, 1, 0)).set_color_mode(True)
+        R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
+        x_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0.9, 0, 0).set_orientation(R_x).set_material(albedo=glm.vec3(1, 0, 0)).set_color_mode(True)
+        x_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0.4, 0, 0).set_orientation(R_x).set_material(albedo=glm.vec3(1, 0, 0)).set_color_mode(True)
+
+        y_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.9, 0).set_material(albedo=glm.vec3(0, 1, 0)).set_color_mode(True)
+        y_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.4, 0).set_material(albedo=glm.vec3(0, 1, 0)).set_color_mode(True)
 
         R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
-        z_head = RenderOptions(Cone(0.1, 0.2, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.9).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1)).set_color_mode(True)
-        z_body = RenderOptions(Cylinder(0.05, 0.8, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.4).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1)).set_color_mode(True)
+        z_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.9).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1)).set_color_mode(True)
+        z_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.4).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1)).set_color_mode(True)
         return RenderOptionsVec([x_head, x_body, y_head, y_body, z_head, z_body])
 
     @staticmethod
@@ -147,13 +152,13 @@ class Render:
         shader.use()
         
         # update view
-        shader.set_mat4("P", Render.render_info.cam_projection)
-        shader.set_mat4("V", Render.render_info.cam_view)
-        shader.set_vec3("viewPosition", Render.render_info.cam_position)
-        shader.set_vec4("uLight.vector", Render.render_info.light_vector)
-        shader.set_vec3("uLight.color", Render.render_info.light_color)
+        shader.set_mat4("P",                  Render.render_info.cam_projection)
+        shader.set_mat4("V",                  Render.render_info.cam_view)
+        shader.set_vec3("viewPosition",       Render.render_info.cam_position)
+        shader.set_vec4("uLight.vector",      Render.render_info.light_vector)
+        shader.set_vec3("uLight.color",       Render.render_info.light_color)
         shader.set_vec3("uLight.attenuation", Render.render_info.light_attenuation)
-        shader.set_mat4("lightSpaceMatrix", Render.render_info.light_matrix)
+        shader.set_mat4("lightSpaceMatrix",   Render.render_info.light_matrix)
 
         # update model
         T = glm.translate(glm.mat4(1.0), option.position)
@@ -176,14 +181,13 @@ class Render:
         glBindTexture(GL_TEXTURE_2D, Render.depth_map)
             
         # set material
-        shader.set_bool("uColorMode", option.color_mode)
-        shader.set_vec3("uMaterial.diffuse", option.material.diffuse)
-        shader.set_vec3("uMaterial.specular", option.material.specular)
+        shader.set_bool("uColorMode",           option.color_mode)
+        shader.set_vec3("uMaterial.diffuse",    option.material.diffuse)
+        shader.set_vec3("uMaterial.specular",   option.material.specular)
         shader.set_float("uMaterial.shininess", option.material.shininess)
-        shader.set_vec3("uMaterial.albedo", option.material.albedo)
-        shader.set_float("uMaterial.alpha", option.material.alpha)
-
-        shader.set_vec2("uvScale", option.uv_repeat)
+        shader.set_vec3("uMaterial.albedo",     option.material.albedo)
+        shader.set_float("uMaterial.alpha",     option.material.alpha)
+        shader.set_vec2("uvScale",              option.uv_repeat)
 
         # final rendering
         glBindVertexArray(option.vao.id)

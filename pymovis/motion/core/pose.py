@@ -56,6 +56,8 @@ class Pose:
     def left(self):
         return np.cross(self.up, self.forward)
     
+    # TODO: Implement 4x4 base transformation matrix (rotation + translation on xz plane)
+
     def draw(self, albedo=glm.vec3(1.0, 0.0, 0.0)):
         if not hasattr(self, "joint_sphere"):
             self.joint_sphere = Sphere(0.05)
