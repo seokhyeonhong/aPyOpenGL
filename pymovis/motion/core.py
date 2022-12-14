@@ -1,15 +1,167 @@
 from __future__ import annotations
-
 import numpy as np
 import copy
 import glm
 
-from pymovis.motion.core.skeleton import Skeleton
-from pymovis.motion.core.pose import Pose
+from pymovis.motion.utils import npconst
 from pymovis.motion.ops import npmotion
-from pymovis.motion.utils import util, npconst
+
+from pymovis.vis.render import Render
+
+class Joint:
+    """
+    Joint of a skeleton
+
+    Attributes:
+        name   (str): Name of the joint
+        offset (np.ndarray): Offset of the joint from its parent
+    """
+    def __init__(
+        self,
+        name  :str,
+        offset:np.ndarray=npconst.P_ZERO()
+    ):
+        self.name   = name
+        self.offset = offset
+
+class Skeleton:
+    """
+    Hierarchical structure of joints
+
+    Attributes:
+        joints      (list[Joint]):     List of joints
+        v_up        (np.ndarray):      Up vector of the skeleton
+        v_forward   (np.ndarray):      Forward vector of the skeleton
+        parent_id   (list[int]):       List of parent ids
+        children_id (list[list[int]]): List of children ids
+        id_by_name  (dict[str, int]):  Dictionary of joint ids by name
+    """
+    def __init__(
+        self,
+        joints   : list[Joint]=[],
+        v_up     : np.ndarray=npconst.UP(),
+        v_forward: np.ndarray=npconst.FORWARD(),
+    ):
+        assert v_up.shape == (3,), f"v_up.shape = {v_up.shape}"
+        assert v_forward.shape == (3,), f"v_forward.shape = {v_forward.shape}"
+
+        self.joints = joints
+        self.v_up = v_up
+        self.v_forward = v_forward
+        self.parent_id = []
+        self.children_id = []
+        self.id_by_name = {}
+    
+    @property
+    def num_joints(self):
+        return len(self.joints)
+    
+    def add_joint(self, joint_name, parent_id=None):
+        joint_id = len(self.joints)
+
+        if parent_id is None:
+            assert len(self.joints) == 0, "Only one root joint is allowed"
+            self.parent_id.append(-1)
+            self.children_id.append([])
+        else:
+            self.parent_id.append(parent_id)
+            self.children_id[parent_id].append(joint_id)
+
+        joint = Joint(joint_name)
+        self.id_by_name[joint_name] = len(self.joints)
+        self.joints.append(joint)
+        self.children_id.append([])
+    
+    def get_bone_offsets(self):
+        res = [joint.offset for joint in self.joints]
+        return np.stack(res, axis=0)
+    
+    def get_joint_by_name(self, name):
+        return self.joints[self.id_by_name[name]]
+
+class Pose:
+    """
+    Represents a pose of a skeleton.
+    It contains the local rotation matrices of each joint and the root position.
+
+    Attributes:
+        skeleton (Skeleton):      The skeleton that this pose belongs to.
+        local_R  (numpy.ndarray): The local rotation matrices of the joints.
+        root_p   (numpy.ndarray): The root position.
+    """
+    def __init__(
+        self,
+        skeleton: Skeleton,
+        local_R: np.ndarray,
+        root_p: np.ndarray=npconst.P_ZERO(),
+    ):
+        assert local_R.shape == (skeleton.num_joints, 3, 3), f"local_R.shape = {local_R.shape}"
+        assert root_p.shape == (3,), f"root_p.shape = {root_p.shape}"
+
+        self.skeleton = skeleton
+        self.local_R = local_R
+        self.root_p = root_p
+    
+    @classmethod
+    def from_bvh(cls, skeleton, local_E, order, root_p):
+        local_R = npmotion.R.from_E(local_E, order, radians=False)
+        return cls(skeleton, local_R, root_p)
+    
+    @classmethod
+    def from_numpy(cls, skeleton, local_R, root_p):
+        return cls(skeleton, local_R, root_p)
+
+    @classmethod
+    def from_torch(cls, skeleton, local_R, root_p):
+        return cls(skeleton, local_R.cpu().numpy(), root_p.cpu().numpy())
+
+    @property
+    def forward(self):
+        return self.local_R[0] @ self.skeleton.v_forward
+    
+    @property
+    def up(self):
+        return self.local_R[0] @ self.skeleton.v_up
+    
+    @property
+    def left(self):
+        return np.cross(self.up, self.forward)
+    
+    # TODO: Implement 4x4 base transformation matrix (rotation + translation on xz plane)
+
+    def draw(self, albedo=glm.vec3(1.0, 0.0, 0.0)):
+        if not hasattr(self, "joint_sphere"):
+            self.joint_sphere = Render.sphere(0.05)
+            self.joint_bone   = Render.cylinder(0.03, 1.0)
+
+        _, global_p = npmotion.R.fk(self.local_R, self.root_p, self.skeleton)
+        for i in range(self.skeleton.num_joints):
+            self.joint_sphere.set_position(global_p[i]).set_material(albedo=albedo).draw()
+
+            if i != 0:
+                parent_pos = global_p[self.skeleton.parent_id[i]]
+
+                center = glm.vec3((parent_pos + global_p[i]) / 2)
+                dist = np.linalg.norm(parent_pos - global_p[i])
+                dir = glm.vec3((global_p[i] - parent_pos) / dist)
+
+                axis = glm.cross(glm.vec3(0, 1, 0), dir)
+                angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
+                rotation = glm.rotate(glm.mat4(1.0), angle, axis)
+                
+                self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_material(albedo=albedo).draw()
 
 class Motion:
+    """
+    Motion class that contains the skeleton and its sequence of poses.
+
+    Attributes:
+        name      (str):        The name of the motion.
+        skeleton  (Skeleton):   The skeleton that this motion belongs to.
+        poses     (list[Pose]): The sequence of poses.
+        fps       (float):      The number of frames per second.
+        frametime (float):      The time between two frames.
+    """
     def __init__(
         self,
         name:     str,
@@ -90,8 +242,6 @@ class Motion:
         forward_from = self.poses[frame].forward
         forward_from = npmotion.normalize(forward_from * npconst.XZ())
         forward_to   = npmotion.normalize(forward * npconst.XZ())
-        # print("from: ", forward_from, "to: ", forward_to)
-        # breakpoint()
 
         # if forward_from and forward_to are (nearly) parallel, do nothing
         if np.dot(forward_from, forward_to) > 0.999999:

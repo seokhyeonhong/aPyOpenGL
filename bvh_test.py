@@ -3,7 +3,7 @@ import glfw
 import glm
 
 from pymovis.motion.data import bvh
-from pymovis.motion.core.motion import Motion
+from pymovis.motion.core import Motion
 from pymovis.vis.render import Render
 from pymovis.vis.app import App
 from pymovis.vis.appmanager import AppManager

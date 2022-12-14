@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from pymovis.motion.core.skeleton import Skeleton
+from pymovis.motion.core import Skeleton
 from pymovis.motion.utils import torchconst
 
 """

@@ -117,3 +117,6 @@ class Mesh:
     @property
     def vao(self):
         return self.__vao
+    
+    def get_vertices(self):
+        pass

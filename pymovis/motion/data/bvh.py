@@ -4,9 +4,7 @@ import re
 import numpy as np
 import multiprocessing as mp
 
-from pymovis.motion.core.skeleton import Skeleton
-from pymovis.motion.core.pose import Pose
-from pymovis.motion.core.motion import Motion
+from pymovis.motion.core import Skeleton, Pose, Motion
 from pymovis.motion.utils import npconst, util
 
 channelmap = {
