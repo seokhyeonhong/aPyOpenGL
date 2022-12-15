@@ -135,6 +135,14 @@ void main()
     {
         FragColor = BlinnPhong(uMaterial.albedo);
     }
+
+    // Fog
+    float D = length(viewPosition - fPosition);
+    vec3 fog_color = vec3(0.5);
+    float fog_amount = 1.0f - min(exp(-D * 0.1 + 1.5), 1.0);
+    vec3 color = FragColor.rgb;
+    color = mix(color, fog_color, fog_amount);
+    FragColor.rgb = color;
     FragColor.a = uMaterial.alpha;
     // vec3 fogColor = vec3(0.5);
     // float d = length(fPosition - viewPosition);

@@ -1,6 +1,6 @@
 import glm
 
-from pymovis.vis.texture import Texture, TextureType
+from pymovis.vis.texture import Texture, TextureType, CubemapTexture
 
 class Material:
     def __init__(self,
@@ -15,6 +15,7 @@ class Material:
         self.__shininess  = shininess
         self.__alpha      = 1.0
         self.__albedo_map = Texture()
+        self.__cubemap    = CubemapTexture()
     
     @property
     def albedo(self):
@@ -33,6 +34,10 @@ class Material:
         return self.__albedo_map
     
     @property
+    def cubemap(self):
+        return self.__cubemap
+
+    @property
     def shininess(self):
         return self.__shininess
     
@@ -44,6 +49,9 @@ class Material:
         # TODO: Add other types of maps (e.g. specular map, normal map, ...)
         self.__albedo_map.set_texture(filename)
     
+    def set_cubemap(self, dirname):
+        self.__cubemap.set_texture(dirname)
+
     def set_albedo(self, albedo):
         self.__albedo = glm.vec3(albedo)
     

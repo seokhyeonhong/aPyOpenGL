@@ -13,6 +13,7 @@ class MyApp(App):
         self.primitives.append(Render.sphere().set_position(glm.vec3(3,0.5,3)).set_texture("example.png"))
         self.primitives.append(Render.cube().set_position(1, 0.5, 1))
         self.primitives.append(Render.text("Rendering").set_position(3, 0, 0))
+        self.primitives.append(Render.cubemap("skybox"))
 
     def render(self):
         for p in self.primitives:

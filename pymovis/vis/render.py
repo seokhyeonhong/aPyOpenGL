@@ -42,6 +42,7 @@ class Render:
         Render.primitive_shader = Shader("phong.vs", "phong.fs")
         Render.shadow_shader    = Shader("shadow.vs", "shadow.fs")
         Render.text_shader      = Shader("text.vs", "text.fs")
+        Render.cubemap_shader   = Shader("cubemap.vs", "cubemap.fs")
         Render.generate_shadow_buffer()
     
     @staticmethod
@@ -141,6 +142,12 @@ class Render:
             res.set_text(str(t))
             res.set_material(albedo=glm.vec3(0))
             return res
+
+    @staticmethod
+    def cubemap(dirname, scale=100):
+        ro = RenderOptions(Cubemap(scale=scale), Render.cubemap_shader, Render.draw_cubemap)
+        ro.set_cubemap(dirname)
+        return ro
 
     @staticmethod
     def draw_phong(option: RenderOptions, shader: Shader):
@@ -287,6 +294,37 @@ class Render:
         glBindVertexArray(0)
         glBindTexture(GL_TEXTURE_2D, 0)
 
+    @staticmethod
+    def draw_cubemap(option: RenderOptions, shader: Shader):
+        if option is None or shader is None:
+            return
+        if Render.render_mode == RenderMode.SHADOW:
+            return
+        
+        # adjust depth settings for optimized rendering
+        glDepthFunc(GL_LEQUAL)
+
+        shader.use()
+
+        # update view
+        shader.set_mat4("P", Render.render_info.cam_projection)
+        shader.set_mat4("V", glm.mat4(glm.mat3(Render.render_info.cam_view)))
+
+        # set textures
+        shader.set_int("uSkybox", 0)
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, option.cubemap_id)
+
+        # final rendering
+        glBindVertexArray(option.vao.id)
+        glDrawArrays(GL_TRIANGLES, 0, 36)
+
+        # restore depth settings
+        glDepthFunc(GL_LESS)
+
+        # unbind vao
+        glBindVertexArray(0)
+
 
     @staticmethod
     def update_render_view(app, width, height):
@@ -345,6 +383,10 @@ class RenderOptions:
     @property
     def texture_id(self):
         return self.material.albedo_map.texture_id
+    
+    @property
+    def cubemap_id(self):
+        return self.material.cubemap.texture_id
 
     def draw(self):
         if Render.render_mode == RenderMode.SHADOW:
@@ -382,6 +424,10 @@ class RenderOptions:
 
     def set_texture(self, filename):
         self.material.set_texture(filename)
+        return self
+    
+    def set_cubemap(self, dirname):
+        self.material.set_cubemap(dirname)
         return self
     
     def set_uv_repeat(self, u, v=None):

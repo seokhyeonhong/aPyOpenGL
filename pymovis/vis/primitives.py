@@ -293,3 +293,59 @@ class Cylinder(Mesh):
                 indices.append(index_offset + i)
         
         return positions, normals, tex_coords, indices
+
+class Cubemap(Mesh):
+    """
+    Cubemap is actually not a mesh itself, but this implementation is convenient for rendering.
+    """
+    def __init__(self, scale=100):
+        positions = self.get_vertices()
+        positions = np.array(positions, dtype=np.float32) * scale
+        vao = VAO.from_positions(positions)
+        super().__init__(vao, None, None)
+    
+    def get_vertices(self):
+        positions = [
+            glm.vec3(-1,  1, -1),
+            glm.vec3(-1, -1, -1),
+            glm.vec3( 1, -1, -1),
+            glm.vec3( 1, -1, -1),
+            glm.vec3( 1,  1, -1),
+            glm.vec3(-1,  1, -1),
+
+            glm.vec3(-1, -1,  1),
+            glm.vec3(-1, -1, -1),
+            glm.vec3(-1,  1, -1),
+            glm.vec3(-1,  1, -1),
+            glm.vec3(-1,  1,  1),
+            glm.vec3(-1, -1,  1),
+
+            glm.vec3( 1, -1, -1),
+            glm.vec3( 1, -1,  1),
+            glm.vec3( 1,  1,  1),
+            glm.vec3( 1,  1,  1),
+            glm.vec3( 1,  1, -1),
+            glm.vec3( 1, -1, -1),
+
+            glm.vec3(-1, -1,  1),
+            glm.vec3(-1,  1,  1),
+            glm.vec3( 1,  1,  1),
+            glm.vec3( 1,  1,  1),
+            glm.vec3( 1, -1,  1),
+            glm.vec3(-1, -1,  1),
+
+            glm.vec3(-1,  1, -1),
+            glm.vec3( 1,  1, -1),
+            glm.vec3( 1,  1,  1),
+            glm.vec3( 1,  1,  1),
+            glm.vec3(-1,  1,  1),
+            glm.vec3(-1,  1, -1),
+
+            glm.vec3(-1, -1, -1),
+            glm.vec3(-1, -1,  1),
+            glm.vec3( 1, -1, -1),
+            glm.vec3( 1, -1, -1),
+            glm.vec3(-1, -1,  1),
+            glm.vec3( 1, -1,  1)
+        ]
+        return positions
