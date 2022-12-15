@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 import numpy as np
 
 from pymovis.motion.core import Skeleton
-from pymovis.motion.utils import torchconst, util
+from pymovis.utils import torchconst, util
 
 class WindowDataset(Dataset):
     def __init__(

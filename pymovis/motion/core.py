@@ -3,7 +3,7 @@ import numpy as np
 import copy
 import glm
 
-from pymovis.motion.utils import npconst
+from pymovis.utils import npconst
 from pymovis.motion.ops import npmotion
 
 from pymovis.vis.render import Render

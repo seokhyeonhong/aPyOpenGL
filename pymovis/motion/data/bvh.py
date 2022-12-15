@@ -5,7 +5,7 @@ import numpy as np
 import multiprocessing as mp
 
 from pymovis.motion.core import Skeleton, Pose, Motion
-from pymovis.motion.utils import npconst, util
+from pymovis.utils import npconst, util
 
 channelmap = {
     'Xrotation': 'x',

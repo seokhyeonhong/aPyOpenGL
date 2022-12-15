@@ -1,5 +1,5 @@
 import numpy as np
-from pymovis.motion.utils import npconst
+from pymovis.utils import npconst
 
 """
 Functions that convert between different rotation representations.
