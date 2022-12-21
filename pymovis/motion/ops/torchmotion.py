@@ -8,7 +8,7 @@ from pymovis.utils import torchconst
 Functions that convert between different rotation representations.
 
 Glossary:
-- A: Axis angle
+- A: Angle axis
 - E: Euler angles
 - R: Rotation matrix
 - R6: 6D rotation vector

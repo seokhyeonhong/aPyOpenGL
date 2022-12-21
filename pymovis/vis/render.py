@@ -1,5 +1,6 @@
 from __future__ import annotations
 from enum import Enum
+import functools
 
 from OpenGL.GL import *
 import glfw
@@ -20,22 +21,24 @@ class RenderMode(Enum):
 
 class RenderInfo:
     sky_color         = glm.vec4(1.0)
-    cam_position      = glm.vec3(0)
-    cam_projection    = glm.mat4(1)
-    cam_view          = glm.mat4(1)
-    light_vector      = glm.vec4(0)
-    light_color       = glm.vec3(1)
-    light_attenuation = glm.vec3(0)
-    light_matrix      = glm.mat4(1)
+    cam_position      = glm.vec3(0.0)
+    cam_projection    = glm.mat4(1.0)
+    cam_view          = glm.mat4(1.0)
+    light_vector      = glm.vec4(0.0)
+    light_color       = glm.vec3(1.0)
+    light_attenuation = glm.vec3(0.0)
+    light_matrix      = glm.mat4(1.0)
+    width             = 1920
+    height            = 1080
 
 class Render:
     """
     Global rendering state and functions
     """
-    render_mode = RenderMode.PHONG
-    render_info = RenderInfo()
+    render_mode      = RenderMode.PHONG
+    render_info      = RenderInfo()
     primitive_meshes = {}
-    font_texture = None
+    font_texture     = None
 
     @staticmethod
     def initialize_shaders():
@@ -43,6 +46,7 @@ class Render:
         Render.shadow_shader    = Shader("shadow.vs", "shadow.fs")
         Render.text_shader      = Shader("text.vs", "text.fs")
         Render.cubemap_shader   = Shader("cubemap.vs", "cubemap.fs")
+        Render.shaders = [Render.primitive_shader, Render.shadow_shader, Render.text_shader, Render.cubemap_shader]
         Render.generate_shadow_buffer()
     
     @staticmethod
@@ -135,13 +139,20 @@ class Render:
         if Render.font_texture is None:
             Render.font_texture = FontTexture()
 
-        if Render.render_mode == RenderMode.SHADOW:
-            return RenderOptions(VAO(), None, Render.draw_shadow)
-        else:
-            res = RenderOptions(VAO(), Render.text_shader, Render.draw_text)
-            res.set_text(str(t))
-            res.set_material(albedo=glm.vec3(0))
-            return res
+        res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=False))
+        res.set_text(str(t))
+        res.set_material(albedo=glm.vec3(0))
+        return res
+
+    @staticmethod
+    def text_on_screen(t):
+        if Render.font_texture is None:
+            Render.font_texture = FontTexture()
+
+        res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=True))
+        res.set_text(str(t))
+        res.set_material(albedo=glm.vec3(0))
+        return res
 
     @staticmethod
     def cubemap(dirname, scale=100):
@@ -159,13 +170,15 @@ class Render:
         shader.use()
         
         # update view
-        shader.set_mat4("P",                  Render.render_info.cam_projection)
-        shader.set_mat4("V",                  Render.render_info.cam_view)
-        shader.set_vec3("viewPosition",       Render.render_info.cam_position)
-        shader.set_vec4("uLight.vector",      Render.render_info.light_vector)
-        shader.set_vec3("uLight.color",       Render.render_info.light_color)
-        shader.set_vec3("uLight.attenuation", Render.render_info.light_attenuation)
-        shader.set_mat4("lightSpaceMatrix",   Render.render_info.light_matrix)
+        if shader.is_view_updated is False:
+            shader.set_mat4("P",                  Render.render_info.cam_projection)
+            shader.set_mat4("V",                  Render.render_info.cam_view)
+            shader.set_vec3("viewPosition",       Render.render_info.cam_position)
+            shader.set_vec4("uLight.vector",      Render.render_info.light_vector)
+            shader.set_vec3("uLight.color",       Render.render_info.light_color)
+            shader.set_vec3("uLight.attenuation", Render.render_info.light_attenuation)
+            shader.set_mat4("lightSpaceMatrix",   Render.render_info.light_matrix)
+            shader.is_view_updated = True
 
         # update model
         T = glm.translate(glm.mat4(1.0), option.position)
@@ -229,29 +242,36 @@ class Render:
         glBindVertexArray(0)
 
     @staticmethod
-    def draw_text(option: RenderOptions, shader: Shader):
+    def draw_text(option: RenderOptions, shader: Shader, on_screen=False):
         if option is None or shader is None:
             return
-            
-        x = 0
-        y = 0
-        scale = option.scale.x / glconst.TEXT_RESOLUTION
+        
+        if on_screen:
+            x = option.position.x
+            y = option.position.y
+            scale = option.scale.x
+        else:
+            x = 0
+            y = 0
+            scale = option.scale.x / glconst.TEXT_RESOLUTION
 
         # shader settings
         shader.use()
         
-        if option.text_fixed:
-            # TODO: implement here
-            raise NotImplementedError()
+        if on_screen:
+            PV = glm.ortho(0, Render.render_info.width, 0, Render.render_info.height)
+            M  = glm.mat4(1.0)
+            shader.set_mat4("PV", PV)
+            shader.set_mat4("M", M)
         else:
-            shader.set_mat4("P", Render.render_info.cam_projection)
-            shader.set_mat4("V", Render.render_info.cam_view)
+            P = Render.render_info.cam_projection
+            V = Render.render_info.cam_view
+            shader.set_mat4("PV", P * V)
 
-            T = glm.translate(glm.mat4(1.0), option.position)
-            R = glm.mat4(option.orientation)
-            S = glm.scale(glm.mat4(1.0), option.scale)
-            transform = T * R * S
-            shader.set_mat4("M", transform)
+            M = glm.translate(glm.mat4(1.0), option.position)\
+                * glm.mat4(option.orientation)\
+                * glm.scale(glm.mat4(1.0), option.scale) # translation * rotation * scale
+            shader.set_mat4("M", M)
 
         shader.set_int("uText", 0)
         shader.set_vec3("uTextColor", option.material.albedo)
@@ -307,8 +327,9 @@ class Render:
         shader.use()
 
         # update view
-        shader.set_mat4("P", Render.render_info.cam_projection)
-        shader.set_mat4("V", glm.mat4(glm.mat3(Render.render_info.cam_view)))
+        P = Render.render_info.cam_projection
+        V = glm.mat4(glm.mat3(Render.render_info.cam_view))
+        shader.set_mat4("PV", P * V)
 
         # set textures
         shader.set_int("uSkybox", 0)
@@ -338,6 +359,11 @@ class Render:
         Render.render_info.light_color       = light.color * light.intensity
         Render.render_info.light_attenuation = light.attenuation
         Render.render_info.light_matrix      = light.get_view_projection_matrix()
+        Render.render_info.width             = width
+        Render.render_info.height            = height
+
+        for s in Render.shaders:
+            s.is_view_updated = False
     
     @staticmethod
     def clear():
@@ -362,17 +388,17 @@ class RenderOptions:
         self.shadow_shader = shadow_shader
 
         # transformation
-        self.position      = glm.vec3(0)
-        self.orientation   = glm.mat3(1)
-        self.scale         = glm.vec3(1)
+        self.position      = glm.vec3(0.0)
+        self.orientation   = glm.mat3(1.0)
+        self.scale         = glm.vec3(1.0)
 
         # material  
         self.material      = Material()
-        self.uv_repeat     = glm.vec2(1)
+        self.uv_repeat     = glm.vec2(1.0)
         self.text          = ""
-        self.text_fixed    = False
         self.color_mode    = False
 
+        # functions
         self.draw_func     = draw_func
         self.shadow_func   = shadow_func
 
@@ -420,6 +446,10 @@ class RenderOptions:
             self.material.set_diffuse(diffuse)
         if specular != None:
             self.material.set_specular(specular)
+        return self
+    
+    def set_text_color(self, x, y, z):
+        self.material.set_albedo(glm.vec3(x, y, z))
         return self
 
     def set_texture(self, filename):

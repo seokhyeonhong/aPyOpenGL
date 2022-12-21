@@ -14,7 +14,7 @@ def check_program_link_error(handle):
         info_log = glGetProgramInfoLog(handle)
         raise Exception("Shader program linking error: " + info_log.decode("utf-8"))
 
-def load(filename, shader_type):
+def load_shader(filename, shader_type):
     shader_code = load_code(filename)
     shader = glCreateShader(shader_type)
     
@@ -32,16 +32,19 @@ def load_code(filename):
 
 class Shader:
     def __init__(self, vertex_path, fragment_path, geometry_path=None):
-        self.__vertex_shader   = load(vertex_path, GL_VERTEX_SHADER)
-        self.__fragment_shader = load(fragment_path, GL_FRAGMENT_SHADER)
-        self.__geometry_shader = load(geometry_path, GL_GEOMETRY_SHADER) if geometry_path != None else None
+        # build shader program
+        self.__vertex_shader   = load_shader(vertex_path, GL_VERTEX_SHADER)
+        self.__fragment_shader = load_shader(fragment_path, GL_FRAGMENT_SHADER)
+        self.__geometry_shader = load_shader(geometry_path, GL_GEOMETRY_SHADER) if geometry_path is not None else None
         self.build()
+
+        self.is_view_updated   = False
         
     def build(self):
         self.__program = glCreateProgram()
         glAttachShader(self.__program, self.__vertex_shader)
         glAttachShader(self.__program, self.__fragment_shader)
-        if self.__geometry_shader != None:
+        if self.__geometry_shader is not None:
             glAttachShader(self.__program, self.__geometry_shader)
         
         glLinkProgram(self.__program)
@@ -49,7 +52,7 @@ class Shader:
 
         glDeleteShader(self.__vertex_shader)
         glDeleteShader(self.__fragment_shader)
-        if self.__geometry_shader != None:
+        if self.__geometry_shader is not None:
             glDeleteShader(self.__geometry_shader)
         
     def use(self):

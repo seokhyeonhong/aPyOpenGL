@@ -16,12 +16,12 @@ def get_color_by_position(position):
 """
 class Plane(Mesh):
     def __init__(self):
-        positions, normals, tex_coords, indices = self.get_vertices()
+        positions, normals, tex_coords, indices = self.generate_vertices()
         vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
         vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao, vertices, indices)
 
-    def get_vertices(self):
+    def generate_vertices(self):
         positions = [
             glm.vec3(0.5, 0.0, 0.5),   # v0
             glm.vec3(0.5, 0.0, -0.5),  # v1
@@ -48,12 +48,12 @@ class Plane(Mesh):
 """
 class Cube(Mesh):
     def __init__(self):
-        positions, normals, tex_coords, indices = self.get_vertices()
+        positions, normals, tex_coords, indices = self.generate_vertices()
         vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
         vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao, vertices, indices)
 
-    def get_vertices(self):
+    def generate_vertices(self):
         v = [
             glm.vec3(0.5, 0.5, 0.5), glm.vec3(-0.5, 0.5, 0.5), glm.vec3(-0.5, -0.5, 0.5), glm.vec3(0.5, -0.5, 0.5),
             glm.vec3(0.5, -0.5, -0.5), glm.vec3(0.5, 0.5, -0.5), glm.vec3(-0.5, 0.5, -0.5), glm.vec3(-0.5, -0.5, -0.5)
@@ -119,12 +119,12 @@ class Sphere(Mesh):
         stacks=16,
         sectors=16
     ):
-        positions, normals, tex_coords, indices = self.get_vertices(radius, stacks, sectors)
+        positions, normals, tex_coords, indices = self.generate_vertices(radius, stacks, sectors)
         vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
         vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao, vertices, indices)
 
-    def get_vertices(self, radius, stacks, sectors):
+    def generate_vertices(self, radius, stacks, sectors):
         # TODO: Optimization using numpy (e.g. without for loops)
         """
         theta: angle between up-axis(=y) and the point on the sphere
@@ -172,12 +172,12 @@ class Cone(Mesh):
         height,
         sectors=16
     ):
-        positions, normals, tex_coords, indices = self.get_vertices(radius, height, sectors)
+        positions, normals, tex_coords, indices = self.generate_vertices(radius, height, sectors)
         vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
         vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao, vertices, indices)
     
-    def get_vertices(self, radius, height, sectors):
+    def generate_vertices(self, radius, height, sectors):
         positions, normals, tex_coords = [], [], []
         indices = []
 
@@ -226,12 +226,12 @@ class Cylinder(Mesh):
         height,
         sectors=16
     ):
-        positions, normals, tex_coords, indices = self.get_vertices(radius, height, sectors)
+        positions, normals, tex_coords, indices = self.generate_vertices(radius, height, sectors)
         vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
         vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao, vertices, indices)
     
-    def get_vertices(self, radius, height, sectors):
+    def generate_vertices(self, radius, height, sectors):
         positions, normals, tex_coords = [], [], []
         indices = []
 
@@ -299,12 +299,12 @@ class Cubemap(Mesh):
     Cubemap is actually not a mesh itself, but this implementation is convenient for rendering.
     """
     def __init__(self, scale=100):
-        positions = self.get_vertices()
+        positions = self.generate_vertices()
         positions = np.array(positions, dtype=np.float32) * scale
         vao = VAO.from_positions(positions)
         super().__init__(vao, None, None)
     
-    def get_vertices(self):
+    def generate_vertices(self):
         positions = [
             glm.vec3(-1,  1, -1),
             glm.vec3(-1, -1, -1),

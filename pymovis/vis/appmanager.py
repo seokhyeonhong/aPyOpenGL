@@ -24,14 +24,15 @@ class AppManager:
     @classmethod
     def initialize(cls):
         app_manager = AppManager()
-        app_manager._initialize()
+        app_manager.__initialize()
         return app_manager
 
     def run(self, app: App):
         self._app = app
-        self._start_loop()
+        self.__start_loop()
 
-    def _initialize(self):
+    def __initialize(self):
+        # initialize glfw
         glfw.init()
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
@@ -45,17 +46,17 @@ class AppManager:
         glfw.make_context_current(self.window)
         glfw.swap_interval(1)
 
-        glfw.set_framebuffer_size_callback(self.window, self._on_resize)
-        glfw.set_key_callback(self.window, self._on_key_down)
-        glfw.set_cursor_pos_callback(self.window, self._on_mouse_move)
-        glfw.set_mouse_button_callback(self.window, self._on_mouse_button_click)
-        glfw.set_scroll_callback(self.window, self._on_scroll)
-        glfw.set_error_callback(self._on_error)
+        glfw.set_framebuffer_size_callback(self.window, self.on_resize)
+        glfw.set_key_callback(self.window, self.on_key_down)
+        glfw.set_cursor_pos_callback(self.window, self.on_mouse_move)
+        glfw.set_mouse_button_callback(self.window, self.on_mouse_button_click)
+        glfw.set_scroll_callback(self.window, self.on_scroll)
+        glfw.set_error_callback(self.on_error)
 
         # intialize shaders
         Render.initialize_shaders()
     
-    def _start_loop(self):
+    def __start_loop(self):
         if not isinstance(self._app, App):
             raise Exception("Invalid app type")
             
@@ -113,7 +114,7 @@ class AppManager:
         glfw.destroy_window(self.window)
         glfw.terminate()
 
-    def _on_key_down(self, window, key, scancode, action, mods):
+    def on_key_down(self, window, key, scancode, action, mods):
         width, height = glfw.get_window_size(window)
         if key == glfw.KEY_F1 and action == glfw.PRESS:
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
@@ -122,22 +123,20 @@ class AppManager:
             
         self._app.key_callback(window, key, scancode, action, mods)
 
-    def _on_mouse_move(self, window, xpos, ypos):
+    def on_mouse_move(self, window, xpos, ypos):
         self._app.mouse_callback(window, xpos, ypos)
 
-    def _on_mouse_button_click(self, window, button, action, mods):
+    def on_mouse_button_click(self, window, button, action, mods):
         self._app.mouse_button_callback(window, button, action, mods)
 
-    def _on_scroll(self, window, xoffset, yoffset):
+    def on_scroll(self, window, xoffset, yoffset):
         self._app.scroll_callback(window, xoffset, yoffset)
 
-    def _on_error(self, error, description):
+    def on_error(self, error, description):
         self._app.on_error(error, description)
     
-    def _on_resize(self, window, width, height):
+    def on_resize(self, window, width, height):
         self.width = width
         self.height = height
 
-        Render.render_info.width = width
-        Render.render_info.height = height
         self._app.on_resize(window, width, height)

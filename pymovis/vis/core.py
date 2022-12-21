@@ -69,10 +69,10 @@ class VAO:
         """
         Constructor from a list of positions
         """
-        id          = glGenVertexArrays(1)
-        vbos        = glGenBuffers(1)
-        ebo         = None
-        indices     = None
+        id      = glGenVertexArrays(1)
+        vbos    = glGenBuffers(1)
+        ebo     = None
+        indices = None
 
         glBindVertexArray(id)
         data = np.array(positions).flatten()
@@ -90,7 +90,7 @@ class VAO:
         return self.__id
 
     @property
-    def indices_count(self):
+    def indices_count(self) -> int:
         return len(self.__indices)
 
 class Vertex:
@@ -123,7 +123,6 @@ class Vertex:
             res.append(Vertex(positions[i], normals[i], tex_coords[i]))
         return res
 
-
 class Mesh:
     def __init__(
         self,
@@ -139,5 +138,5 @@ class Mesh:
     def vao(self):
         return self.__vao
     
-    def get_vertices(self):
+    def generate_vertices(self):
         pass

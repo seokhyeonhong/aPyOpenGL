@@ -11,7 +11,7 @@ from pymovis.vis.render import Render
 import glfw, glm
 
 # global variables
-TRAIN = False
+TRAIN = True
 WINDOW_SIZE = 50
 WINDOW_OFFSET = 20
 LOAD_PATH = f"D:/data/LaFAN1/{'train' if TRAIN else 'test'}"
@@ -54,6 +54,10 @@ def save_windows(motions, path):
             
             np.savetxt(os.path.join(path, f"{txt_count}.txt"), features, fmt="%.6f")
             txt_count += 1
+
+def save_windows(motion, path):
+    # TODO: Implement this function
+    raise NotImplementedError("Not implemented yet")
 
 class MotionApp(App):
     def __init__(self, motion):
