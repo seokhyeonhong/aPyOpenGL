@@ -78,5 +78,4 @@ class KinematicTransformer(nn.Module):
         # decoder
         y = self.decoder(h_ctx)
 
-        # return residual
-        return y + x
+        return y

@@ -13,13 +13,13 @@ class Joint:
     Joint of a skeleton
 
     Attributes:
-        name   (str): Name of the joint
+        name   (str):        Name of the joint
         offset (np.ndarray): Offset of the joint from its parent
     """
     def __init__(
         self,
-        name  :str,
-        offset:np.ndarray=npconst.P_ZERO()
+        name  : str,
+        offset: np.ndarray=npconst.P_ZERO()
     ):
         self.name   = name
         self.offset = offset
@@ -92,8 +92,8 @@ class Pose:
     def __init__(
         self,
         skeleton: Skeleton,
-        local_R: np.ndarray,
-        root_p: np.ndarray=npconst.P_ZERO(),
+        local_R : np.ndarray,
+        root_p  : np.ndarray=npconst.P_ZERO(),
     ):
         assert local_R.shape == (skeleton.num_joints, 3, 3), f"local_R.shape = {local_R.shape}"
         assert root_p.shape == (3,), f"root_p.shape = {root_p.shape}"
@@ -164,11 +164,11 @@ class Motion:
     """
     def __init__(
         self,
-        name:     str,
+        name    : str,
         skeleton: Skeleton,
-        poses:    list[Pose],
+        poses   : list[Pose],
         global_v: np.ndarray = None,
-        fps:      float=30.0,
+        fps     : float=30.0,
     ):
         self.name      = name
         self.skeleton  = skeleton

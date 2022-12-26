@@ -8,10 +8,12 @@ Glossary:
 - A: Axis angle
 - E: Euler angles
 - R: Rotation matrix
-- R6: 6D rotation vector
-- Q: Quaternion
+- R6: 6D rotation vector [Zhou et al. 2018]
+- Q: Quaternion (order in (w, x, y, z), where w is real value)
 - v: Vector
 - p: Position
+
+TODO: Refactor code & Synchronize with torchmotion.py
 """
 
 def normalize(x, axis=-1, eps=npconst.EPSILON()):
@@ -27,14 +29,6 @@ class R:
         :param bone_offset: (N, 3)
         :param parents: (N,)
         """
-        # if R.shape[-2:] != (3, 3):
-        #     raise ValueError(f"R.shape[-2:] = {R.shape[-2:]} != (3, 3)")
-        # if root_p.shape[-1] != 3:
-        #     raise ValueError(f"root_p.shape[-1] = {root_p.shape[-1]} != 3")
-        # if bone_offset.shape[-1] != 3:
-        #     raise ValueError(f"bone_offset.shape[-1] = {bone_offset.shape[-1]} != 3")
-        # if R.shape[-3] == bone_offset.shape[-2] == len(parents):
-        #     raise ValueError(f"R.shape[-3] = {R.shape[-3]} != bone_offset.shape[-2] = {bone_offset.shape[-2]} != len(parents) = {len(parents)}")
         bone_offsets, parents = skeleton.get_bone_offsets(), skeleton.parent_id
         global_R, global_p = [R[..., 0, :, :]], [root_p]
         for i in range(1, len(parents)):
@@ -86,6 +80,36 @@ class R:
         sin            = np.sin(angle)[..., np.newaxis, np.newaxis]                           # (..., 1, 1)
         cos            = np.cos(angle)[..., np.newaxis, np.newaxis]                           # (..., 1, 1)
         return I + skew_symmetric * sin + np.matmul(skew_symmetric, skew_symmetric) * (1 - cos)
+
+    @staticmethod
+    def from_R6(r6: np.ndarray) -> np.ndarray:
+        """
+        :param r6: (..., 6)
+        """
+        if r6.shape[-1] != 6:
+            raise ValueError(f"r6.shape[-1] = {r6.shape[-1]} != 6")
+        
+        x = normalize(r6[..., 0:3])
+        y = normalize(r6[..., 3:6])
+        z = np.cross(x, y, axis=-1)
+        y = np.cross(z, x, axis=-1)
+        return np.stack([x, y, z], axis=-2) # (..., 3, 3)
+
+    @staticmethod
+    def from_Q(q: np.ndarray) -> np.ndarray:
+        """
+        :param q: (..., 4)
+        """
+        if q.shape[-1] != 4:
+            raise ValueError(f"q.shape[-1] = {q.shape[-1]} != 4")
+        
+        q = normalize(q, axis=-1)
+        w, x, y, z = np.split(q, 4, axis=-1)
+        row0 = np.stack([2*(w*w + x*x) - 1, 2*(x*y - w*z), 2*(x*z + w*y)], axis=-1)
+        row1 = np.stack([2*(w*z + x*y), 2*(w*w + y*y) - 1, 2*(y*z - w*x)], axis=-1)
+        row2 = np.stack([2*(x*z - w*y), 2*(w*x + y*z), 2*(w*w + z*z) - 1], axis=-1)
+        return np.stack([row0, row1, row2], axis=-2) # (..., 3, 3)
+
 
     @staticmethod
     def inv(R):
