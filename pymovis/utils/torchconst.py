@@ -33,9 +33,3 @@ def LEFT(device="cpu"):
 
 def P_ZERO(device="cpu"):
     return torch.zeros(3, dtype=torch.float32, device=device)
-
-def EPSILON():
-    return torch.finfo(torch.float32).eps
-
-def INFINITY():
-    return torch.finfo(torch.float32).max

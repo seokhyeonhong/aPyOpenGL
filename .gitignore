@@ -9,3 +9,6 @@ test_*
 *.pt
 *.pth
 *.npy
+_*.py
+data/heightmaps
+data/PFNN*

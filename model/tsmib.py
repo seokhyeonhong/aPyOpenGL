@@ -74,7 +74,7 @@ class ContextTransformer(nn.Module):
         m_in = torch.sum(mask_in, dim=-1) # (B, T)
         m_in = torch.where(m_in > 0, 1., 0.) # (B, T)
         mask_atten = torch.zeros(B, self.num_heads, T, T, device=device, dtype=torch.float32)
-        mask_atten = mask_atten.masked_fill(m_in.view(B, 1, 1, T) == 0, -torchconst.INFINITY())
+        mask_atten = mask_atten.masked_fill(m_in.view(B, 1, 1, T) == 0, -1e9)
 
         # Transformer layers
         for i in range(len(self.layers) // 2):
@@ -113,7 +113,7 @@ class DetailTransformer(nn.Module):
         )
 
         # Transformer layers
-        self.layer_norm = nn.LayerNorm(d_model, eps=torchconst.EPSILON())
+        self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
         self.layers = nn.ModuleList()
         for _ in range(num_layers):
             self.layers.append(MultiHeadAttention(d_model, head_dim=d_model // num_heads, output_dim=d_model, num_heads=num_heads, dropout=0))
@@ -173,7 +173,7 @@ class PhaseTransformer(nn.Module):
 
         self.encoder = MLP(dof+1, [d_model], d_model, activation=nn.PReLU(), activation_at_last=True)
         self.relative_pos_enc = MLP(1, [d_model], d_model // num_heads, activation=nn.PReLU(), activation_at_last=False)
-        self.layer_norm = nn.LayerNorm(d_model, eps=torchconst.EPSILON())
+        self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
         
         self.layers = nn.ModuleList()
         for _ in range(num_layers):

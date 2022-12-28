@@ -54,21 +54,21 @@ class KinematicTransformer(nn.Module):
             nn.Linear(d_model, dof),
         )
 
-    def forward(self, x, ik_mask, target_position, p_kf):
+    def forward(self, x, ik_mask, target_position, kf_pos):
         """
-        :param x: (B, T, D)
+        :param x:       (B, T, D)
         :param ik_mask: (B, T, D)
-        :param p_kf: (B, T, 2)
+        :param kf_pos:  (B, T, 2)
         """
         B, T, D = x.shape
-        device = x.device
+        device  = x.device
 
-        pe_kf = self.keyframe_pos_enc(p_kf)
-        h_ctx = self.encoder(torch.cat([x, ik_mask, target_position], dim=-1)) + pe_kf # (B, T, d_model)
+        kf_pos_emb = self.keyframe_pos_enc(kf_pos)
+        h_ctx      = self.encoder(torch.cat([x, ik_mask, target_position], dim=-1)) + kf_pos_emb # (B, T, d_model)
 
         # relative distance range: [-T+1, ..., T-1], 2T-1 values in total
         rel_dist = torch.arange(-T+1, T, device=device, dtype=torch.float32)
-        E_rel = self.relative_pos_enc(rel_dist.unsqueeze(-1)) # (2T-1, d_model)
+        E_rel    = self.relative_pos_enc(rel_dist.unsqueeze(-1)) # (2T-1, d_model)
 
         # Transformer layers
         for i in range(len(self.layers) // 2):

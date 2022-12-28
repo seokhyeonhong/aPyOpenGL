@@ -44,7 +44,7 @@ class WindowDataset(Dataset):
         # calculate mean and std
         items = torch.stack(items, dim=0)
         mean = torch.mean(items, dim=dim)
-        std = torch.std(items, dim=dim) + torchconst.EPSILON()
+        std = torch.std(items, dim=dim) + 1e-6
 
         # save mean and std
         torch.save(mean, mean_path)

@@ -33,6 +33,3 @@ def LEFT():
 
 def P_ZERO():
     return np.zeros(3, dtype=np.float32)
-
-def EPSILON():
-    return np.finfo(np.float32).eps

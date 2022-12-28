@@ -29,12 +29,12 @@ class Skeleton:
     Hierarchical structure of joints
 
     Attributes:
-        joints      (list[Joint]):     List of joints
-        v_up        (np.ndarray):      Up vector of the skeleton
-        v_forward   (np.ndarray):      Forward vector of the skeleton
-        parent_id   (list[int]):       List of parent ids
+        joints      (list[Joint])    : List of joints
+        v_up        (np.ndarray)     : Up vector of the skeleton
+        v_forward   (np.ndarray)     : Forward vector of the skeleton
+        parent_id   (list[int])      : List of parent ids
         children_id (list[list[int]]): List of children ids
-        id_by_name  (dict[str, int]):  Dictionary of joint ids by name
+        id_by_name  (dict[str, int]) : Dictionary of joint ids by name
     """
     def __init__(
         self,
@@ -45,12 +45,12 @@ class Skeleton:
         assert v_up.shape == (3,), f"v_up.shape = {v_up.shape}"
         assert v_forward.shape == (3,), f"v_forward.shape = {v_forward.shape}"
 
-        self.joints = joints
-        self.v_up = v_up
-        self.v_forward = v_forward
-        self.parent_id = []
+        self.joints      = joints
+        self.v_up        = v_up
+        self.v_forward   = v_forward
+        self.parent_id   = []
         self.children_id = []
-        self.id_by_name = {}
+        self.id_by_name  = {}
     
     @property
     def num_joints(self):
@@ -73,8 +73,7 @@ class Skeleton:
         self.children_id.append([])
     
     def get_bone_offsets(self):
-        res = [joint.offset for joint in self.joints]
-        return np.stack(res, axis=0)
+        return np.stack([joint.offset for joint in self.joints], axis=0)
     
     def get_joint_by_name(self, name):
         return self.joints[self.id_by_name[name]]
@@ -85,7 +84,7 @@ class Pose:
     It contains the local rotation matrices of each joint and the root position.
 
     Attributes:
-        skeleton (Skeleton):      The skeleton that this pose belongs to.
+        skeleton (Skeleton)     : The skeleton that this pose belongs to.
         local_R  (numpy.ndarray): The local rotation matrices of the joints.
         root_p   (numpy.ndarray): The root position.
     """
@@ -116,18 +115,12 @@ class Pose:
         return cls(skeleton, local_R.cpu().numpy(), root_p.cpu().numpy())
 
     @property
-    def forward(self):
-        return self.local_R[0] @ self.skeleton.v_forward
+    def base_position(self):
+        return self.root_p * npconst.XZ()
     
     @property
-    def up(self):
-        return self.local_R[0] @ self.skeleton.v_up
-    
-    @property
-    def left(self):
-        return np.cross(self.up, self.forward)
-    
-    # TODO: Implement 4x4 base transformation matrix (rotation + translation on xz plane)
+    def base_forward(self):
+        return npmotion.normalize((self.local_R[0] @ self.skeleton.v_forward) * npconst.XZ())
 
     def draw(self, albedo=glm.vec3(1.0, 0.0, 0.0)):
         if not hasattr(self, "joint_sphere"):
@@ -156,11 +149,11 @@ class Motion:
     Motion class that contains the skeleton and its sequence of poses.
 
     Attributes:
-        name      (str):        The name of the motion.
-        skeleton  (Skeleton):   The skeleton that this motion belongs to.
+        name      (str)       : The name of the motion.
+        skeleton  (Skeleton)  : The skeleton that this motion belongs to.
         poses     (list[Pose]): The sequence of poses.
-        fps       (float):      The number of frames per second.
-        frametime (float):      The time between two frames.
+        fps       (float)     : The number of frames per second.
+        frametime (float)     : The time between two frames.
     """
     def __init__(
         self,
@@ -239,39 +232,36 @@ class Motion:
         self.update()
     
     def align_to_forward_by_frame(self, frame, forward=npconst.FORWARD()):
-        forward_from = self.poses[frame].forward
-        forward_from = npmotion.normalize(forward_from * npconst.XZ())
+        forward_from = self.poses[frame].base_forward
         forward_to   = npmotion.normalize(forward * npconst.XZ())
+        print(forward_from, forward_to)
 
         # if forward_from and forward_to are (nearly) parallel, do nothing
         if np.dot(forward_from, forward_to) > 0.999999:
             return
         
-        axis = npmotion.normalize(np.cross(forward_from, forward_to))
-        angle = np.arccos(np.dot(forward_from, forward_to))
+        axis    = npmotion.normalize(np.cross(forward_from, forward_to))
+        angle   = np.arccos(np.dot(forward_from, forward_to))
         R_delta = npmotion.R.from_A(angle, axis)
         
         # update root rotation - R: (nof, noj, 3, 3), R_delta: (3, 3)
         self.local_R[:, 0] = np.matmul(R_delta, self.local_R[:, 0])
 
         # update root position - R_delta: (3, 3), p: (nof, 3) -> (nof, 3)
-        root_p_new = self.root_p - self.root_p[frame]
-        root_p_new = np.matmul(R_delta, root_p_new.T).T + self.root_p[frame]
-        self.root_p[..., (0, 2)] = root_p_new[..., (0, 2)]
+        self.root_p = self.root_p - self.poses[frame].base_position
+        self.root_p = np.matmul(R_delta, self.root_p.T).T + self.poses[frame].base_position
+        self.root_p = self.root_p
 
         # update velocity - R_delta: (3, 3), v: (nof, noj, 3) -> (nof, noj, 3)
-        global_v_new = np.einsum("ij,klj->kli", R_delta, self.global_v)
-        self.global_v[..., (0, 2)] = global_v_new[..., (0, 2)]
-
+        self.global_v = np.einsum("ij,klj->kli", R_delta, self.global_v)
+        
         self.update()
     
     def align_by_frame(self, frame, forward=npconst.FORWARD()):
         self.align_to_origin_by_frame(frame)
         self.align_to_forward_by_frame(frame, forward)
     
-    """
-    Rendering
-    """
+    """ Rendering functions """
     def render_by_time(self, time, albedo=glm.vec3(1, 0, 0)):
         frame = min(int(time * self.fps), self.num_frames - 1)
         self.poses[frame].draw(albedo=albedo)
@@ -280,9 +270,7 @@ class Motion:
         frame = min(frame, self.num_frames - 1)
         self.poses[frame].draw(albedo=albedo)
 
-    """
-    Motion features
-    """
+    """ Motion features """
     def get_local_R6(self):
         return npmotion.R6.from_R(self.local_R)
     

@@ -20,7 +20,7 @@ To avoid confusion, we use __ to denote the function argument if it has the same
 For example, to denote the rotation matrix, we use __R instead of R.
 """
 
-def normalize(x, dim=-1, eps=torchconst.EPSILON()):
+def normalize(x, dim=-1, eps=1e-6):
     return F.normalize(x, p=2, dim=dim, eps=eps)
 
 class R:

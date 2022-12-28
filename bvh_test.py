@@ -17,6 +17,7 @@ class MotionApp(App):
     def render(self):
         Render.plane().set_texture("example.png").set_scale(50).set_uv_repeat(5).draw()
         Render.arrow().draw()
+        Render.text(int(glfw.get_time() * 30)).draw()
         
         self.motion.render_by_time(glfw.get_time())
         # self._camera.focus_position = glm.vec3(self.motion.get_pose_by_time(glfw.get_time()).root_p.numpy())
@@ -24,9 +25,9 @@ class MotionApp(App):
 if __name__ == "__main__":
     # import time
     # t = time.time()
-    motion = bvh.load("pymovis/motion/data/sample.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0])
+    motion = bvh.load("data/PFNN/PFNN_LocomotionFlat01_000.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0])
     motion.align_by_frame(200)
-    print(motion.poses[200].forward)
+    print(motion.poses[200].base_forward)
 
     app_manager = AppManager.initialize()
     app = MotionApp(motion)

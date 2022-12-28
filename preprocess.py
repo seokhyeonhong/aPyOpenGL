@@ -55,10 +55,6 @@ def save_windows(motions, path):
             np.savetxt(os.path.join(path, f"{txt_count}.txt"), features, fmt="%.6f")
             txt_count += 1
 
-def save_windows(motion, path):
-    # TODO: Implement this function
-    raise NotImplementedError("Not implemented yet")
-
 class MotionApp(App):
     def __init__(self, motion):
         self.motion = motion
