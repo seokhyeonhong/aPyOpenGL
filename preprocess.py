@@ -11,57 +11,72 @@ from pymovis.vis.render import Render
 import glfw, glm
 
 # global variables
-TRAIN = True
 WINDOW_SIZE = 50
 WINDOW_OFFSET = 20
-LOAD_PATH = f"D:/data/LaFAN1/{'train' if TRAIN else 'test'}"
-SAVE_PATH = f"data/{'train' if TRAIN else 'test'}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}"
+DATASET_PATH = f"data/PFNN"
 
-def load_motions(path):
+def load_motions(subset):
+    if subset not in ["train", "test"]:
+        raise ValueError("subset must be either 'train' or 'test'")
+
     files = []
-    for f in os.listdir(path):
+    load_dir = os.path.join(DATASET_PATH, subset)
+    for f in os.listdir(load_dir):
         if f.endswith(".bvh"):
-            files.append(os.path.join(path, f))
+            files.append(os.path.join(load_dir, f))
     
     motions = bvh.load_parallel(files, v_forward=[0, 1, 0], v_up=[1, 0, 0])
     return motions
 
-def save_skeleton(motion, path):
-    skeleton = motion.skeleton
-    filepath = os.path.join(path, "skeleton.pkl")
-    with open(filepath, "wb") as f:
+def save_skeleton(skeleton):
+    save_path = os.path.join(DATASET_PATH, "skeleton.pkl")
+    with open(save_path, "wb") as f:
         pickle.dump(skeleton, f)
 
-def save_windows(motions, path):
-    if not os.path.exists(path):
-        os.makedirs(path)
+def save_windows(motions, subset):
+    if subset not in ["train", "test"]:
+        raise ValueError("subset must be either 'train' or 'test'")
+
+    save_dir = os.path.join(DATASET_PATH, f"{subset}_txt")
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
     txt_count = 0
+    print()
     for idx, m in enumerate(motions):
-        print(f"Creating windows ... {idx+1}/{len(motions)}", end="\r")
+        print(f"Saving pairs ... {idx+1}/{len(motions)}", end="\r")
         for start in range(0, m.num_frames - WINDOW_SIZE, WINDOW_OFFSET):
             end = start + WINDOW_SIZE
             window = m.make_window(start, end)
             window.align_by_frame(9)
 
-            # ----------------------------------------------------------
+            # -------------- Modify this part to save other features --------------
             # Features to save. Modify this part to save other features.
             # Dimensions: (WINDOW_SIZE, D)
-            # ----------------------------------------------------------
-            local_R6 = npmotion.R6.from_R(window.local_R).reshape(WINDOW_SIZE, -1)
-            root_p   = window.root_p.reshape(WINDOW_SIZE, -1)
-            features = np.concatenate([local_R6, root_p], axis=-1)
+            # ---------------------------------------------------------------------
+            local_R6   = npmotion.R6.from_R(window.local_R).reshape(WINDOW_SIZE, -1)
+            root_p     = window.root_p.reshape(WINDOW_SIZE, -1)
+            base       = np.stack([pose.base for pose in window.poses], axis=0)
+            forward    = np.stack([pose.forward for pose in window.poses], axis=0)
+            lr_heights = np.zeros_like(forward[:, :2]) if "walk" in m.name else np.ones_like(forward[:, :2])
             
-            np.savetxt(os.path.join(path, f"{txt_count}.txt"), features, fmt="%.6f")
+            geometry   = np.concatenate([base, forward, lr_heights], axis=-1)
+            motion     = np.concatenate([local_R6, root_p], axis=-1)
+            
+            if not os.path.exists(os.path.join(save_dir, "geometry")):
+                os.makedirs(os.path.join(save_dir, "geometry"))
+            np.savetxt(os.path.join(save_dir, "geometry", f"{txt_count}.txt"), geometry)
+
+            if not os.path.exists(os.path.join(save_dir, "motion")):
+                os.makedirs(os.path.join(save_dir, "motion"))
+            np.savetxt(os.path.join(save_dir, "motion", f"{txt_count}.txt"), motion)
+
             txt_count += 1
 
 class MotionApp(App):
     def __init__(self, motion):
         self.motion = motion
 
-        """
-        Animation parameters
-        """
         self.frame = 0
         self.play = True
         super().__init__()
@@ -96,6 +111,11 @@ class MotionApp(App):
             self.motion.render_by_frame(self.frame)
 
 if __name__ == "__main__":
-    motions = load_motions(LOAD_PATH)
-    save_skeleton(motions[0], SAVE_PATH)
-    save_windows(motions, SAVE_PATH)
+    train_motions = load_motions("train")
+    test_motions = load_motions("test")
+    
+    skeleton = train_motions[0].skeleton
+    save_skeleton(skeleton)
+
+    save_windows(train_motions, "train")
+    save_windows(test_motions, "test")

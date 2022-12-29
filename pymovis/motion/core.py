@@ -114,13 +114,22 @@ class Pose:
     def from_torch(cls, skeleton, local_R, root_p):
         return cls(skeleton, local_R.cpu().numpy(), root_p.cpu().numpy())
 
+    """ Base position and directions (on xz plane, equivalent to horizontal plane) """
     @property
-    def base_position(self):
+    def base(self):
         return self.root_p * npconst.XZ()
     
     @property
-    def base_forward(self):
+    def forward(self):
         return npmotion.normalize((self.local_R[0] @ self.skeleton.v_forward) * npconst.XZ())
+    
+    @property
+    def up(self):
+        return npconst.UP()
+    
+    @property
+    def left(self):
+        return npmotion.normalize(np.cross(self.up, self.forward))
 
     def draw(self, albedo=glm.vec3(1.0, 0.0, 0.0)):
         if not hasattr(self, "joint_sphere"):
@@ -232,9 +241,8 @@ class Motion:
         self.update()
     
     def align_to_forward_by_frame(self, frame, forward=npconst.FORWARD()):
-        forward_from = self.poses[frame].base_forward
+        forward_from = self.poses[frame].forward
         forward_to   = npmotion.normalize(forward * npconst.XZ())
-        print(forward_from, forward_to)
 
         # if forward_from and forward_to are (nearly) parallel, do nothing
         if np.dot(forward_from, forward_to) > 0.999999:
@@ -248,8 +256,8 @@ class Motion:
         self.local_R[:, 0] = np.matmul(R_delta, self.local_R[:, 0])
 
         # update root position - R_delta: (3, 3), p: (nof, 3) -> (nof, 3)
-        self.root_p = self.root_p - self.poses[frame].base_position
-        self.root_p = np.matmul(R_delta, self.root_p.T).T + self.poses[frame].base_position
+        self.root_p = self.root_p - self.poses[frame].base
+        self.root_p = np.matmul(R_delta, self.root_p.T).T + self.poses[frame].base
         self.root_p = self.root_p
 
         # update velocity - R_delta: (3, 3), v: (nof, noj, 3) -> (nof, noj, 3)

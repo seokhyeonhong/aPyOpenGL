@@ -6,21 +6,21 @@ from pymovis.utils import torchconst
 from model.transformer import MultiHeadAttention
 
 class KinematicTransformer(nn.Module):
-    def __init__(self, dof, num_layers=6, num_heads=8, d_model=512, d_ff=2048):
+    def __init__(self, geometry_dim, motion_dim, num_layers=6, num_heads=8, d_model=512, d_ff=2048):
         super(KinematicTransformer, self).__init__()
         if d_model % num_heads != 0:
             raise ValueError(f"d_model must be divisible by num_heads, but d_model={d_model} and num_heads={num_heads}")
 
-        self.dof = dof
+        self.geometry_dim = geometry_dim
+        self.motion_dim = motion_dim
         self.num_layers = num_layers
         self.num_heads = num_heads
         self.d_model = d_model
         self.d_ff = d_ff
         
         # encoders
-        num_joints = (self.dof - 3) // 6
         self.encoder = nn.Sequential(
-            nn.Linear(self.dof + num_joints + 3, d_model), # dof, joints, target position
+            nn.Linear(self.geometry_dim + self.motion_dim * 2, d_model), # geometry, motion, motion mask
             nn.PReLU(),
             nn.Linear(d_model, d_model),
             nn.PReLU(),
@@ -51,20 +51,15 @@ class KinematicTransformer(nn.Module):
         self.decoder = nn.Sequential(
             nn.Linear(d_model, d_model),
             nn.PReLU(),
-            nn.Linear(d_model, dof),
+            nn.Linear(d_model, self.motion_dim),
         )
 
-    def forward(self, x, ik_mask, target_position, kf_pos):
-        """
-        :param x:       (B, T, D)
-        :param ik_mask: (B, T, D)
-        :param kf_pos:  (B, T, 2)
-        """
+    def forward(self, x, mask, kf_pos):
         B, T, D = x.shape
         device  = x.device
 
         kf_pos_emb = self.keyframe_pos_enc(kf_pos)
-        h_ctx      = self.encoder(torch.cat([x, ik_mask, target_position], dim=-1)) + kf_pos_emb # (B, T, d_model)
+        h_ctx      = self.encoder(torch.cat([x, mask], dim=-1)) + kf_pos_emb # (B, T, d_model)
 
         # relative distance range: [-T+1, ..., T-1], 2T-1 values in total
         rel_dist = torch.arange(-T+1, T, device=device, dtype=torch.float32)

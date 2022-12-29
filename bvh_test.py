@@ -25,9 +25,9 @@ class MotionApp(App):
 if __name__ == "__main__":
     # import time
     # t = time.time()
-    motion = bvh.load("data/PFNN/PFNN_LocomotionFlat01_000.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0])
-    motion.align_by_frame(200)
-    print(motion.poses[200].base_forward)
+    motion = bvh.load("D:/data/NSM/Avoid/Avoid1.bvh", v_forward=[0, -1, 0], v_up=[1, 0, 0])
+    motion.align_by_frame(0)
+    print(motion.poses[0].forward)
 
     app_manager = AppManager.initialize()
     app = MotionApp(motion)

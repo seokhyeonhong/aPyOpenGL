@@ -16,7 +16,7 @@ Glossary:
 TODO: Refactor code & Synchronize with torchmotion.py
 """
 
-def normalize(x, axis=-1, eps=1e-6):
+def normalize(x, axis=-1, eps=1e-8):
     res = x / (np.linalg.norm(x, axis=axis, keepdims=True) + eps)
     return res
 
