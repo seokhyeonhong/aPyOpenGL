@@ -10,5 +10,3 @@ test_*
 *.pth
 *.npy
 _*.py
-data/heightmaps
-data/PFNN*
