@@ -53,7 +53,7 @@ class WindowDataset(Dataset):
         return self[0].shape[-1]
 
 class PairDataset(Dataset):
-    def __init__(self, dataset_path, target_x, target_y, train=True):
+    def __init__(self, dataset_path, target_x, target_y, train=True, window_size=50, window_offset=20, fps=30):
         self.dataset_path = dataset_path
         self.target_x = target_x
         self.target_y = target_y
@@ -63,12 +63,12 @@ class PairDataset(Dataset):
         self.Y = []
 
         # load input and output file paths
-        path_x = os.path.join(dataset_path, "train_txt" if train else "test_txt", target_x)
+        path_x = os.path.join(dataset_path, f"{'train' if train else 'test'}_size{window_size}_offset{window_offset}_fps{fps}", target_x)
         for f in os.listdir(path_x):
             if f.endswith(".txt"):
                 self.X.append(os.path.join(path_x, f))
         
-        path_y = os.path.join(dataset_path, "train_txt" if train else "test_txt", target_y)
+        path_y = os.path.join(dataset_path, f"{'train' if train else 'test'}_size{window_size}_offset{window_offset}_fps{fps}", target_y)
         for f in os.listdir(path_y):
             if f.endswith(".txt"):
                 self.Y.append(os.path.join(path_y, f))

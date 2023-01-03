@@ -100,7 +100,7 @@ class Render:
         return RenderOptions(Cube(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
-    def sphere(radius=0.5, stacks=32, sectors=32):
+    def sphere(radius=0.5, stacks=16, sectors=16):
         return RenderOptions(Sphere(radius, stacks, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
     
     @staticmethod

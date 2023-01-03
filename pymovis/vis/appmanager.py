@@ -20,12 +20,7 @@ class AppManager:
         self._do_capture = False
         self.width = width
         self.height = height
-    
-    @classmethod
-    def initialize(cls):
-        app_manager = AppManager()
-        app_manager.__initialize()
-        return app_manager
+        self.__initialize()
 
     def run(self, app: App):
         self._app = app
@@ -74,7 +69,6 @@ class AppManager:
 
         # glEnable(GL_LINE_SMOOTH)
         # glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
-
 
         # main loop
         glfw.set_time(0)

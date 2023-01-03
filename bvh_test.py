@@ -17,7 +17,7 @@ class MotionApp(App):
     def render(self):
         Render.plane().set_texture("example.png").set_scale(50).set_uv_repeat(5).draw()
         Render.arrow().draw()
-        Render.text(int(glfw.get_time() * 30)).draw()
+        Render.text(int(glfw.get_time() * self.motion.fps)).draw()
         
         self.motion.render_by_time(glfw.get_time())
         # self._camera.focus_position = glm.vec3(self.motion.get_pose_by_time(glfw.get_time()).root_p.numpy())
@@ -25,7 +25,7 @@ class MotionApp(App):
 if __name__ == "__main__":
     # import time
     # t = time.time()
-    motion = bvh.load("D:/data/NSM/Avoid/Avoid1.bvh", v_forward=[0, -1, 0], v_up=[1, 0, 0])
+    motion = bvh.load("D:/data/NSM/Sit/Tall1.bvh", v_forward=[0, -1, 0], v_up=[1, 0, 0])
     motion.align_by_frame(0)
     print(motion.poses[0].forward)
 

@@ -25,7 +25,7 @@ ordermap = {
     'z': 2,
 }
 
-def load(filename, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()):
+def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()):
     if not filename.endswith(".bvh"):
         print(f"{filename} is not a bvh file.")
         return
@@ -47,7 +47,7 @@ def load(filename, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()
     skeleton = Skeleton(joints=[], v_up=v_up, v_forward=v_forward)
     poses = []
 
-    # Parse the  file, line by line
+    # parse the  file, line by line
     for line in f:
 
         if "HIERARCHY" in line: continue
@@ -106,7 +106,11 @@ def load(filename, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()
         fmatch = re.match("\s*Frame Time:\s+([\d\.]+)", line)
         if fmatch:
             frametime = float(fmatch.group(1))
-            fps = 1. / frametime
+            fps = round(1. / frametime)
+            if fps % target_fps != 0:
+                raise Exception(f"Invalid target fps: {target_fps} (fps: {fps})")
+
+            sampling_step = fps // target_fps
             continue
 
         dmatch = line.strip().split(' ')
@@ -134,8 +138,9 @@ def load(filename, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()
 
     f.close()
 
+    poses = poses[1::sampling_step]
     name = os.path.splitext(os.path.basename(filename))[0]
-    return Motion(name=name, skeleton=skeleton, poses=poses, global_v=None, fps=fps)
+    return Motion(name=name, skeleton=skeleton, poses=poses, global_v=None, fps=target_fps)
 
 def load_parallel(files, cpus=mp.cpu_count(), **kwargs):
     return util.run_parallel(load, files, cpus, **kwargs)
