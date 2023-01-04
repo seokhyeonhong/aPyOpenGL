@@ -116,6 +116,12 @@ class Vertex:
     def uv(self):
         return self.__uv
 
+    def set_position(self, position):
+        self.__position = glm.vec3(position)
+    
+    def set_normal(self, normal):
+        self.__normal = glm.normalize(glm.vec3(normal))
+
     @staticmethod
     def make_vertex_array(positions, normals, tex_coords):
         res = []

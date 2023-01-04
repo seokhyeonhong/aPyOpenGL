@@ -88,12 +88,11 @@ class R:
         :param __R6: (..., 6)
         """
         if __R6.shape[-1] != 6:
-            raise ValueError(f"r6.shape[-1] = {__R6.shape[-1]} != 6")
+            raise ValueError(f"__R6.shape[-1] = {__R6.shape[-1]} != 6")
         
-        x = normalize(__R6[..., 0:3])
-        y = normalize(__R6[..., 3:6])
-        z = torch.cross(x, y, dim=-1)
-        y = torch.cross(z, x, dim=-1)
+        x = normalize(__R6[..., 0:3]) # (..., 3)
+        y = normalize(__R6[..., 3:6] - torch.sum(x * __R6[..., 3:6], dim=-1, keepdim=True) * x) # (..., 3)
+        z = torch.cross(x, y, dim=-1) # (..., 3)
         return torch.stack([x, y, z], dim=-2) # (..., 3, 3)
 
     @staticmethod
@@ -170,13 +169,13 @@ class R6:
     @staticmethod
     def from_R(__R: torch.Tensor) -> torch.Tensor:
         """
-        Assumes that rows of r are unit vectors.
+        Assumes that rows of '__R' are unit vectors.
         :param __R: (..., 3, 3)
         """
         if __R.shape[-2:] != (3, 3):
             raise ValueError(f"r.shape[-2:] = {__R.shape[-2:]} != (3, 3)")
-        x = normalize(__R[..., 0, :])
-        y = normalize(__R[..., 1, :])
+        x = __R[..., 0, :]
+        y = __R[..., 1, :]
         return torch.cat([x, y], dim=-1) # (..., 6)
 
     @staticmethod

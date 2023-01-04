@@ -116,6 +116,10 @@ class Render:
         return RenderOptions(Cylinder(radius, height, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
+    def mesh(mesh):
+        return RenderOptions(mesh, Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+
+    @staticmethod
     def arrow():
         cone_radius = 0.07
         cone_height = 0.2

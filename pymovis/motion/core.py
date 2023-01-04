@@ -269,6 +269,11 @@ class Motion:
         self.align_to_origin_by_frame(frame)
         self.align_to_forward_by_frame(frame, forward)
     
+    """ Manipulation functions """
+    def translate_root(self, delta):
+        self.root_p += delta
+        self.update()
+
     """ Rendering functions """
     def render_by_time(self, time, albedo=glm.vec3(1, 0, 0)):
         frame = min(int(time * self.fps), self.num_frames - 1)
@@ -281,9 +286,6 @@ class Motion:
     """ Motion features """
     def get_local_R6(self):
         return npmotion.R6.from_R(self.local_R)
-    
-    def get_root_p(self):
-        return self.root_p
     
     def get_root_v(self):
         return self.global_v[:, 0, :]
