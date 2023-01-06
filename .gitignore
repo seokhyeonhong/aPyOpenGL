@@ -2,7 +2,6 @@
 __pycache__
 log/*
 save/*
-capture/*
 train*
 test_*
 
