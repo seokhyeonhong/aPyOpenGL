@@ -95,12 +95,13 @@ class AppManager:
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             self.app.render()
 
+            # late update
+            self.app.late_update()
+
             # event
             glfw.poll_events()
             glfw.swap_buffers(self.window)
 
-            # TODO: screen capture
-        
         glfw.destroy_window(self.window)
         glfw.terminate()
 

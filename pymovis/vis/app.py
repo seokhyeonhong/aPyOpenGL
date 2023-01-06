@@ -1,9 +1,10 @@
 from OpenGL.GL import *
-from PIL import Image
 
 import glfw
 import os
 import datetime
+import cv2
+import numpy as np
 
 from pymovis.motion.core import Motion
 
@@ -104,6 +105,7 @@ class MotionApp(App):
         super().__init__()
         self.motion = motion
         self.frame = 0
+        self.prev_frame = -1
         self.playing = True
         self.recording = False
         self.captures = []
@@ -148,9 +150,13 @@ class MotionApp(App):
                     self.captures = []
                 self.recording = not self.recording
 
-    def update(self):
+    def late_update(self):
         if self.recording:
+            if self.prev_frame == self.frame and self.playing:
+                return
+                
             self.captures.append(self.capture_screen())
+            self.prev_frame = self.frame
 
     def render(self):
         if self.playing:
@@ -167,25 +173,35 @@ class MotionApp(App):
     """ Capture functions """
     def capture_screen(self):
         viewport = glGetIntegerv(GL_VIEWPORT)
-        x = viewport[0]
-        y = viewport[1]
+        x, y, *_ = viewport
+
         glReadBuffer(GL_FRONT)
         data = glReadPixels(x, y, self.width, self.height, GL_RGB, GL_UNSIGNED_BYTE)
-        image = Image.frombytes("RGB", (self.width, self.height), data)
-        image = image.transpose(Image.FLIP_TOP_BOTTOM)
+        pixels = np.frombuffer(data, dtype=np.uint8).reshape(self.height, self.width, 3)
+        pixels = np.flip(pixels, axis=0)
+        image = cv2.cvtColor(pixels, cv2.COLOR_RGB2BGR)
         return image
     
     def save_image(self, image):
-        num_pngs = 0
-        for file in os.listdir(self.capture_path):
-            if file.endswith(".png"):
-                num_pngs += 1
-        image.save(os.path.join(self.capture_path, "{:04d}.png".format(num_pngs)))
+        image_dir = os.path.join(self.capture_path, "images")
+        if not os.path.exists(image_dir):
+            os.makedirs(image_dir)
+        
+        image_path = os.path.join(image_dir, "{:04d}.png".format(len(os.listdir(image_dir))))
+        cv2.imwrite(image_path, image)
     
     def save_video(self, captures):
-        num_gifs = 0
-        for file in os.listdir(self.capture_path):
-            if file.endswith(".gif"):
-                num_gifs += 1
+        video_dir = os.path.join(self.capture_path, "videos")
+        if not os.path.exists(video_dir):
+            os.makedirs(video_dir)
+        
+        video_path = os.path.join(video_dir, "{:04d}.mp4".format(len(os.listdir(video_dir))))
+        fps = self.motion.fps
+        height, width, _ = captures[0].shape
+        
+        video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
+        for image in captures:
+            video.write(image)
+        video.release()
 
-        captures[0].save(os.path.join(self.capture_path, "{:04d}.gif".format(num_gifs)), save_all=True, append_images=captures[1:], optimize=False, duration=1000 / self.motion.fps, loop=0)
+        glfw.set_time(self.frame / self.motion.fps)
