@@ -2,6 +2,11 @@ from OpenGL.GL import *
 from PIL import Image
 
 import glfw
+import os
+import datetime
+
+from pymovis.motion.core import Motion
+
 from pymovis.vis.camera import Camera
 from pymovis.vis.light import DirectionalLight, PointLight
 from pymovis.vis.render import Render
@@ -9,28 +14,26 @@ from pymovis.vis.render import Render
 class App:
     def __init__(
         self,
-        camera = Camera(),
-        light = DirectionalLight(),
-        capture=False,
-        capture_path="capture",
+        camera: Camera = Camera(),
+        light: DirectionalLight = DirectionalLight(),
+        capture_path: str = "capture",
     ):
         self.camera = camera
         self.light = light
-        self.capture = capture
-        self.capture_path = capture_path
+        self.width, self.height = 1920, 1080
+        self.capture_path = os.path.join(capture_path, str(datetime.date.today()))
+        if not os.path.exists(self.capture_path):
+            os.makedirs(self.capture_path)
         self.io = self.IO()
 
     class IO:
         def __init__(self):
-            self.capture = False
             self.last_mouse_x = 0
             self.last_mouse_y = 0
             self.mouse_middle_down = False
             self.mouse_left_down = False
     
-    """
-    Override these methods to add custom rendering code.
-    """
+    """ Override these methods to add custom rendering code. """
     def start(self):
         pass
 
@@ -46,9 +49,7 @@ class App:
     def render_xray(self):
         pass
     
-    """
-    Callback functions for glfw and camera control
-    """
+    """ Callback functions for glfw and camera control """
     def key_callback(self, window, key, scancode, action, mods):
         if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
             glfw.set_window_should_close(window, True)
@@ -58,12 +59,8 @@ class App:
         #     Render.set_render_mode(RenderMode.PHONG)
         # elif key == glfw.KEY_F2 and action == glfw.PRESS:
         #     Render.set_render_mode(RenderMode.WIREFRAME)
-        elif key == glfw.KEY_F5 and action == glfw.PRESS:
-            self._capture = True
-        elif key == glfw.KEY_F6 and action == glfw.PRESS:
-            self._capture = False
         elif key == glfw.KEY_V and action == glfw.PRESS:
-            self.camera.is_perspective = not self.camera.is_perspective
+            self.camera.switch_projection()
         
     def mouse_callback(self, window, xpos, ypos):
         offset_x = xpos - self.io.last_mouse_x
@@ -100,34 +97,95 @@ class App:
 
     def on_resize(self, window, width, height):
         glViewport(0, 0, width, height)
-    
-    # def capture_screen(self):
-    #     viewport = glGetIntegerv(GL_VIEWPORT)
-    #     x = viewport[0]
-    #     y = viewport[1]
-    #     width = self.width
-    #     height = self.height
-    #     glReadBuffer(GL_FRONT)
-    #     data = glReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE)
-    #     image = Image.frombytes("RGB", (width, height), data)
-    #     image = image.transpose(Image.FLIP_TOP_BOTTOM)
-    #     return image
-    
-    # def make_video(self, captures):
-    #     import imageio
-    #     import os
-    #     import shutil
-    #     import time
 
-    #     print("Making video...")
-    #     start_time = time.time()
-    #     video = imageio.get_writer(
-    #         os.path.join(self.capture_path, "capture.mp4"), fps=60
-    #     )
-    #     for image in captures:
-    #         video.append_data(image)
-    #     video.close()
-    #     print("Done! Elapsed time: {:.2f}s".format(time.time() - start_time))
-    #     print("Removing captures...")
-    #     shutil.rmtree(self.capture_path)
-    #     print("Done!")
+class MotionApp(App):
+    """ Class for motion capture visualization """
+    def __init__(self, motion: Motion):
+        super().__init__()
+        self.motion = motion
+        self.frame = 0
+        self.playing = True
+        self.recording = False
+        self.captures = []
+
+        self.grid = Render.plane().set_scale(50).set_uv_repeat(5).set_texture("grid.png")
+        self.axis = Render.axis()
+    
+    def key_callback(self, window, key, scancode, action, mods):
+        super().key_callback(window, key, scancode, action, mods)
+
+        """ Play / pause """
+        if key == glfw.KEY_SPACE and action == glfw.PRESS:
+            self.playing = not self.playing
+        
+        """ Move frames """
+        if glfw.KEY_0 <= key <= glfw.KEY_9 and action == glfw.PRESS:
+            self.frame = int(len(self.motion) * (key - glfw.KEY_0) * 0.1)
+            glfw.set_time(self.frame / self.motion.fps)
+            
+        if not self.playing:
+            if key == glfw.KEY_LEFT_BRACKET and action == glfw.PRESS:
+                self.frame = max(self.frame - 1, 0)
+            elif key == glfw.KEY_RIGHT_BRACKET and action == glfw.PRESS:
+                self.frame = min(self.frame + 1, len(self.motion) - 1)
+            if key == glfw.KEY_LEFT:
+                self.frame = max(self.frame - 1, 0)
+            elif key == glfw.KEY_RIGHT:
+                self.frame = min(self.frame + 1, len(self.motion) - 1)
+            glfw.set_time(self.frame / self.motion.fps)
+        
+        """ Render and capture options """
+        if action == glfw.PRESS:
+            if key == glfw.KEY_G:
+                self.grid.switch_visible()
+            elif key == glfw.KEY_A:
+                self.axis.switch_visible()
+            elif key == glfw.KEY_F5:
+                self.save_image(self.capture_screen())
+            elif key == glfw.KEY_F6:
+                if self.recording:
+                    self.save_video(self.captures)
+                    self.captures = []
+                self.recording = not self.recording
+
+    def update(self):
+        if self.recording:
+            self.captures.append(self.capture_screen())
+
+    def render(self):
+        if self.playing:
+            self.frame = min(int(glfw.get_time() * self.motion.fps), len(self.motion) - 1)
+        else:
+            glfw.set_time(self.frame / self.motion.fps)
+        
+        """ Render """
+        self.grid.draw()
+        self.motion.render_by_frame(self.frame)
+        self.axis.draw()
+        Render.text(self.frame).set_position(0, 0, 1).draw()
+
+    """ Capture functions """
+    def capture_screen(self):
+        viewport = glGetIntegerv(GL_VIEWPORT)
+        x = viewport[0]
+        y = viewport[1]
+        glReadBuffer(GL_FRONT)
+        data = glReadPixels(x, y, self.width, self.height, GL_RGB, GL_UNSIGNED_BYTE)
+        image = Image.frombytes("RGB", (self.width, self.height), data)
+        image = image.transpose(Image.FLIP_TOP_BOTTOM)
+        return image
+    
+    def save_image(self, image):
+        num_pngs = 0
+        for file in os.listdir(self.capture_path):
+            if file.endswith(".png"):
+                num_pngs += 1
+        image.save(os.path.join(self.capture_path, "{:04d}.png".format(num_pngs)))
+    
+    def save_video(self, captures):
+        num_gifs = 0
+        for file in os.listdir(self.capture_path):
+            if file.endswith(".gif"):
+                num_gifs += 1
+
+        captures[0].save(os.path.join(self.capture_path, "{:04d}.gif".format(num_gifs)), save_all=True, append_images=captures[1:], optimize=False, duration=1000 / self.motion.fps, loop=0)

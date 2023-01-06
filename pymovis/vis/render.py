@@ -120,7 +120,7 @@ class Render:
         return RenderOptions(mesh, Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
-    def arrow():
+    def axis():
         cone_radius = 0.07
         cone_height = 0.2
         cylinder_radius = 0.03
@@ -402,7 +402,8 @@ class RenderOptions:
         self.text          = ""
         self.color_mode    = False
 
-        # functions
+        # visibility
+        self.visible       = True
         self.draw_func     = draw_func
         self.shadow_func   = shadow_func
 
@@ -419,6 +420,9 @@ class RenderOptions:
         return self.material.cubemap.texture_id
 
     def draw(self):
+        if not self.visible:
+            return
+        
         if Render.render_mode == RenderMode.SHADOW:
             if self.shadow_func is not None:
                 self.shadow_func(self, self.shadow_shader)
@@ -483,6 +487,10 @@ class RenderOptions:
         self.color_mode = color_mode
         return self
 
+    def switch_visible(self):
+        self.visible = not self.visible
+        return self
+
 class RenderOptionsVec:
     """
     Multiple rendering options for a primitive
@@ -493,3 +501,8 @@ class RenderOptionsVec:
     def draw(self):
         for option in self.options:
             option.draw()
+
+    def switch_visible(self):
+        for option in self.options:
+            option.switch_visible()
+        return self
