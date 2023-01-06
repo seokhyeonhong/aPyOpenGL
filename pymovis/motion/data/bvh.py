@@ -66,7 +66,7 @@ def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=np
             if end_site:
                 end_site = False
             else:
-                active = skeleton.parent_id[active]
+                active = skeleton.parent_idx[active]
             continue
 
         offmatch = re.match(r"\s*OFFSET\s+([\-\d\.e]+)\s+([\-\d\.e]+)\s+([\-\d\.e]+)", line)

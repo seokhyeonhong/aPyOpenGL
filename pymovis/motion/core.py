@@ -45,38 +45,46 @@ class Skeleton:
         assert v_up.shape == (3,), f"v_up.shape = {v_up.shape}"
         assert v_forward.shape == (3,), f"v_forward.shape = {v_forward.shape}"
 
-        self.joints      = joints
-        self.v_up        = v_up
-        self.v_forward   = v_forward
-        self.parent_id   = []
-        self.children_id = []
-        self.id_by_name  = {}
+        self.joints       = joints
+        self.v_up         = v_up
+        self.v_forward    = v_forward
+        self.parent_idx   = []
+        self.children_idx = []
+        self.idx_by_name  = {}
     
     @property
     def num_joints(self):
         return len(self.joints)
     
-    def add_joint(self, joint_name, parent_id=None):
-        joint_id = len(self.joints)
+    @property
+    def effector_idx(self):
+        res = []
+        for i in range(len(self.joints)):
+            if len(self.children_idx[i]) == 0:
+                res.append(i)
+        return res
 
-        if parent_id is None:
+    def add_joint(self, joint_name, parent_idx=None):
+        joint_idx = len(self.joints)
+
+        if parent_idx is None:
             assert len(self.joints) == 0, "Only one root joint is allowed"
-            self.parent_id.append(-1)
-            self.children_id.append([])
+            self.parent_idx.append(-1)
+            self.children_idx.append(list())
         else:
-            self.parent_id.append(parent_id)
-            self.children_id[parent_id].append(joint_id)
+            self.parent_idx.append(parent_idx)
+            self.children_idx[parent_idx].append(joint_idx)
 
         joint = Joint(joint_name)
-        self.id_by_name[joint_name] = len(self.joints)
+        self.idx_by_name[joint_name] = len(self.joints)
         self.joints.append(joint)
-        self.children_id.append([])
+        self.children_idx.append(list())
     
     def get_bone_offsets(self):
         return np.stack([joint.offset for joint in self.joints], axis=0)
     
     def get_joint_by_name(self, name):
-        return self.joints[self.id_by_name[name]]
+        return self.joints[self.idx_by_name[name]]
 
 class Pose:
     """
@@ -141,7 +149,7 @@ class Pose:
             self.joint_sphere.set_position(global_p[i]).set_material(albedo=albedo).draw()
 
             if i != 0:
-                parent_pos = global_p[self.skeleton.parent_id[i]]
+                parent_pos = global_p[self.skeleton.parent_idx[i]]
 
                 center = glm.vec3((parent_pos + global_p[i]) / 2)
                 dist = np.linalg.norm(parent_pos - global_p[i])
@@ -188,7 +196,10 @@ class Motion:
             self.global_v = np.pad(self.global_v, ((1, 0), (0, 0), (0, 0)), "edge")
         else:
             self.global_v = global_v
-            
+    
+    def __len__(self):
+        return len(self.poses)
+        
     @property
     def num_frames(self):
         return len(self.poses)

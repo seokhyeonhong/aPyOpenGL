@@ -54,9 +54,10 @@ def save_windows(motions, split):
         shutil.rmtree(save_dir)
         os.makedirs(save_dir)
 
-    txt_count = 0
+    geometry_list = []
+    motion_list = []
     for idx, m in enumerate(motions):
-        print(f"Saving {split} ... {idx+1} / {len(motions)}", end="\r")
+        print(f"Making {split} list ... {idx+1} / {len(motions)}", end="\r")
         for start in range(0, m.num_frames - WINDOW_SIZE, WINDOW_OFFSET):
             end = start + WINDOW_SIZE
             window = m.make_window(start, end)
@@ -75,37 +76,43 @@ def save_windows(motions, split):
             geometry   = np.concatenate([base, forward, lr_heights], axis=-1)
             motion     = np.concatenate([local_R6, root_p], axis=-1)
             
-            if not os.path.exists(os.path.join(save_dir, "geometry")):
-                os.makedirs(os.path.join(save_dir, "geometry"))
-            np.savetxt(os.path.join(save_dir, "geometry", f"{txt_count}.txt"), geometry)
+            geometry_list.append(geometry)
+            motion_list.append(motion)
+            # if not os.path.exists(os.path.join(save_dir, "geometry")):
+            #     os.makedirs(os.path.join(save_dir, "geometry"))
+            # np.savetxt(os.path.join(save_dir, "geometry", f"{txt_count}.txt"), geometry)
 
-            if not os.path.exists(os.path.join(save_dir, "motion")):
-                os.makedirs(os.path.join(save_dir, "motion"))
-            np.savetxt(os.path.join(save_dir, "motion", f"{txt_count}.txt"), motion)
+            # if not os.path.exists(os.path.join(save_dir, "motion")):
+            #     os.makedirs(os.path.join(save_dir, "motion"))
+            # np.savetxt(os.path.join(save_dir, "motion", f"{txt_count}.txt"), motion)
             # ---------------------------------------------------------------------
 
-            txt_count += 1
+            # txt_count += 1
 
             # app_manager = AppManager.initialize()
             # app = MotionApp(window)
             # app_manager.run(app)
+    
+    geometry_list = np.stack(geometry_list, axis=0)
+    motion_list = np.stack(motion_list, axis=0)
+    np.save(os.path.join(save_dir, "geometry.npy"), geometry_list)
+    np.save(os.path.join(save_dir, "motion.npy"), motion_list)
     print()
 
 def main():
     # load motions
-    # train_motions = load_motions("train")
+    train_motions = load_motions("train")
     test_motions = load_motions("test")
     
     # save skeleton
-    # skeleton = train_motions[0].skeleton
-    # save_skeleton(skeleton)
+    skeleton = train_motions[0].skeleton
+    save_skeleton(skeleton)
 
     # save windows
-    # save_windows(train_motions, "train")
+    save_windows(train_motions, "train")
     save_windows(test_motions, "test")
 
     # save mean and std
-    pass
 
 class MotionApp(App):
     def __init__(self, motion):

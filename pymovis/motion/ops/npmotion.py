@@ -29,7 +29,7 @@ class R:
         :param bone_offset: (N, 3)
         :param parents: (N,)
         """
-        bone_offsets, parents = skeleton.get_bone_offsets(), skeleton.parent_id
+        bone_offsets, parents = skeleton.get_bone_offsets(), skeleton.parent_idx
         global_R, global_p = [R[..., 0, :, :]], [root_p]
         for i in range(1, len(parents)):
             global_R.append(np.matmul(global_R[parents[i]], R[..., i, :, :]))

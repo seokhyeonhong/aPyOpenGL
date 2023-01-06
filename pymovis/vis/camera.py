@@ -90,3 +90,8 @@ class Camera:
         self.__position += glm.vec3(-dx * VT[0] - dy * VT[1])
         self.__focus_position += glm.vec3(-dx * VT[0] - dy * VT[1])
         self.update()
+    
+    """ Camera manipulation functions """
+    def set_focus_position(self, focus_position):
+        self.__focus_position = glm.vec3(focus_position)
+        self.update()

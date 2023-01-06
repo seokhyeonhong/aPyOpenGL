@@ -59,20 +59,11 @@ class PairDataset(Dataset):
         self.target_y = target_y
         self.train = train
 
-        self.X = []
-        self.Y = []
-
         # load input and output file paths
-        path_x = os.path.join(dataset_path, f"{'train' if train else 'test'}_size{window_size}_offset{window_offset}_fps{fps}", target_x)
-        for f in os.listdir(path_x):
-            if f.endswith(".txt"):
-                self.X.append(os.path.join(path_x, f))
-        
-        path_y = os.path.join(dataset_path, f"{'train' if train else 'test'}_size{window_size}_offset{window_offset}_fps{fps}", target_y)
-        for f in os.listdir(path_y):
-            if f.endswith(".txt"):
-                self.Y.append(os.path.join(path_y, f))
-        
+        base_path = os.path.join(dataset_path, f"{'train' if train else 'test'}_size{window_size}_offset{window_offset}_fps{fps}")
+        self.X = torch.from_numpy(np.load(os.path.join(base_path, f"{target_x}.npy"))).float()
+        self.Y = torch.from_numpy(np.load(os.path.join(base_path, f"{target_y}.npy"))).float()
+
         if len(self.X) != len(self.Y):
             raise ValueError("Number of input and output files must be equal")
 
@@ -84,9 +75,7 @@ class PairDataset(Dataset):
         return len(self.X)
     
     def __getitem__(self, idx):
-        X = np.loadtxt(self.X[idx], dtype=np.float32)
-        Y = np.loadtxt(self.Y[idx], dtype=np.float32)
-        return torch.from_numpy(X), torch.from_numpy(Y)
+        return self.X[idx], self.Y[idx]
     
     def get_mean_std(self, dim, target):
         if target not in [self.target_x, self.target_y]:
@@ -124,4 +113,5 @@ class PairDataset(Dataset):
     def get_feature_dim(self, target):
         if target not in [self.target_x, self.target_y]:
             raise ValueError(f"target must be either '{self.target_x}' or '{self.target_y}'")
-        return self[0][0].shape[-1] if target == self.target_x else self[0][1].shape[-1]
+        X, Y = self[0]
+        return X.shape[-1] if target == self.target_x else Y.shape[-1]

@@ -53,32 +53,32 @@ uniform vec3 viewPosition;
 float Shadow(vec4 fragPosLightSpace, vec3 lightDir)
 {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
+    projCoords = projCoords * 0.5f + 0.5f;
 
     // return 0 if outside of light frustum
-    if(projCoords.z > 1.0)
+    if(projCoords.z > 1.0f)
     {
-        return 0.0;
+        return 0.0f;
     }
 
     float closestDepth = texture(uShadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
-    float bias = max(0.0001 * (1.0 - dot(fNormal, lightDir)), 0.00001);
+    float bias = max(0.0001f * (1.0f - dot(fNormal, lightDir)), 0.00001f);
 
     // if current depth from camera is greater than that of the light source,
     // then the fragment is in shadow
     // float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(uShadowMap, 0);
+    float shadow = 0.0f;
+    vec2 texelSize = 1.0f / textureSize(uShadowMap, 0);
     for(int u = -2; u <= 2; ++u)
     {
         for(int v = -2; v <= 2; ++v)
         {
             float pcfDepth = texture(uShadowMap, projCoords.xy + vec2(u, v) * texelSize).r;
-            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+            shadow += currentDepth - bias > pcfDepth ? 1.0f : 0.0f;
         }
     }
-    shadow /= 25.0;
+    shadow /= 25.0f;
     return shadow;
 }
 
@@ -86,35 +86,35 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir)
 vec4 BlinnPhong(vec3 albedo)
 {
     // vec3 ambient = albedo;
-    vec3 ambient = uLight.color * 0.1;
+    vec3 ambient = uLight.color * 0.1f;
 
     vec3 N = normalize(fNormal);
-    vec3 L = uLight.vector.w == 1 ? normalize(uLight.vector.xyz - fPosition) : normalize(-uLight.vector.xyz);
+    vec3 L = uLight.vector.w == 1.0f ? normalize(uLight.vector.xyz - fPosition) : normalize(-uLight.vector.xyz);
 
-    vec3 diffuse = max(dot(N, L), 0.0) * uMaterial.diffuse * uLight.color;
+    vec3 diffuse = max(dot(N, L), 0.0f) * uMaterial.diffuse * uLight.color;
 
     vec3 V = normalize(viewPosition - fPosition);
     // vec3 R = reflect(-L, N); // for phong shading, use R instead of H
     vec3 H = normalize(L + V); // for blinn-phong shading, use H instead of R
-    vec3 specular = pow(max(dot(V, H), 0.0), uMaterial.shininess) * uMaterial.specular * uLight.color;
+    vec3 specular = pow(max(dot(V, H), 0.0f), uMaterial.shininess) * uMaterial.specular * uLight.color;
     
     // attenuation
-    float atten = 1.0;
-    if(uLight.vector.w == 1)
+    float atten = 1.0f;
+    if(uLight.vector.w == 1.0f)
     {
         float d = length(uLight.vector.xyz - fPosition.xyz);
-        atten = min(1.0 / (uLight.attenuation.x + uLight.attenuation.y * d + uLight.attenuation.z * d * d), 1.0);
+        atten = min(1.0f / (uLight.attenuation.x + uLight.attenuation.y * d + uLight.attenuation.z * d * d), 1.0f);
     }
 
     float shadow = Shadow(fPosLightSpace, L);
-    vec3 result = (ambient + atten * (1.0 - shadow) * (diffuse + specular)) * albedo;
-    return vec4(result, 1.0);
+    vec3 result = (ambient + atten * (1.0f - shadow) * (diffuse + specular)) * albedo;
+    return vec4(result, 1.0f);
 }
 
 // --------------------------------------------
 vec3 GammaCorrection(vec3 color, float gamma)
 {
-    return pow(color, vec3(1.0 / gamma));
+    return pow(color, vec3(1.0f / gamma));
 }
 
 // --------------------------------------------
@@ -125,7 +125,7 @@ void main()
     vec2 uv = fTexCoord * uvScale;
     if (uColorMode)
     {
-        FragColor = vec4(uMaterial.albedo, 1.0);
+        FragColor = vec4(uMaterial.albedo, 1.0f);
     }
     else if (uMaterial.id >= 0)
     {

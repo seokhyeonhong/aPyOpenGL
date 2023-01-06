@@ -125,7 +125,7 @@ class R:
         :param parents: (N,)
         """
         bone_offsets = torch.from_numpy(skeleton.get_bone_offsets()).to(__R.device)
-        parents = skeleton.parent_id
+        parents = skeleton.parent_idx
         global_R, global_p = [__R[..., 0, :, :]], [root_p]
         for i in range(1, len(parents)):
             global_R.append(torch.matmul(global_R[parents[i]], __R[..., i, :, :]))
