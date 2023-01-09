@@ -38,19 +38,21 @@ class Skeleton:
     """
     def __init__(
         self,
-        joints   : list[Joint]=[],
-        v_up     : np.ndarray=npconst.UP(),
+        joints: list[Joint]=[],
+        v_up: np.ndarray=npconst.UP(),
         v_forward: np.ndarray=npconst.FORWARD(),
     ):
         assert v_up.shape == (3,), f"v_up.shape = {v_up.shape}"
         assert v_forward.shape == (3,), f"v_forward.shape = {v_forward.shape}"
 
-        self.joints       = joints
-        self.v_up         = v_up
-        self.v_forward    = v_forward
-        self.parent_idx   = []
+        self.joints = joints
+
+        self.v_up = v_up
+        self.v_forward = v_forward
+        
+        self.parent_idx = []
         self.children_idx = []
-        self.idx_by_name  = {}
+        self.idx_by_name = {}
     
     @property
     def num_joints(self):
@@ -161,6 +163,42 @@ class Pose:
                 
                 self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_material(albedo=albedo).draw()
 
+    """ IK functions """
+    def two_bone_ik(self, base_idx, effector_idx, target_p, eps=1e-8):
+        if self.skeleton.parent_idx[self.skeleton.parent_idx[effector_idx]] != base_idx:
+            raise ValueError(f"{base_idx} and {effector_idx} are not in a two bone IK hierarchy")
+
+        global_R, global_p = npmotion.R.fk(self.local_R, self.root_p, self.skeleton)
+
+        a = global_p[base_idx]
+        b = global_p[self.skeleton.parent_idx[effector_idx]]
+        c = global_p[effector_idx]
+
+        global_a_R = global_R[base_idx]
+        global_b_R = global_R[self.skeleton.parent_idx[effector_idx]]
+
+        lab = np.linalg.norm(b - a)
+        lcb = np.linalg.norm(b - c)
+        lat = np.clip(np.linalg.norm(target_p - a), eps, lab + lcb - eps)
+
+        ac_ab_0 = np.arccos(np.clip(np.dot(npmotion.normalize(c - a), npmotion.normalize(b - a)), -1, 1))
+        ba_bc_0 = np.arccos(np.clip(np.dot(npmotion.normalize(a - b), npmotion.normalize(c - b)), -1, 1))
+        ac_at_0 = np.arccos(np.clip(np.dot(npmotion.normalize(c - a), npmotion.normalize(target_p - a)), -1, 1))
+
+        ac_ab_1 = np.arccos(np.clip((lcb*lcb - lab*lab - lat*lat) / (-2*lab*lat), -1, 1))
+        ba_bc_1 = np.arccos(np.clip((lat*lat - lab*lab - lcb*lcb) / (-2*lab*lcb), -1, 1))
+
+        d = global_b_R @ npconst.Z()
+        axis_0 = npmotion.normalize(np.cross(c - a, d))
+        axis_1 = npmotion.normalize(np.cross(c - a, target_p - a))
+
+        r0 = npmotion.R.from_A(ac_ab_1 - ac_ab_0, npmotion.R.inv(global_a_R) @ axis_0)
+        r1 = npmotion.R.from_A(ba_bc_1 - ba_bc_0, npmotion.R.inv(global_b_R) @ axis_0)
+        r2 = npmotion.R.from_A(ac_at_0, npmotion.R.inv(global_a_R) @ axis_1)
+
+        self.local_R[base_idx] = self.local_R[base_idx] @ r0 @ r2
+        self.local_R[self.skeleton.parent_idx[effector_idx]] = self.local_R[self.skeleton.parent_idx[effector_idx]] @ r1
+
 class Motion:
     """
     Motion class that contains the skeleton and its sequence of poses.
@@ -174,16 +212,16 @@ class Motion:
     """
     def __init__(
         self,
-        name    : str,
+        name: str,
         skeleton: Skeleton,
-        poses   : list[Pose],
+        poses: list[Pose],
         global_v: np.ndarray = None,
-        fps     : float=30.0,
+        fps: float=30.0,
     ):
-        self.name      = name
-        self.skeleton  = skeleton
-        self.poses     = poses
-        self.fps       = fps
+        self.name = name
+        self.skeleton = skeleton
+        self.poses = poses
+        self.fps = fps
         self.frametime = 1.0 / fps
 
         # local rotations and root positions are stored separately from the poses
@@ -191,7 +229,7 @@ class Motion:
         self.local_R = np.stack([pose.local_R for pose in poses], axis=0)
         self.root_p  = np.stack([pose.root_p for pose in poses], axis=0)
         if global_v is None:
-            _, global_p   = npmotion.R.fk(self.local_R, self.root_p, self.skeleton)
+            _, global_p = npmotion.R.fk(self.local_R, self.root_p, self.skeleton)
             self.global_v = global_p[1:] - global_p[:-1]
             self.global_v = np.pad(self.global_v, ((1, 0), (0, 0), (0, 0)), "edge")
         else:
@@ -244,9 +282,7 @@ class Motion:
         frame = int(time * self.fps)
         return self.poses[frame]
 
-    """ 
-    Alignment functions
-    """
+    """ Alignment functions """
     def align_to_origin_by_frame(self, frame):
         self.root_p -= self.root_p[frame] * npconst.XZ()
         self.update()
@@ -259,8 +295,8 @@ class Motion:
         if np.dot(forward_from, forward_to) > 0.999999:
             return
         
-        axis    = npmotion.normalize(np.cross(forward_from, forward_to))
-        angle   = np.arccos(np.dot(forward_from, forward_to))
+        axis = npmotion.normalize(np.cross(forward_from, forward_to))
+        angle = np.arccos(np.dot(forward_from, forward_to))
         R_delta = npmotion.R.from_A(angle, axis)
         
         # update root rotation - R: (nof, noj, 3, 3), R_delta: (3, 3)

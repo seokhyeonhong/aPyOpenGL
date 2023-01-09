@@ -93,8 +93,8 @@ def save_windows(motions, split):
             # app = MotionApp(window)
             # app_manager.run(app)
     
-    geometry_list = np.stack(geometry_list, axis=0)
-    motion_list = np.stack(motion_list, axis=0)
+    geometry_list = np.stack(geometry_list, axis=0).astype(np.float32)
+    motion_list = np.stack(motion_list, axis=0).astype(np.float32)
     np.save(os.path.join(save_dir, "geometry.npy"), geometry_list)
     np.save(os.path.join(save_dir, "motion.npy"), motion_list)
     print()
@@ -112,7 +112,7 @@ def main():
     save_windows(train_motions, "train")
     save_windows(test_motions, "test")
 
-    # save mean and std
+    # save mean and std if needed
 
 class MotionApp(App):
     def __init__(self, motion):
