@@ -4,7 +4,7 @@ from pymovis.vis import glconst
 class Camera:
     def __init__(
         self,
-        position      =glm.vec3(0, 5, 10),
+        position      =glm.vec3(0, 3, 5),
         orientation   =glm.mat3(1.0),
         focus_position=glm.vec3(0, 0, 0),
         fov_y         =glm.radians(45),

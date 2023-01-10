@@ -17,15 +17,16 @@ class App:
         self,
         camera: Camera = Camera(),
         light: DirectionalLight = DirectionalLight(),
-        capture_path: str = "capture",
     ):
         self.camera = camera
         self.light = light
+        
         self.width, self.height = 1920, 1080
-        self.capture_path = os.path.join(capture_path, str(datetime.date.today()))
+        self.io = self.IO()
+
+        self.capture_path = os.path.join("capture", str(datetime.date.today()))
         if not os.path.exists(self.capture_path):
             os.makedirs(self.capture_path)
-        self.io = self.IO()
 
     class IO:
         def __init__(self):
@@ -130,10 +131,10 @@ class MotionApp(App):
                 self.frame = max(self.frame - 1, 0)
             elif key == glfw.KEY_RIGHT_BRACKET and action == glfw.PRESS:
                 self.frame = min(self.frame + 1, len(self.motion) - 1)
-            if key == glfw.KEY_LEFT:
-                self.frame = max(self.frame - 1, 0)
-            elif key == glfw.KEY_RIGHT:
-                self.frame = min(self.frame + 1, len(self.motion) - 1)
+            if key == glfw.KEY_LEFT and action == glfw.PRESS:
+                self.frame = max(self.frame - 10, 0)
+            elif key == glfw.KEY_RIGHT and action == glfw.PRESS:
+                self.frame = min(self.frame + 10, len(self.motion) - 1)
             glfw.set_time(self.frame / self.motion.fps)
         
         """ Render and capture options """
@@ -168,7 +169,7 @@ class MotionApp(App):
         self.grid.draw()
         self.motion.render_by_frame(self.frame)
         self.axis.draw()
-        Render.text(self.frame).set_position(0, 0, 1).draw()
+        Render.text(self.frame).draw()
 
     """ Capture functions """
     def capture_screen(self):
@@ -187,7 +188,7 @@ class MotionApp(App):
         if not os.path.exists(image_dir):
             os.makedirs(image_dir)
         
-        image_path = os.path.join(image_dir, "{:04d}.png".format(len(os.listdir(image_dir))))
+        image_path = os.path.join(image_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".png")
         cv2.imwrite(image_path, image)
     
     def save_video(self, captures):
@@ -195,7 +196,7 @@ class MotionApp(App):
         if not os.path.exists(video_dir):
             os.makedirs(video_dir)
         
-        video_path = os.path.join(video_dir, "{:04d}.mp4".format(len(os.listdir(video_dir))))
+        video_path = os.path.join(video_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".mp4")
         fps = self.motion.fps
         height, width, _ = captures[0].shape
         

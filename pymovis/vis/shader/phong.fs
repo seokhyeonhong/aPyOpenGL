@@ -70,15 +70,15 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir)
     // float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
     float shadow = 0.0f;
     vec2 texelSize = 1.0f / textureSize(uShadowMap, 0);
-    for(int u = -2; u <= 2; ++u)
+    for(int u = -1; u <= 1; ++u)
     {
-        for(int v = -2; v <= 2; ++v)
+        for(int v = -1; v <= 1; ++v)
         {
             float pcfDepth = texture(uShadowMap, projCoords.xy + vec2(u, v) * texelSize).r;
             shadow += currentDepth - bias > pcfDepth ? 1.0f : 0.0f;
         }
     }
-    shadow /= 25.0f;
+    shadow /= 9.0f;
     return shadow;
 }
 

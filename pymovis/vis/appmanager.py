@@ -68,7 +68,7 @@ class AppManager:
 
         # main loop
         glfw.set_time(0)
-        while glfw.window_should_close(self.window) == False:
+        while not glfw.window_should_close(self.window):
             width, height = glfw.get_window_size(self.window)
             glViewport(0, 0, width, height)
             
