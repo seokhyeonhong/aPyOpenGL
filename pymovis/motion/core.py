@@ -234,6 +234,8 @@ class Motion:
             self.global_v = np.pad(self.global_v, ((1, 0), (0, 0), (0, 0)), "edge")
         else:
             self.global_v = global_v
+        
+        self.global_R, self.global_p = npmotion.R.fk(self.local_R, self.root_p, self.skeleton)
     
     def __len__(self):
         return len(self.poses)
@@ -268,12 +270,12 @@ class Motion:
         )
 
     def update(self):
-        """
-        Called whenever self.local_R or self.root_p are changed.
-        """
+        """ Called whenever self.local_R or self.root_p are changed """
         for i in range(self.num_frames):
             self.poses[i].local_R = self.local_R[i]
             self.poses[i].root_p = self.root_p[i]
+
+        self.global_R, self.global_p = npmotion.R.fk(self.local_R, self.root_p, self.skeleton)
     
     def get_pose_by_frame(self, frame):
         return self.poses[frame]
@@ -297,7 +299,7 @@ class Motion:
         
         axis = npmotion.normalize(np.cross(forward_from, forward_to))
         angle = np.arccos(np.dot(forward_from, forward_to))
-        R_delta = npmotion.R.from_A(angle, axis)
+        R_delta = npmotion.R.from_A(angle, axis).squeeze(0)
         
         # update root rotation - R: (nof, noj, 3, 3), R_delta: (3, 3)
         self.local_R[:, 0] = np.matmul(R_delta, self.local_R[:, 0])
@@ -320,15 +322,73 @@ class Motion:
     def translate_root(self, delta):
         self.root_p += delta
         self.update()
+    
+    def two_bone_ik(self, base_idx, effector_idx, target_p, eps=1e-8):
+        if self.skeleton.parent_idx[self.skeleton.parent_idx[effector_idx]] != base_idx:
+            raise ValueError(f"{base_idx} and {effector_idx} are not in a two bone IK hierarchy")
+        
+        mid_idx = self.skeleton.parent_idx[effector_idx]
 
+        """ p and R for base, mid, and effector are in (nof, 3) """
+        a = self.global_p[:, base_idx]
+        b = self.global_p[:, mid_idx]
+        c = self.global_p[:, effector_idx]
+
+        global_a_R = self.global_R[:, base_idx]
+        global_b_R = self.global_R[:, mid_idx]
+
+        lab = np.linalg.norm(b - a, axis=1)
+        lcb = np.linalg.norm(b - c, axis=1)
+        lat = np.clip(np.linalg.norm(target_p - a, axis=1), eps, lab + lcb - eps)
+
+        ac_ab_0 = np.arccos(np.clip(np.sum(npmotion.normalize(c - a) * npmotion.normalize(b - a), axis=-1), -1, 1))
+        ba_bc_0 = np.arccos(np.clip(np.sum(npmotion.normalize(a - b) * npmotion.normalize(c - b), axis=-1), -1, 1))
+        ac_at_0 = np.arccos(np.clip(np.sum(npmotion.normalize(c - a) * npmotion.normalize(target_p - a), axis=-1), -1, 1))
+
+        ac_ab_1 = np.arccos(np.clip((lcb*lcb - lab*lab - lat*lat) / (-2*lab*lat), -1, 1))
+        ba_bc_1 = np.arccos(np.clip((lat*lat - lab*lab - lcb*lcb) / (-2*lab*lcb), -1, 1))
+
+        d = global_b_R @ np.array([0, 0, 1])
+        axis_0 = npmotion.normalize(np.cross(c - a, d))
+        axis_1 = npmotion.normalize(np.cross(c - a, target_p - a))
+
+        # TODO: Debug from here
+        r0 = npmotion.R.from_A(ac_ab_1 - ac_ab_0, np.einsum("ijk,ik->ij", npmotion.R.inv(global_a_R), axis_0)).squeeze()
+        r1 = npmotion.R.from_A(ba_bc_1 - ba_bc_0, np.einsum("ijk,ik->ij", npmotion.R.inv(global_b_R), axis_0)).squeeze()
+        r2 = npmotion.R.from_A(ac_at_0, np.einsum("ijk,ik->ij", npmotion.R.inv(global_a_R), axis_1)).squeeze()
+
+        self.local_R[:, base_idx] = self.local_R[:, base_idx] @ r0 @ r2
+        self.local_R[:, self.skeleton.parent_idx[effector_idx]] = self.local_R[:, self.skeleton.parent_idx[effector_idx]] @ r1
+
+        self.update()
+        
     """ Rendering functions """
     def render_by_time(self, time, albedo=glm.vec3(1, 0, 0)):
-        frame = min(int(time * self.fps), self.num_frames - 1)
-        self.poses[frame].draw(albedo=albedo)
+        frame = max(0, min(int(time * self.fps), self.num_frames - 1))
+        self.render_by_frame(frame)
     
     def render_by_frame(self, frame, albedo=glm.vec3(1, 0, 0)):
-        frame = min(frame, self.num_frames - 1)
-        self.poses[frame].draw(albedo=albedo)
+        frame = max(0, min(frame, self.num_frames - 1))
+        
+        if not hasattr(self, "joint_sphere"):
+            self.joint_sphere = Render.sphere(0.05)
+            self.joint_bone   = Render.cylinder(0.03, 1.0)
+
+        for i in range(self.skeleton.num_joints):
+            self.joint_sphere.set_position(self.global_p[frame, i]).set_material(albedo=albedo).draw()
+
+        for i in range(1, self.skeleton.num_joints):
+            parent_pos = self.global_p[frame, self.skeleton.parent_idx[i]]
+
+            center = glm.vec3((parent_pos + self.global_p[frame, i]) / 2)
+            dist = np.linalg.norm(parent_pos - self.global_p[frame, i])
+            dir = glm.vec3((self.global_p[frame, i] - parent_pos) / dist)
+
+            axis = glm.cross(glm.vec3(0, 1, 0), dir)
+            angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
+            rotation = glm.rotate(glm.mat4(1.0), angle, axis)
+            
+            self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_material(albedo=albedo).draw()
 
     """ Motion features """
     def get_local_R6(self):

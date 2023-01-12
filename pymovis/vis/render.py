@@ -215,7 +215,7 @@ class Render:
 
         # final rendering
         glBindVertexArray(option.vao.id)
-        glDrawElements(GL_TRIANGLES, option.vao.indices_count, GL_UNSIGNED_INT, None)
+        glDrawElements(GL_TRIANGLES, option.vao.len_indices, GL_UNSIGNED_INT, None)
 
         # unbind vao
         glBindVertexArray(0)
@@ -239,7 +239,7 @@ class Render:
         # final rendering
         glCullFace(GL_FRONT)
         glBindVertexArray(option.vao.id)
-        glDrawElements(GL_TRIANGLES, option.vao.indices_count, GL_UNSIGNED_INT, None)
+        glDrawElements(GL_TRIANGLES, option.vao.len_indices, GL_UNSIGNED_INT, None)
         glCullFace(GL_BACK)
 
         # unbind vao

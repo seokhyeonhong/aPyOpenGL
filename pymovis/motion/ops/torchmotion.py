@@ -32,17 +32,20 @@ class R:
         """
         if axis.shape[-1] != 3:
             raise ValueError(f"axis.shape[-1] = {axis.shape[-1]} != 3")
+        
+        if angle.shape == axis.shape[:-1]:
+            angle = angle[..., None] # (..., N, 1)
 
         a0, a1, a2     = axis[..., 0], axis[..., 1], axis[..., 2]
         zero           = torch.zeros_like(a0)
         skew_symmetric = torch.stack([zero, -a2, a1,
                                     a2, zero, -a0,
-                                    -a1, a0, zero], dim=-1).reshape(*angle.shape[:-1], 3, 3) # (..., 3, 3)
+                                    -a1, a0, zero], dim=-1).reshape(*angle.shape[:-1], 1, 3, 3) # (..., 1, 3, 3)
         I              = torch.eye(3, dtype=torch.float32, device=angle.device)              # (3, 3)
-        I              = torch.tile(I, reps=[*angle.shape[:-1], 1, 1])                       # (..., 3, 3)
-        sin            = torch.sin(angle)[..., None, None]                                   # (..., 1, 1)
-        cos            = torch.cos(angle)[..., None, None]                                   # (..., 1, 1)
-        return I + skew_symmetric * sin + torch.matmul(skew_symmetric, skew_symmetric) * (1 - cos)
+        I              = torch.tile(I, reps=[*angle.shape[:-1], 1, 1])[..., None, :, :]      # (..., 1, 3, 3)
+        sin            = torch.sin(angle)[..., None, None]                                   # (..., N, 1, 1)
+        cos            = torch.cos(angle)[..., None, None]                                   # (..., N, 1, 1)
+        return I + skew_symmetric * sin + torch.matmul(skew_symmetric, skew_symmetric) * (1 - cos) # (..., N, 3, 3)
 
     @staticmethod
     def from_E(__E: torch.Tensor, order: str, radians: bool=True) -> torch.Tensor:

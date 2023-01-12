@@ -1,19 +1,23 @@
-from OpenGL.GL import *
-import glm
-import math
 import numpy as np
 
 from pymovis.vis.core import Vertex, VAO, Mesh
-from pymovis.vis.app import App
-from pymovis.vis.appmanager import AppManager
 from pymovis.vis.render import Render
+from pymovis.vis.glconst import INCH_TO_METER
 
 class Heightmap:
-    def __init__(self, filename, h_scale=0.1, v_scale=0.1, offset=None):
+    def __init__(self, filename, h_scale=INCH_TO_METER, v_scale=INCH_TO_METER, offset=None):
+        """
+        filename : Path to the heightmap file
+        h_scale : Horizontal scale of the heightmap (xz plane)
+        v_scale : Vertical scale of the heightmap (y axis)
+        offset : Offset of the heightmap (y axis)
+        """
         self.filename = filename
         self.h_scale = h_scale
         self.v_scale = v_scale
         self.offset = offset
+
+        self.load()
     
     def load(self):
         """ Load the heightmap data and create the vertices """
@@ -25,7 +29,7 @@ class Heightmap:
 
         """ Calculate the offset """
         self.offset = np.sum(self.data) / (w * h) if self.offset is None else 0
-        print(f"Loaded Heightmap {self.filename} with {w}x{h} points")
+        print(f"Loaded Heightmap {self.filename} with {w}x{h} points ({self.h_scale * w:.4f}m x {self.h_scale * h:.4f}m)")
 
         """ Calculate and set the positions of the vertices """
         cw = self.h_scale * w
@@ -36,7 +40,7 @@ class Heightmap:
 
         x_pos = cx - cw / 2
         z_pos = cy - ch / 2
-        y_pos = self.sample(x_pos, z_pos)
+        y_pos = self.sample_height(x_pos, z_pos)
         positions = np.stack([x_pos, y_pos, z_pos], axis=-1)
 
         for i, pos in enumerate(positions.reshape(-1, 3)):
@@ -70,8 +74,9 @@ class Heightmap:
         """ Generate VAO and Mesh """
         vao = VAO.from_vertex_array(vertices, indices)
         self.mesh = Mesh(vao, vertices, indices)
+        self.render_options = Render.mesh(self.mesh)
 
-    def sample(self, x, z):
+    def sample_height(self, x, z):
         w = len(self.data)
         h = len(self.data[0])
 
@@ -96,27 +101,5 @@ class Heightmap:
 
         return (s0 * (1 - a0) + s1 * a0) * (1 - a1) + (s2 * (1 - a0) + s3 * a0) * a1
 
-""" Global variables """
-HEIGHTMAP_PATH = './data/heightmaps/hmap_011_smooth.txt'
-
-class HeightmapApp(App):
-    def __init__(self, heightmap: Heightmap):
-        super().__init__()
-        import time
-        start = time.perf_counter()
-        heightmap.load()
-        print(f"Loaded heightmap in {time.perf_counter() - start} seconds")
-        self.heightmap = Render.mesh(heightmap.mesh).set_material(albedo=glm.vec3(0.5))
-        self.axis = Render.axis()
-        # self.grid = Render.plane().set_scale(10).set_texture("grid.png")
-    
-    def render(self):
-        self.heightmap.draw()
-        # self.axis.draw()
-
-if __name__ == "__main__":
-    heightmap = Heightmap(HEIGHTMAP_PATH, 0.01, 0.01)
-
-    app_manager = AppManager()
-    app = HeightmapApp(heightmap)
-    app_manager.run(app)
+    def draw(self):
+        self.render_options.draw()

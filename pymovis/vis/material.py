@@ -4,7 +4,7 @@ from pymovis.vis.texture import Texture, TextureType, CubemapTexture
 
 class Material:
     def __init__(self,
-        albedo=glm.vec3(0.7, 0.0, 0.0),
+        albedo=glm.vec3(0.5),
         diffuse=glm.vec3(1.0),
         specular=glm.vec3(0.1),
         shininess=10.0

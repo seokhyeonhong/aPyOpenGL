@@ -152,6 +152,10 @@ class MotionApp(App):
                 self.recording = not self.recording
 
     def late_update(self):
+        """ Rendering the current frame """
+        Render.text(self.frame).draw()
+
+        """ Recording """
         if self.recording:
             if self.prev_frame == self.frame and self.playing:
                 return
@@ -169,7 +173,6 @@ class MotionApp(App):
         self.grid.draw()
         self.motion.render_by_frame(self.frame)
         self.axis.draw()
-        Render.text(self.frame).draw()
 
     """ Capture functions """
     def capture_screen(self):

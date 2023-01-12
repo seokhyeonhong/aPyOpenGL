@@ -16,10 +16,10 @@ class VAO:
         """
         Constructor from a list of vertices and indices
         """
-        id          = glGenVertexArrays(1)
-        vbos        = glGenBuffers(3)
-        ebo         = glGenBuffers(1)
-        indices     = indices
+        id      = glGenVertexArrays(1)
+        vbos    = glGenBuffers(3)
+        ebo     = glGenBuffers(1)
+        indices = indices
 
         glBindVertexArray(id)
         # glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
@@ -86,19 +86,19 @@ class VAO:
         return cls(id, vbos, ebo, indices)
 
     @property
-    def id(self) -> int:
+    def id(self):
         return self.__id
 
     @property
-    def indices_count(self) -> int:
+    def len_indices(self):
         return len(self.__indices)
 
 class Vertex:
     def __init__(
         self,
-        position:glm.vec3=glm.vec3(0),
-        normal  :glm.vec3=glm.vec3(0),
-        uv      :glm.vec2=glm.vec2(0)
+        position: glm.vec3 = glm.vec3(0),
+        normal  : glm.vec3 = glm.vec3(0),
+        uv      : glm.vec2 = glm.vec2(0)
     ):
         self.__position = position
         self.__normal   = normal

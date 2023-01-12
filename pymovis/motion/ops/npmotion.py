@@ -30,6 +30,7 @@ class R:
         :param parents: (N,)
         """
         bone_offsets, parents = skeleton.get_bone_offsets(), skeleton.parent_idx
+
         global_R, global_p = [R[..., 0, :, :]], [root_p]
         for i in range(1, len(parents)):
             global_R.append(np.matmul(global_R[parents[i]], R[..., i, :, :]))
@@ -59,7 +60,7 @@ class R:
         R0 = R.from_A(E[..., 0], axis=axis_map[order[0]])
         R1 = R.from_A(E[..., 1], axis=axis_map[order[1]])
         R2 = R.from_A(E[..., 2], axis=axis_map[order[2]])
-        return np.matmul(R0, np.matmul(R1, R2))
+        return R0 @ R1 @ R2
     
     @staticmethod
     def from_A(angle, axis):
@@ -69,17 +70,22 @@ class R:
         """
         if axis.shape[-1] != 3:
             raise ValueError(f"axis.shape[-1] = {axis.shape[-1]} != 3")
+        
+        if angle.shape == axis.shape[:-1]:
+            angle = angle[..., np.newaxis]
 
         a0, a1, a2     = axis[..., 0], axis[..., 1], axis[..., 2]
         zero           = np.zeros_like(a0)
         skew_symmetric = np.stack([zero, -a2, a1,
                                     a2, zero, -a0,
-                                    -a1, a0, zero], axis=-1).reshape(*angle.shape[:-1], 3, 3) # (..., 3, 3)
+                                    -a1, a0, zero], axis=-1).reshape(*angle.shape[:-1], 1, 3, 3) # (..., 1, 3, 3)
+
         I              = np.eye(3, dtype=np.float32)                                          # (3, 3)
-        I              = np.tile(I, reps=[*angle.shape[:-1], 1, 1])                           # (..., 3, 3)
-        sin            = np.sin(angle)[..., np.newaxis, np.newaxis]                           # (..., 1, 1)
-        cos            = np.cos(angle)[..., np.newaxis, np.newaxis]                           # (..., 1, 1)
-        return I + skew_symmetric * sin + np.matmul(skew_symmetric, skew_symmetric) * (1 - cos)
+        I              = np.tile(I, reps=[*angle.shape[:-1], 1, 1])[..., np.newaxis, :, :]    # (..., 1, 3, 3)
+        sin            = np.sin(angle)[..., np.newaxis, np.newaxis]                           # (..., N, 1, 1)
+        cos            = np.cos(angle)[..., np.newaxis, np.newaxis]                           # (..., N, 1, 1)
+
+        return I + skew_symmetric * sin + np.matmul(skew_symmetric, skew_symmetric) * (1 - cos) # (..., N, 3, 3)
 
     @staticmethod
     def from_R6(r6: np.ndarray) -> np.ndarray:
@@ -90,9 +96,8 @@ class R:
             raise ValueError(f"r6.shape[-1] = {r6.shape[-1]} != 6")
         
         x = normalize(r6[..., 0:3])
-        y = normalize(r6[..., 3:6])
+        y = normalize(r6[..., 3:6] - np.sum(x * r6[..., 3:6], axis=-1, keepdims=True) * x)
         z = np.cross(x, y, axis=-1)
-        y = np.cross(z, x, axis=-1)
         return np.stack([x, y, z], axis=-2) # (..., 3, 3)
 
     @staticmethod
