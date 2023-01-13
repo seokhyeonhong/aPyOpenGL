@@ -5,28 +5,25 @@ from pymovis.vis.render import Render
 from pymovis.vis.glconst import INCH_TO_METER
 
 class Heightmap:
-    def __init__(self, filename, h_scale=INCH_TO_METER, v_scale=INCH_TO_METER, offset=None):
-        """
-        filename : Path to the heightmap file
-        h_scale : Horizontal scale of the heightmap (xz plane)
-        v_scale : Vertical scale of the heightmap (y axis)
-        offset : Offset of the heightmap (y axis)
-        """
-        self.filename = filename
+    def __init__(self, data, h_scale=INCH_TO_METER, v_scale=INCH_TO_METER, offset=None):
+        self.data = data
         self.h_scale = h_scale
         self.v_scale = v_scale
         self.offset = offset
-
-        self.load()
+        self.__init_mesh()
     
-    def load(self):
-        """ Load the heightmap data and create the vertices """
-        self.data = np.loadtxt(self.filename, dtype=np.float32)
+    @classmethod
+    def load_from_file(cls, filename, h_scale=INCH_TO_METER, v_scale=INCH_TO_METER, offset=None):
+        data = np.loadtxt(filename, dtype=np.float32)
+        return cls(data, h_scale, v_scale, offset)
+
+    def __init_mesh(self):
+        """ Create vertices from the heightmap data """
         w = len(self.data)
         h = len(self.data[0])
 
         self.offset = np.sum(self.data) / (w * h) if self.offset is None else 0
-        print(f"Loaded Heightmap {self.filename} with {w}x{h} points ({self.h_scale * w:.4f}m x {self.h_scale * h:.4f}m)")
+        print(f"Loaded Heightmap: {w}x{h} points ({self.h_scale * w:.4f}m x {self.h_scale * h:.4f}m)")
 
         vertices = [Vertex() for _ in range(w * h)]
 
@@ -65,7 +62,6 @@ class Heightmap:
 
         uvs[:, :, 0] = cy
         uvs[:, :, 1] = cx
-        breakpoint()
 
         for i, uv in enumerate(uvs.reshape(-1, 2)):
             vertices[i].set_uv(uv)

@@ -3,7 +3,7 @@ import numpy as np
 import random
 
 from functools import partial
-from multiprocessing import Pool
+import multiprocessing as mp
 
 def seed(x=777):
     torch.manual_seed(x)
@@ -14,8 +14,11 @@ def seed(x=777):
     np.random.seed(x)
     random.seed(x)
 
-def run_parallel(func, iterable, num_cpus=20, **kwargs):
+def run_parallel(func, iterable, num_cpus=mp.cpu_count(), desc="Running parallel ...", **kwargs):
+    print(desc, f"[{num_cpus} CPUs]")
+
     func_with_kwargs = partial(func, **kwargs)
-    with Pool(processes=num_cpus) as pool:
+    with mp.Pool(num_cpus) as pool:
         res = pool.map(func_with_kwargs, iterable)
+
     return res
