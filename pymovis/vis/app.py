@@ -53,15 +53,7 @@ class App:
     
     """ Callback functions for glfw and camera control """
     def key_callback(self, window, key, scancode, action, mods):
-        if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
-            glfw.set_window_should_close(window, True)
-            Render.clear()
-            
-        # elif key == glfw.KEY_F1 and action == glfw.PRESS:
-        #     Render.set_render_mode(RenderMode.PHONG)
-        # elif key == glfw.KEY_F2 and action == glfw.PRESS:
-        #     Render.set_render_mode(RenderMode.WIREFRAME)
-        elif key == glfw.KEY_V and action == glfw.PRESS:
+        if key == glfw.KEY_V and action == glfw.PRESS:
             self.camera.switch_projection()
         
     def mouse_callback(self, window, xpos, ypos):

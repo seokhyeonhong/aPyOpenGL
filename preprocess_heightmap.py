@@ -12,8 +12,8 @@ from pymovis.vis.render import Render
 
 """ Global variables """
 HEIGHTMAP_DIR = "D:/data/PFNN/heightmaps"
-SPARSITY      = 16
-SIZE          = 200
+SPARSITY      = 15
+SIZE          = 128
 
 """ Load from saved files """
 def load_all_heightmaps():
@@ -34,50 +34,54 @@ def sample_all_patches(files):
     X = []
     start = time.perf_counter()
     for idx, f in enumerate(files):
-        print(f"Extracting patches {idx + 1} / {len(files)}", end="\r")
+        print(f"Extracting patches {idx + 1} / {len(files)} ... Elapsed time: {time.perf_counter() - start:.2f} seconds", end="\r")
+
+        """ Load heightmap """
         H = np.loadtxt(f)
         num_samples = (H.shape[0] * H.shape[1]) // (SPARSITY * SPARSITY)
         if H.shape[0] < SIZE or H.shape[1] < SIZE:
+            print(f"\nSkipping {f} due to small size")
             continue
 
-        patches = util.run_parallel(sample_patch, [H] * num_samples)
+        """ Random location / rotation """
+        x = np.random.randint(-SIZE, H.shape[0] - SIZE, size=num_samples)
+        y = np.random.randint(-SIZE, H.shape[1] - SIZE, size=num_samples)
+        d = np.degrees(np.random.uniform(-np.pi / 2, np.pi / 2, size=num_samples))
+        flip_x = np.random.uniform(size=num_samples)
+        flip_y = np.random.uniform(size=num_samples)
+        
+        """ Sample patches """
+        patches = util.run_parallel(sample_patch, zip(x, y, d, flip_x, flip_y), heightmap=H)
         patches = [p for p in patches if p is not None]
+
         X.extend(patches)
     
-    print(f"Extracted patches: {len(X)} in {time.perf_counter() - start:.2f} seconds")
+    print(f"\nExtracted patches: {len(X)} in {time.perf_counter() - start:.2f} seconds")
     X = np.array(X, dtype=np.float32)
     
     return X
 
-def sample_patch(heightmap):
-    """ Random location / rotation """
-    xi, yi = np.random.randint(-SIZE, heightmap.shape[0] - SIZE), np.random.randint(-SIZE, heightmap.shape[1] - SIZE)
-    r = np.degrees(np.random.uniform(-np.pi / 2, np.pi / 2))
+def sample_patch(xydlr, heightmap):
+    x, y, d, flip_x, flip_y = xydlr
 
-    """ Sample patch """
-    S = ndimage.interpolation.shift(heightmap, (xi, yi), mode="reflect")[:SIZE*2, :SIZE*2]
-    S = S[::-1, :] if np.random.uniform() > 0.5 else S
-    S = S[:, ::-1] if np.random.uniform() > 0.5 else S
-    S = ndimage.interpolation.rotate(S, r, reshape=False, mode="reflect")
+    S = ndimage.interpolation.shift(heightmap, (x, y), mode="reflect")[:SIZE*2, :SIZE*2]
+    S = S[::-1, :] if flip_x > 0.5 else S
+    S = S[:, ::-1] if flip_y > 0.5 else S
+    S = ndimage.interpolation.rotate(S, d, reshape=False, mode="reflect")
 
-    """ Extract patch area """
     P = S[SIZE//2:SIZE//2+SIZE, SIZE//2:SIZE//2+SIZE]
 
-    """ Subtract mean """
-    P -= P.mean()
-
-    """ Discard if height difference is too high """
-    if np.any(np.abs(P) > 50):
-        return
-
-    return P
+    return None if np.max(P) - np.min(P) > 100 else P - P.mean()
 
 """ Main functions """
 def preprocess():
     util.seed()
+    
     heightmap_files = load_all_heightmaps()
     X = sample_all_patches(heightmap_files)
+
     np.savez_compressed(os.path.join(HEIGHTMAP_DIR, "heightmaps.npz"), X=X)
+    print(f"Saved patches: {X.shape}")
 
 def visualize():
     class MyApp(App):
@@ -99,7 +103,7 @@ def visualize():
         app_manager.run(app)
 
 def main():
-    # preprocess()
+    preprocess()
     visualize()
 
 if __name__ == "__main__":

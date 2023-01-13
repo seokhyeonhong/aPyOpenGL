@@ -106,8 +106,10 @@ class AppManager:
         glfw.terminate()
 
     def on_key_down(self, window, key, scancode, action, mods):
-        width, height = glfw.get_window_size(window)
-        if key == glfw.KEY_F1 and action == glfw.PRESS:
+        if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
+            glfw.set_window_should_close(window, True)
+            Render.clear()
+        elif key == glfw.KEY_F1 and action == glfw.PRESS:
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
         elif key == glfw.KEY_F2 and action == glfw.PRESS:
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
