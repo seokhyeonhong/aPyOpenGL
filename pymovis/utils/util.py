@@ -14,11 +14,9 @@ def seed(x=777):
     np.random.seed(x)
     random.seed(x)
 
-def run_parallel(func, iterable, num_cpus=mp.cpu_count(), desc="Running parallel ...", **kwargs):
-    print(desc, f"[{num_cpus} CPUs]")
-
+def run_parallel(func, iterable, num_cpus=mp.cpu_count(), **kwargs):
     func_with_kwargs = partial(func, **kwargs)
     with mp.Pool(num_cpus) as pool:
-        res = pool.map(func_with_kwargs, iterable)
+        res = pool.map(func_with_kwargs, iterable) if iterable is not None else pool.map(func_with_kwargs)
 
     return res

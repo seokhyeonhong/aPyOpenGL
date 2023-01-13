@@ -5,7 +5,6 @@ save/*
 capture/*
 train*
 test_*
-preprocess*
 
 # file formats
 *.pt
