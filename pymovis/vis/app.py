@@ -120,6 +120,9 @@ class MotionApp(App):
         """ Play / pause """
         if key == glfw.KEY_SPACE and action == glfw.PRESS:
             self.playing = not self.playing
+            if self.playing and self.frame == len(self.motion) - 1:
+                self.frame = 0
+                glfw.set_time(0)
         
         """ Move frames """
         if glfw.KEY_0 <= key <= glfw.KEY_9 and action == glfw.PRESS:
@@ -150,6 +153,11 @@ class MotionApp(App):
                     self.save_video(self.captures)
                     self.captures = []
                 self.recording = not self.recording
+
+    def update(self):
+        """ Stop playing at the end of the motion"""
+        if self.playing and self.frame == len(self.motion) - 1:
+            self.playing = False
 
     def late_update(self):
         """ Rendering the current frame """

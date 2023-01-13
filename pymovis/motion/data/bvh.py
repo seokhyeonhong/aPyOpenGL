@@ -30,15 +30,12 @@ def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=np
         print(f"{filename} is not a bvh file.")
         return
     
-    if not isinstance(v_up, np.ndarray):
-        v_up = np.array(v_up)
-    if not isinstance(v_forward, np.ndarray):
-        v_forward = np.array(v_forward)
+    v_up = np.array(v_up)
+    v_forward = np.array(v_forward)
 
     assert v_up.shape == (3,) and v_forward.shape == (3,), f"v_up and v_forward must be 3D vectors, but got {v_up.shape} and {v_forward.shape}."
 
     f = open(filename, "r")
-    print(f"Processsing {filename}...")
 
     i = 0
     active = -1
@@ -108,7 +105,7 @@ def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=np
             frametime = float(fmatch.group(1))
             fps = round(1. / frametime)
             if fps % target_fps != 0:
-                raise Exception(f"Invalid target fps: {target_fps} (fps: {fps})")
+                raise Exception(f"Invalid target fps for {filename}: {target_fps} (fps: {fps})")
 
             sampling_step = fps // target_fps
             continue
@@ -143,4 +140,5 @@ def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=np
     return Motion(name=name, skeleton=skeleton, poses=poses, global_v=None, fps=target_fps)
 
 def load_parallel(files, cpus=mp.cpu_count(), **kwargs):
+    print(f"Loading {len(files)} bvh files with {cpus} cpus...")
     return util.run_parallel(load, files, cpus, **kwargs)

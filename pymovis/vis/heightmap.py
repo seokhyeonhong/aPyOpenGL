@@ -25,13 +25,12 @@ class Heightmap:
         w = len(self.data)
         h = len(self.data[0])
 
-        vertices = [Vertex() for _ in range(w * h)]
-
-        """ Calculate the offset """
         self.offset = np.sum(self.data) / (w * h) if self.offset is None else 0
         print(f"Loaded Heightmap {self.filename} with {w}x{h} points ({self.h_scale * w:.4f}m x {self.h_scale * h:.4f}m)")
 
-        """ Calculate and set the positions of the vertices """
+        vertices = [Vertex() for _ in range(w * h)]
+
+        """ Vertex positions """
         cw = self.h_scale * w
         ch = self.h_scale * h
         cx = self.h_scale * np.arange(w)
@@ -46,7 +45,7 @@ class Heightmap:
         for i, pos in enumerate(positions.reshape(-1, 3)):
             vertices[i].set_position(pos)
         
-        """ Calculate and set the normals of the vertices """
+        """ Vertex normals """
         normals = np.empty((h, w, 3), dtype=np.float32)
 
         cross1 = np.cross(positions[2:, 1:-1] - positions[1:-1, 1:-1], positions[1:-1, 2:] - positions[1:-1, 1:-1])
@@ -61,20 +60,27 @@ class Heightmap:
         for i, normal in enumerate(normals.reshape(-1, 3)):
             vertices[i].set_normal(normal)
         
-        """ Set vertex indices """
+        """ Vertex UV coordinates """
+        uvs = np.empty((h, w, 2), dtype=np.float32)
+
+        uvs[:, :, 0] = cy
+        uvs[:, :, 1] = cx
+        breakpoint()
+
+        for i, uv in enumerate(uvs.reshape(-1, 2)):
+            vertices[i].set_uv(uv)
+
+        """ Vertex indices """
         indices = np.empty((h - 1, w - 1, 6), dtype=np.int32)
         indices[..., 0] = np.arange(h * w).reshape(h, w)[:-1, :-1]
-        indices[..., 1] = indices[..., 0] + w
-        indices[..., 2] = indices[..., 0] + 1
-        indices[..., 3] = indices[..., 0] + 1
-        indices[..., 4] = indices[..., 0] + w
+        indices[..., 1] = indices[..., 4] = indices[..., 0] + w
+        indices[..., 2] = indices[..., 3] = indices[..., 0] + 1
         indices[..., 5] = indices[..., 0] + w + 1
         indices = indices.flatten()
 
-        """ Generate VAO and Mesh """
+        """ VAO and Mesh """
         vao = VAO.from_vertex_array(vertices, indices)
         self.mesh = Mesh(vao, vertices, indices)
-        self.render_options = Render.mesh(self.mesh)
 
     def sample_height(self, x, z):
         w = len(self.data)
@@ -100,6 +106,3 @@ class Heightmap:
         s3 = self.v_scale * (self.data[x1, z1] - self.offset)
 
         return (s0 * (1 - a0) + s1 * a0) * (1 - a1) + (s2 * (1 - a0) + s3 * a0) * a1
-
-    def draw(self):
-        self.render_options.draw()

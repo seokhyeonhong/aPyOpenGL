@@ -121,6 +121,9 @@ class Vertex:
     
     def set_normal(self, normal):
         self.__normal = glm.normalize(glm.vec3(normal))
+    
+    def set_uv(self, uv):
+        self.__uv = glm.vec2(uv)
 
     @staticmethod
     def make_vertex_array(positions, normals, tex_coords):
