@@ -33,8 +33,9 @@ def load_all_patches():
 def sample_all_patches(files):
     X = []
     start = time.perf_counter()
+    sum_samples = 0
     for idx, f in enumerate(files):
-        print(f"Extracting patches {idx + 1} / {len(files)} ... Elapsed time: {time.perf_counter() - start:.2f} seconds", end="\r")
+        print(f"Extracting patches {idx + 1} / {len(files)} ... Elapsed so far: {time.perf_counter() - start:.2f} seconds for {len(X)} / {sum_samples} samples", end="\r")
 
         """ Load heightmap """
         H = np.loadtxt(f)
@@ -50,11 +51,12 @@ def sample_all_patches(files):
         flip_x = np.random.uniform(size=num_samples)
         flip_y = np.random.uniform(size=num_samples)
         
-        """ Sample patches """
+        """ Sample patches in parallel """
         patches = util.run_parallel(sample_patch, zip(x, y, d, flip_x, flip_y), heightmap=H)
         patches = [p for p in patches if p is not None]
 
         X.extend(patches)
+        sum_samples += num_samples
     
     print(f"\nExtracted patches: {len(X)} in {time.perf_counter() - start:.2f} seconds")
     X = np.array(X, dtype=np.float32)
@@ -70,8 +72,9 @@ def sample_patch(xydlr, heightmap):
     S = ndimage.interpolation.rotate(S, d, reshape=False, mode="reflect")
 
     P = S[SIZE//2:SIZE//2+SIZE, SIZE//2:SIZE//2+SIZE]
+    P -= P.mean()
 
-    return None if np.max(P) - np.min(P) > 100 else P - P.mean()
+    return None if np.any(np.abs(P) > 50) else P
 
 """ Main functions """
 def preprocess():

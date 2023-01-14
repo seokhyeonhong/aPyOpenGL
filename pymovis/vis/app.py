@@ -25,8 +25,6 @@ class App:
         self.io = self.IO()
 
         self.capture_path = os.path.join("capture", str(datetime.date.today()))
-        if not os.path.exists(self.capture_path):
-            os.makedirs(self.capture_path)
 
     class IO:
         def __init__(self):
@@ -55,6 +53,8 @@ class App:
     def key_callback(self, window, key, scancode, action, mods):
         if key == glfw.KEY_V and action == glfw.PRESS:
             self.camera.switch_projection()
+        elif key == glfw.KEY_F5 and action == glfw.PRESS:
+            self.save_image(self.capture_screen())
         
     def mouse_callback(self, window, xpos, ypos):
         offset_x = xpos - self.io.last_mouse_x
@@ -91,6 +91,26 @@ class App:
 
     def on_resize(self, window, width, height):
         glViewport(0, 0, width, height)
+    
+    """ Capture functions """
+    def capture_screen(self):
+        viewport = glGetIntegerv(GL_VIEWPORT)
+        x, y, *_ = viewport
+
+        glReadBuffer(GL_FRONT)
+        data = glReadPixels(x, y, self.width, self.height, GL_RGB, GL_UNSIGNED_BYTE)
+        pixels = np.frombuffer(data, dtype=np.uint8).reshape(self.height, self.width, 3)
+        pixels = np.flip(pixels, axis=0)
+        image = cv2.cvtColor(pixels, cv2.COLOR_RGB2BGR)
+        return image
+    
+    def save_image(self, image):
+        image_dir = os.path.join(self.capture_path, "images")
+        if not os.path.exists(image_dir):
+            os.makedirs(image_dir)
+        
+        image_path = os.path.join(image_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".png")
+        cv2.imwrite(image_path, image)
 
 class MotionApp(App):
     """ Class for motion capture visualization """
@@ -138,8 +158,6 @@ class MotionApp(App):
                 self.grid.switch_visible()
             elif key == glfw.KEY_A:
                 self.axis.switch_visible()
-            elif key == glfw.KEY_F5:
-                self.save_image(self.capture_screen())
             elif key == glfw.KEY_F6:
                 if self.recording:
                     self.save_video(self.captures)
@@ -160,7 +178,7 @@ class MotionApp(App):
             if self.prev_frame == self.frame and self.playing:
                 return
                 
-            self.captures.append(self.capture_screen())
+            self.captures.append(super().capture_screen())
             self.prev_frame = self.frame
 
     def render(self):
@@ -175,25 +193,6 @@ class MotionApp(App):
         self.axis.draw()
 
     """ Capture functions """
-    def capture_screen(self):
-        viewport = glGetIntegerv(GL_VIEWPORT)
-        x, y, *_ = viewport
-
-        glReadBuffer(GL_FRONT)
-        data = glReadPixels(x, y, self.width, self.height, GL_RGB, GL_UNSIGNED_BYTE)
-        pixels = np.frombuffer(data, dtype=np.uint8).reshape(self.height, self.width, 3)
-        pixels = np.flip(pixels, axis=0)
-        image = cv2.cvtColor(pixels, cv2.COLOR_RGB2BGR)
-        return image
-    
-    def save_image(self, image):
-        image_dir = os.path.join(self.capture_path, "images")
-        if not os.path.exists(image_dir):
-            os.makedirs(image_dir)
-        
-        image_path = os.path.join(image_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".png")
-        cv2.imwrite(image_path, image)
-    
     def save_video(self, captures):
         video_dir = os.path.join(self.capture_path, "videos")
         if not os.path.exists(video_dir):
