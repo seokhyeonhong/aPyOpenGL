@@ -303,9 +303,10 @@ class Motion:
         if np.dot(forward_from, forward_to) > 0.999999:
             return
         
-        axis = npmotion.normalize(np.cross(forward_from, forward_to))
         angle = np.arccos(np.dot(forward_from, forward_to))
-        R_delta = npmotion.R.from_A(angle, axis).squeeze(0)
+        axis = np.cross(forward_from, forward_to)
+        angle = angle * np.sign(axis[1])
+        R_delta = npmotion.R.from_E(angle, "y")
         
         # update root rotation - R: (nof, noj, 3, 3), R_delta: (3, 3)
         self.local_R[:, 0] = np.matmul(R_delta, self.local_R[:, 0])

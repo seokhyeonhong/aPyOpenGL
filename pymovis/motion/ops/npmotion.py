@@ -45,22 +45,30 @@ class R:
         """
         :param E: (..., 3)
         """
-        if E.shape[-1] != 3:
-            raise ValueError(f"E.shape[-1] = {E.shape[-1]} != 3")
-        
         if not radians:
             E = np.deg2rad(E)
 
-        axis_map = {
-            "x": npconst.X(),
-            "y": npconst.Y(),
-            "z": npconst.Z(),
+        R_map = {
+            "x": lambda x : np.stack([np.ones_like(x), np.zeros_like(x), np.zeros_like(x),
+                                    np.zeros_like(x), np.cos(x), -np.sin(x),
+                                    np.zeros_like(x), np.sin(x), np.cos(x)], axis=-1).reshape(*x.shape, 3, 3),
+            "y": lambda x : np.stack([np.cos(x), np.zeros_like(x), np.sin(x),
+                                    np.zeros_like(x), np.ones_like(x), np.zeros_like(x),
+                                    -np.sin(x), np.zeros_like(x), np.cos(x)], axis=-1).reshape(*x.shape, 3, 3),
+            "z": lambda x : np.stack([np.cos(x), -np.sin(x), np.zeros_like(x),
+                                    np.sin(x), np.cos(x), np.zeros_like(x),
+                                    np.zeros_like(x), np.zeros_like(x), np.ones_like(x)], axis=-1).reshape(*x.shape, 3, 3),
         }
 
-        R0 = R.from_A(E[..., 0], axis=axis_map[order[0]])
-        R1 = R.from_A(E[..., 1], axis=axis_map[order[1]])
-        R2 = R.from_A(E[..., 2], axis=axis_map[order[2]])
-        return R0 @ R1 @ R2
+        if len(order) == 3:
+            R0 = R_map[order[0]](E[..., 0])
+            R1 = R_map[order[1]](E[..., 1])
+            R2 = R_map[order[2]](E[..., 2])
+            return R0 @ R1 @ R2
+        elif len(order) == 1:
+            return R_map[order](E)
+        else:
+            raise ValueError(f"Invalid order: {order}")
     
     @staticmethod
     def from_A(angle, axis):

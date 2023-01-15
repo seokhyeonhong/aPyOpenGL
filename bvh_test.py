@@ -26,17 +26,17 @@ class MyApp(MotionApp):
         self.right_leg_idx = self.motion.skeleton.idx_by_name["RightUpLeg"]
         self.right_foot_idx = self.motion.skeleton.idx_by_name["RightFoot"]
 
-        heightmap = Heightmap.load_from_file("./data/heightmaps/hmap_010_smooth.txt")
-        self.heightmap = Render.mesh(heightmap.mesh).set_texture("grid.png").set_uv_repeat(0.1)
+        # heightmap = Heightmap.load_from_file("./data/heightmaps/hmap_010_smooth.txt")
+        # self.heightmap = Render.mesh(heightmap.mesh).set_texture("grid.png").set_uv_repeat(0.1)
     
     def render(self):
         super().render()
-        self.heightmap.draw()
+        # self.heightmap.draw()
 
 if __name__ == "__main__":
     motion = bvh.load("D:/data/LaFAN1/aiming1_subject1.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
-    motion.align_by_frame(0)
+    motion.align_by_frame(1000)
 
-    app_manager = AppManager()
+    app_manager = AppManager(960, 540)
     app = MyApp(motion, [1.2])
     app_manager.run(app)

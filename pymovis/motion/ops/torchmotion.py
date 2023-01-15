@@ -52,22 +52,30 @@ class R:
         """
         :param __E: (..., 3)
         """
-        if __E.shape[-1] != 3:
-            raise ValueError(f"e.shape[-1] = {__E.shape[-1]} != 3")
-        
         if not radians:
             __E = torch.deg2rad(__E)
 
-        axis_map = {
-            "x": torchconst.X(),
-            "y": torchconst.Y(),
-            "z": torchconst.Z(),
+        R_map = {
+            "x": lambda x : torch.stack([torch.ones_like(x), torch.zeros_like(x), torch.zeros_like(x),
+                                        torch.zeros_like(x), torch.cos(x), -torch.sin(x),
+                                        torch.zeros_like(x), torch.sin(x), torch.cos(x)], dim=-1).reshape(*x.shape, 3, 3),
+            "y": lambda y : torch.stack([torch.cos(y), torch.zeros_like(y), torch.sin(y),
+                                        torch.zeros_like(y), torch.ones_like(y), torch.zeros_like(y),
+                                        -torch.sin(y), torch.zeros_like(y), torch.cos(y)], dim=-1).reshape(*y.shape, 3, 3),
+            "z": lambda z : torch.stack([torch.cos(z), -torch.sin(z), torch.zeros_like(z),
+                                        torch.sin(z), torch.cos(z), torch.zeros_like(z),
+                                        torch.zeros_like(z), torch.zeros_like(z), torch.ones_like(z)], dim=-1).reshape(*z.shape, 3, 3)
         }
 
-        R0 = R.from_A(__E[..., 0], axis=axis_map[order[0]])
-        R1 = R.from_A(__E[..., 1], axis=axis_map[order[1]])
-        R2 = R.from_A(__E[..., 2], axis=axis_map[order[2]])
-        return torch.matmul(R0, torch.matmul(R1, R2))
+        if len(order) == 3:
+            R0 = R_map[order[0]](__E[..., 0])
+            R1 = R_map[order[1]](__E[..., 1])
+            R2 = R_map[order[2]](__E[..., 2])
+            return torch.matmul(R0, torch.matmul(R1, R2))
+        elif len(order) == 1:
+            return R_map[order](__E)
+        else:
+            raise ValueError(f"Invalid order: {order}")
     
     @staticmethod
     def from_Q(__Q: torch.Tensor) -> torch.Tensor:
