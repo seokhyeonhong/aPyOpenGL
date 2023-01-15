@@ -133,5 +133,4 @@ def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=np
     return Motion(name=name, skeleton=skeleton, poses=poses, global_v=None, fps=target_fps)
 
 def load_parallel(files, cpus=mp.cpu_count(), **kwargs):
-    print(f"Loading {len(files)} BVH files by multiprocessing ...")
-    return util.run_parallel(load, files, cpus, **kwargs)
+    return util.run_parallel(load, files, cpus, desc=f"Loading {len(files)} BVH files", **kwargs)

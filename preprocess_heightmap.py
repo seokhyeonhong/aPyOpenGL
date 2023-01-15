@@ -35,24 +35,24 @@ def sample_all_patches(files):
     start = time.perf_counter()
     sum_samples = 0
     for idx, f in enumerate(files):
-        print(f"Extracting patches {idx + 1} / {len(files)} ... Elapsed so far: {time.perf_counter() - start:.2f} seconds for {len(X)} / {sum_samples} samples", end="\r")
+        print(f"Extracting patches {idx + 1} / {len(files)}")
 
-        """ Load heightmap """
+        # load heightmap
         H = np.loadtxt(f)
         num_samples = (H.shape[0] * H.shape[1]) // (SPARSITY * SPARSITY)
         if H.shape[0] < SIZE or H.shape[1] < SIZE:
             print(f"\nSkipping {f} due to small size")
             continue
 
-        """ Random location / rotation """
+        # random location / rotation
         x = np.random.randint(-SIZE, H.shape[0] - SIZE, size=num_samples)
         y = np.random.randint(-SIZE, H.shape[1] - SIZE, size=num_samples)
         d = np.degrees(np.random.uniform(-np.pi / 2, np.pi / 2, size=num_samples))
         flip_x = np.random.uniform(size=num_samples)
         flip_y = np.random.uniform(size=num_samples)
         
-        """ Sample patches in parallel """
-        patches = util.run_parallel(sample_patch, zip(x, y, d, flip_x, flip_y), heightmap=H)
+        # sample patches in parallel
+        patches = util.run_parallel(sample_patch, zip(x, y, d, flip_x, flip_y), heightmap=H, desc="Sampling patches")
         patches = [p for p in patches if p is not None]
 
         X.extend(patches)
