@@ -9,11 +9,12 @@ from pymovis.vis.heightmap import Heightmap
 from pymovis.vis.app import App
 from pymovis.vis.appmanager import AppManager
 from pymovis.vis.render import Render
+from pymovis.vis.glconst import INCH_TO_METER
 
 """ Global variables """
-HEIGHTMAP_DIR = "D:/data/PFNN/heightmaps"
+HEIGHTMAP_DIR = "./data/heightmaps"
 SPARSITY      = 15
-SIZE          = 128
+SIZE          = 200
 
 """ Load from saved files """
 def load_all_heightmaps():
@@ -24,10 +25,9 @@ def load_all_heightmaps():
     return files
 
 def load_all_patches():
-    data = np.load(os.path.join(HEIGHTMAP_DIR, "heightmaps.npz"))
-    X = data["X"].astype(np.float32)
-    print(f"Loaded patches: {X.shape}")
-    return X
+    data = np.load(os.path.join(HEIGHTMAP_DIR, "processed", f"heightmap_sparsity{SPARSITY}_size{SIZE}.npy"))
+    print(f"Loaded patches: {data.shape}")
+    return data
 
 """ Sample patches """
 def sample_all_patches(files):
@@ -35,13 +35,13 @@ def sample_all_patches(files):
     start = time.perf_counter()
     sum_samples = 0
     for idx, f in enumerate(files):
-        print(f"Extracting patches {idx + 1} / {len(files)}")
-
         # load heightmap
         H = np.loadtxt(f)
         num_samples = (H.shape[0] * H.shape[1]) // (SPARSITY * SPARSITY)
-        if H.shape[0] < SIZE or H.shape[1] < SIZE:
-            print(f"\nSkipping {f} due to small size")
+
+        # skip if terrain is too small to sample (SIZE x SIZE) patches
+        if SIZE//2+SIZE >= H.shape[0] or SIZE//2+SIZE >= H.shape[1]:
+            print(f"Skipping {f} due to small size")
             continue
 
         # random location / rotation
@@ -52,19 +52,19 @@ def sample_all_patches(files):
         flip_y = np.random.uniform(size=num_samples)
         
         # sample patches in parallel
-        patches = util.run_parallel(sample_patch, zip(x, y, d, flip_x, flip_y), heightmap=H, desc="Sampling patches")
+        patches = util.run_parallel(sample_patch, zip(x, y, d, flip_x, flip_y), heightmap=H, desc=f"Sampling {num_samples} patches [Size: {SIZE} x {SIZE}] [Terrain: {H.shape[0]} x {H.shape[1]}] [Progress: {idx + 1} / {len(files)}]")
         patches = [p for p in patches if p is not None]
 
         X.extend(patches)
         sum_samples += num_samples
     
-    print(f"\nExtracted patches: {len(X)} in {time.perf_counter() - start:.2f} seconds")
-    X = np.array(X, dtype=np.float32)
+    print(f"Extracted patches: {len(X)} in {time.perf_counter() - start:.2f} seconds")
+    X = np.stack(X, axis=0).astype(np.float32)
     
     return X
 
-def sample_patch(xydlr, heightmap):
-    x, y, d, flip_x, flip_y = xydlr
+def sample_patch(xyd_fx_fy, heightmap):
+    x, y, d, flip_x, flip_y = xyd_fx_fy
 
     S = ndimage.interpolation.shift(heightmap, (x, y), mode="reflect")[:SIZE*2, :SIZE*2]
     S = S[::-1, :] if flip_x > 0.5 else S
@@ -81,10 +81,13 @@ def preprocess():
     util.seed()
     
     heightmap_files = load_all_heightmaps()
-    X = sample_all_patches(heightmap_files)
+    patches = sample_all_patches(heightmap_files)
 
-    np.savez_compressed(os.path.join(HEIGHTMAP_DIR, "heightmaps.npz"), X=X)
-    print(f"Saved patches: {X.shape}")
+    save_path = os.path.join(HEIGHTMAP_DIR, "processed")
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    np.save(os.path.join(save_path, f"heightmap_sparsity{SPARSITY}_size{SIZE}.npy"), patches)
+    print(f"Saved patches: {patches.shape}")
 
 def visualize():
     class MyApp(App):
@@ -101,7 +104,7 @@ def visualize():
     X = load_all_patches()
     for x in X:
         app_manager = AppManager()
-        heightmap = Heightmap(x)
+        heightmap = Heightmap(x, h_scale=INCH_TO_METER * 2)
         app = MyApp(heightmap)
         app_manager.run(app)
 

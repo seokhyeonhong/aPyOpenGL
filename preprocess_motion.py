@@ -17,32 +17,32 @@ from pymovis.vis.render import Render
 WINDOW_SIZE   = 50
 WINDOW_OFFSET = 20
 FPS           = 30
-DATASET_PATH  = f"D:/data/PFNN_retarget_to_LaFAN1"
+MOTION_DIR    = "./data/animations"
 
 """ Load from saved files """
 def load_motions():
     files = []
-    for file in os.listdir(DATASET_PATH):
+    for file in os.listdir(MOTION_DIR):
         if file.endswith(".bvh"):
-            files.append(os.path.join(DATASET_PATH, file))
+            files.append(os.path.join(MOTION_DIR, file))
     
     motions = bvh.load_parallel(files, v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
     return motions
 
 def load_processed_data():
     # skeleton
-    with open(os.path.join(DATASET_PATH, "processed", "skeleton.pkl"), "rb") as f:
+    with open(os.path.join(MOTION_DIR, "processed", "skeleton.pkl"), "rb") as f:
         skeleton = pickle.load(f)
 
     # windows
-    train_windows = np.load(os.path.join(DATASET_PATH, "processed", f"motion_train_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"))
-    test_windows  = np.load(os.path.join(DATASET_PATH, "processed", f"motion_test_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"))
+    train_windows = np.load(os.path.join(MOTION_DIR, "processed", f"motion_train_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"))
+    test_windows  = np.load(os.path.join(MOTION_DIR, "processed", f"motion_test_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"))
 
     return skeleton, train_windows, test_windows
 
 """ Save processed data """
 def save_skeleton(skeleton):
-    save_dir = os.path.join(DATASET_PATH, "processed")
+    save_dir = os.path.join(MOTION_DIR, "processed")
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -51,7 +51,7 @@ def save_skeleton(skeleton):
         pickle.dump(skeleton, f)
 
 def save_windows(motions):
-    save_dir = os.path.join(DATASET_PATH, "processed")
+    save_dir = os.path.join(MOTION_DIR, "processed")
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -65,7 +65,7 @@ def save_windows(motions):
     print("Train windows:", train_windows.shape)
     print("Test windows:", test_windows.shape)
 
-    print("Saving windows ...")
+    print("Saving windows")
     np.save(os.path.join(save_dir, f"motion_train_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"), train_windows)
     np.save(os.path.join(save_dir, f"motion_test_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"), test_windows)
 

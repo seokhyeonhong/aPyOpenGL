@@ -18,31 +18,26 @@ class Heightmap:
         return cls(data, h_scale, v_scale, offset)
 
     def __init_mesh(self):
-        """ Create vertices from the heightmap data """
-        w = len(self.data)
-        h = len(self.data[0])
+        # create vertices from the heightmap data
+        h, w = self.data.shape
 
-        self.offset = np.sum(self.data) / (w * h) if self.offset is None else 0
-        print(f"Loaded Heightmap: {w}x{h} points ({self.h_scale * w:.4f}m x {self.h_scale * h:.4f}m)")
+        self.offset = np.sum(self.data) / (h * w) if self.offset is None else self.offset
+        print(f"Loaded Heightmap: {h}x{w} points ({self.h_scale * h:.4f}m x {self.h_scale * w:.4f}m)")
 
-        vertices = [Vertex() for _ in range(w * h)]
+        vertices = [Vertex() for _ in range(h * w)]
 
-        """ Vertex positions """
-        cw = self.h_scale * w
-        ch = self.h_scale * h
-        cx = self.h_scale * np.arange(w)
-        cy = self.h_scale * np.arange(h)
-        cx, cy = np.meshgrid(cx, cy)
+        # vertex positions
+        px = self.h_scale * (np.arange(w) - w / 2)
+        pz = self.h_scale * (np.arange(h) - h / 2)
+        px, pz = np.meshgrid(px, pz)
 
-        x_pos = cx - cw / 2
-        z_pos = cy - ch / 2
-        y_pos = self.sample_height(x_pos, z_pos)
-        positions = np.stack([x_pos, y_pos, z_pos], axis=-1)
+        py = self.sample_height(px, pz)
+        positions = np.stack([px, py, pz], axis=-1)
 
         for i, pos in enumerate(positions.reshape(-1, 3)):
             vertices[i].set_position(pos)
         
-        """ Vertex normals """
+        # vertex normals
         normals = np.empty((h, w, 3), dtype=np.float32)
 
         cross1 = np.cross(positions[2:, 1:-1] - positions[1:-1, 1:-1], positions[1:-1, 2:] - positions[1:-1, 1:-1])
@@ -57,16 +52,13 @@ class Heightmap:
         for i, normal in enumerate(normals.reshape(-1, 3)):
             vertices[i].set_normal(normal)
         
-        """ Vertex UV coordinates """
-        uvs = np.empty((h, w, 2), dtype=np.float32)
-
-        uvs[:, :, 0] = cy
-        uvs[:, :, 1] = cx
+        # vertex UV coordinates
+        uvs = np.stack([px, pz], axis=-1)
 
         for i, uv in enumerate(uvs.reshape(-1, 2)):
             vertices[i].set_uv(uv)
 
-        """ Vertex indices """
+        # vertex indices
         indices = np.empty((h - 1, w - 1, 6), dtype=np.int32)
         indices[..., 0] = np.arange(h * w).reshape(h, w)[:-1, :-1]
         indices[..., 1] = indices[..., 4] = indices[..., 0] + w
@@ -74,13 +66,12 @@ class Heightmap:
         indices[..., 5] = indices[..., 0] + w + 1
         indices = indices.flatten()
 
-        """ VAO and Mesh """
+        # VAO and mesh
         vao = VAO.from_vertex_array(vertices, indices)
         self.mesh = Mesh(vao, vertices, indices)
 
     def sample_height(self, x, z):
-        w = len(self.data)
-        h = len(self.data[0])
+        h, w  = self.data.shape
 
         x = (x / self.h_scale) + (w / 2)
         z = (z / self.h_scale) + (h / 2)
@@ -96,9 +87,9 @@ class Heightmap:
         z0 = np.clip(z0, 0, h - 1)
         z1 = np.clip(z1, 0, h - 1)
 
-        s0 = self.v_scale * (self.data[x0, z0] - self.offset)
-        s1 = self.v_scale * (self.data[x1, z0] - self.offset)
-        s2 = self.v_scale * (self.data[x0, z1] - self.offset)
-        s3 = self.v_scale * (self.data[x1, z1] - self.offset)
-
-        return (s0 * (1 - a0) + s1 * a0) * (1 - a1) + (s2 * (1 - a0) + s3 * a0) * a1
+        h0 = self.data[z0, x0]
+        h1 = self.data[z0, x1]
+        h2 = self.data[z1, x0]
+        h3 = self.data[z1, x1]
+        H  = (h0 * (1 - a0) + h1 * a0) * (1 - a1) + (h2 * (1 - a0) + h3 * a0) * a1
+        return self.v_scale * (H - self.offset)

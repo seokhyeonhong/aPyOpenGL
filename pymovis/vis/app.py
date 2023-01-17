@@ -49,6 +49,9 @@ class App:
     def render_xray(self):
         pass
     
+    def terminate(self):
+        pass
+
     """ Callback functions for glfw and camera control """
     def key_callback(self, window, key, scancode, action, mods):
         if key == glfw.KEY_V and action == glfw.PRESS:
@@ -191,6 +194,10 @@ class MotionApp(App):
         self.grid.draw()
         self.motion.render_by_frame(self.frame)
         self.axis.draw()
+
+    def terminate(self):
+        self.motion.__delattr__("joint_sphere")
+        self.motion.__delattr__("joint_bone")
 
     """ Capture functions """
     def save_video(self, captures):

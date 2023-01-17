@@ -104,6 +104,7 @@ class AppManager:
 
         glfw.destroy_window(self.window)
         glfw.terminate()
+        self.app.terminate()
 
     def on_key_down(self, window, key, scancode, action, mods):
         if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
