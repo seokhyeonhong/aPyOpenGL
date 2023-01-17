@@ -29,7 +29,9 @@ class Solve:
 class RBF:
     def __init__(self, L=None, eps=None, function="multiquadric", smooth=1e-8):
         self.solver = Solve(l=-smooth) if L is None else L
-        self.kernel = KERNELS.get(function, function)
+        self.kernel = KERNELS.get(function)
+        if self.kernel is None:
+            raise ValueError(f"Invalid kernel function: {function}")
         self.eps = eps
         
     def fit(self, X, Y):
@@ -38,9 +40,6 @@ class RBF:
         self.eps = np.ones(len(dist)) / dist.mean() if self.eps is None else self.eps
         self.solver.fit(self.kernel(self.eps * dist), Y)
         
-    def __call__(self, Xp):
+    def forward(self, Xp):
         D = spatial.distance.cdist(Xp, self.X)
         return self.solver(self.kernel(self.eps * D))
-    
-
-    
