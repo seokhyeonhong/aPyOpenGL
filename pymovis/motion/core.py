@@ -181,26 +181,21 @@ class Pose:
         lab = np.linalg.norm(b - a)
         lcb = np.linalg.norm(b - c)
         lat = np.clip(np.linalg.norm(target_p - a), eps, lab + lcb - eps)
-        breakpoint()
 
         ac_ab_0 = np.arccos(np.clip(np.dot(npmotion.normalize(c - a), npmotion.normalize(b - a)), -1, 1))
         ba_bc_0 = np.arccos(np.clip(np.dot(npmotion.normalize(a - b), npmotion.normalize(c - b)), -1, 1))
         ac_at_0 = np.arccos(np.clip(np.dot(npmotion.normalize(c - a), npmotion.normalize(target_p - a)), -1, 1))
-        breakpoint()
 
         ac_ab_1 = np.arccos(np.clip((lcb*lcb - lab*lab - lat*lat) / (-2*lab*lat), -1, 1))
         ba_bc_1 = np.arccos(np.clip((lat*lat - lab*lab - lcb*lcb) / (-2*lab*lcb), -1, 1))
-        breakpoint()
 
         # d = global_b_R @ npconst.Z()
         axis_0 = npmotion.normalize(np.cross(c - a, b - a))
         axis_1 = npmotion.normalize(np.cross(c - a, target_p - a))
-        breakpoint()
 
         r0 = npmotion.R.from_A(ac_ab_1 - ac_ab_0, npmotion.R.inv(global_a_R) @ axis_0)
         r1 = npmotion.R.from_A(ba_bc_1 - ba_bc_0, npmotion.R.inv(global_b_R) @ axis_0)
         r2 = npmotion.R.from_A(ac_at_0, npmotion.R.inv(global_a_R) @ axis_1)
-        breakpoint()
 
         self.local_R[base_idx] = self.local_R[base_idx] @ r0 @ r2
         self.local_R[mid_idx] = self.local_R[mid_idx] @ r1
@@ -249,7 +244,7 @@ class Motion:
     @property
     def num_frames(self):
         return len(self.poses)
-    
+
     @classmethod
     def from_numpy(cls, skeleton, local_R, root_p, fps=30.0):
         poses = []
@@ -380,7 +375,7 @@ class Motion:
     def render_by_frame(self, frame, albedo=glm.vec3(1, 0, 0)):
         frame = max(0, min(frame, self.num_frames - 1))
         
-        if not hasattr(self, "joint_sphere"):
+        if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):
             self.joint_sphere = Render.sphere(0.05)
             self.joint_bone   = Render.cylinder(0.03, 1.0)
 

@@ -490,6 +490,10 @@ class RenderOptions:
     def switch_visible(self):
         self.visible = not self.visible
         return self
+    
+    def set_visible(self, visible):
+        self.visible = visible
+        return self
 
 class RenderOptionsVec:
     """
@@ -505,4 +509,9 @@ class RenderOptionsVec:
     def switch_visible(self):
         for option in self.options:
             option.switch_visible()
+        return self
+    
+    def set_visible(self, visible):
+        for option in self.options:
+            option.set_visible(visible)
         return self

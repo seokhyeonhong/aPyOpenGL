@@ -14,7 +14,7 @@ def seed(x=777):
     np.random.seed(x)
     random.seed(x)
 
-def run_parallel(func, iterable, num_cpus=mp.cpu_count(), desc=None, **kwargs):
+def run_parallel_sync(func, iterable, num_cpus=mp.cpu_count(), desc=None, **kwargs):
     if desc is not None:
         print(f"{desc} [CPU: {num_cpus}]")
 

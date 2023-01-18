@@ -52,7 +52,7 @@ def sample_all_patches(files):
         flip_y = np.random.uniform(size=num_samples)
         
         # sample patches in parallel
-        patches = util.run_parallel(sample_patch, zip(x, y, d, flip_x, flip_y), heightmap=H, desc=f"Sampling {num_samples} patches [Size: {SIZE} x {SIZE}] [Terrain: {H.shape[0]} x {H.shape[1]}] [Progress: {idx + 1} / {len(files)}]")
+        patches = util.run_parallel_sync(sample_patch, zip(x, y, d, flip_x, flip_y), heightmap=H, desc=f"Sampling {num_samples} patches [Size: {SIZE} x {SIZE}] [Terrain: {H.shape[0]} x {H.shape[1]}] [Progress: {idx + 1} / {len(files)}]")
         patches = [p for p in patches if p is not None]
 
         X.extend(patches)

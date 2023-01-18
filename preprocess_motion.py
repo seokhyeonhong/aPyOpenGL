@@ -56,7 +56,7 @@ def save_windows(motions):
         os.makedirs(save_dir)
 
     train_windows, test_windows = [], []
-    for w in util.run_parallel(get_windows, motions, desc="Extracting windows"):
+    for w in util.run_parallel_sync(get_windows, motions, desc="Extracting windows"):
         train_windows.extend(w[:int(len(w) * 0.8)])
         test_windows.extend(w[int(len(w) * 0.8):])
 

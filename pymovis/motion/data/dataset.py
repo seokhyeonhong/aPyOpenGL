@@ -36,7 +36,7 @@ class WindowDataset(Dataset):
 
         # load all windows in parallel
         indices = list(range(len(self)))
-        items = util.run_parallel(self.__getitem__, indices)
+        items = util.run_parallel_sync(self.__getitem__, indices)
 
         # calculate mean and std
         items = torch.stack(items, dim=0)
@@ -95,7 +95,7 @@ class PairDataset(Dataset):
 
         # load all windows in parallel
         indices = list(range(len(self)))
-        items = util.run_parallel(self.__getitem__, indices)
+        items = util.run_parallel_sync(self.__getitem__, indices)
         Xs = [item[0] for item in items]
         Ys = [item[1] for item in items]
 
