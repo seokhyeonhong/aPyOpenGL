@@ -33,7 +33,7 @@ class App:
             self.mouse_middle_down = False
             self.mouse_left_down = False
     
-    """ Override these methods to add custom rendering code. """
+    """ Override these methods to add custom rendering code """
     def start(self):
         pass
 
@@ -115,8 +115,8 @@ class App:
         image_path = os.path.join(image_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".png")
         cv2.imwrite(image_path, image)
 
+""" Class for motion data visualization """
 class MotionApp(App):
-    """ Class for motion capture visualization """
     def __init__(self, motion: Motion):
         super().__init__()
         self.motion = motion
@@ -128,18 +128,19 @@ class MotionApp(App):
 
         self.grid = Render.plane().set_scale(50).set_uv_repeat(5).set_texture("grid.png")
         self.axis = Render.axis()
+        self.text = Render.text()
     
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)
 
-        """ Play / pause """
+        # play / pause
         if key == glfw.KEY_SPACE and action == glfw.PRESS:
             self.playing = not self.playing
             if self.playing and self.frame == len(self.motion) - 1:
                 self.frame = 0
                 glfw.set_time(0)
         
-        """ Move frames """
+        # move frames
         if glfw.KEY_0 <= key <= glfw.KEY_9 and action == glfw.PRESS:
             self.frame = int(len(self.motion) * (key - glfw.KEY_0) * 0.1)
             glfw.set_time(self.frame / self.motion.fps)
@@ -155,12 +156,14 @@ class MotionApp(App):
                 self.frame = min(self.frame + 10, len(self.motion) - 1)
             glfw.set_time(self.frame / self.motion.fps)
         
-        """ Render and capture options """
+        # render and capture options
         if action == glfw.PRESS:
             if key == glfw.KEY_G:
                 self.grid.switch_visible()
             elif key == glfw.KEY_A:
                 self.axis.switch_visible()
+            elif key == glfw.KEY_T:
+                self.text.switch_visible()
             elif key == glfw.KEY_F6:
                 if self.recording:
                     self.save_video(self.captures)
@@ -168,15 +171,15 @@ class MotionApp(App):
                 self.recording = not self.recording
 
     def update(self):
-        """ Stop playing at the end of the motion"""
+        # stop playing at the end of the motion
         if self.playing and self.frame == len(self.motion) - 1:
             self.playing = False
 
     def late_update(self):
-        """ Rendering the current frame """
-        Render.text(self.frame).draw()
+        # rendering the current frame
+        self.text.set_text(self.frame).draw()
 
-        """ Recording """
+        # recording
         if self.recording:
             if self.prev_frame == self.frame and self.playing:
                 return
@@ -185,15 +188,16 @@ class MotionApp(App):
             self.prev_frame = self.frame
 
     def render(self):
+        # time setting
         if self.playing:
             self.frame = min(int(glfw.get_time() * self.motion.fps), len(self.motion) - 1)
         else:
             glfw.set_time(self.frame / self.motion.fps)
         
-        """ Render """
+        # render the current frame
         self.grid.draw()
-        self.motion.render_by_frame(self.frame)
         self.axis.draw()
+        self.motion.render_by_frame(self.frame)
 
     def terminate(self):
         self.motion.__delattr__("joint_sphere")

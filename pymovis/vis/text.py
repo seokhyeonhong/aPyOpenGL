@@ -8,10 +8,7 @@ from pymovis.vis import glconst
 
 
 class FontTexture:
-    def __init__(
-        self,
-        font_filename="consola.ttf"
-    ):
+    def __init__(self, font_filename="consola.ttf"):
         class Character:
             def __init__(self, texture_id: int, size: glm.ivec2, bearing: glm.ivec2, advance: int):
                 self.texture_id = texture_id

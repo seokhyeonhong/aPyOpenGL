@@ -32,7 +32,6 @@ def load_code(filename):
 
 class Shader:
     def __init__(self, vertex_path, fragment_path, geometry_path=None):
-        # build shader program
         self.__vertex_shader   = load_shader(vertex_path, GL_VERTEX_SHADER)
         self.__fragment_shader = load_shader(fragment_path, GL_FRAGMENT_SHADER)
         self.__geometry_shader = load_shader(geometry_path, GL_GEOMETRY_SHADER) if geometry_path is not None else None
@@ -58,7 +57,7 @@ class Shader:
     def use(self):
         glUseProgram(self.__program)
     
-    # set uniform variables in shader
+    """ Set uniform variables in shader """
     def set_int(self, name, value):   glUniform1i(glGetUniformLocation(self.__program, name), value)
     def set_float(self, name, value): glUniform1f(glGetUniformLocation(self.__program, name), value)
     def set_bool(self, name, value):  glUniform1i(glGetUniformLocation(self.__program, name), value)

@@ -10,7 +10,6 @@ from pymovis.vis.primitives import *
 from pymovis.vis.material import Material
 from pymovis.vis.shader import Shader
 from pymovis.vis.primitives import Cube
-# from pymovis.vis.renderoption import RenderOptions, RenderOptionsVec
 from pymovis.vis.texture import Texture
 from pymovis.vis.text import FontTexture
 from pymovis.vis import glconst
@@ -31,10 +30,8 @@ class RenderInfo:
     width             = 1920
     height            = 1080
 
+""" Global rendering state and functions """
 class Render:
-    """
-    Global rendering state and functions
-    """
     render_mode      = RenderMode.PHONG
     render_info      = RenderInfo()
     primitive_meshes = {}
@@ -139,7 +136,7 @@ class Render:
         return RenderOptionsVec([x_head, x_body, y_head, y_body, z_head, z_body])
 
     @staticmethod
-    def text(t):
+    def text(t=""):
         if Render.font_texture is None:
             Render.font_texture = FontTexture()
 
@@ -149,7 +146,7 @@ class Render:
         return res
 
     @staticmethod
-    def text_on_screen(t):
+    def text_on_screen(t=""):
         if Render.font_texture is None:
             Render.font_texture = FontTexture()
 
@@ -375,10 +372,8 @@ class Render:
         Texture.clear()
         Render.font_texture = None
 
+""" Rendering options for a primitive (e.g. position, orientation, material, etc.) """
 class RenderOptions:
-    """
-    Rendering options for a primitive (e.g. position, orientation, material, etc.)
-    """
     def __init__(
         self,
         mesh,
@@ -475,8 +470,8 @@ class RenderOptions:
             self.uv_repeat = glm.vec2(u, v)
         return self
     
-    def set_text(self, text: str):
-        self.text = text
+    def set_text(self, text):
+        self.text = str(text)
         return self
     
     def set_alpha(self, alpha):
@@ -495,10 +490,8 @@ class RenderOptions:
         self.visible = visible
         return self
 
+""" Multiple rendering options for a primitive """
 class RenderOptionsVec:
-    """
-    Multiple rendering options for a primitive
-    """
     def __init__(self, options: list[RenderOptions]):
         self.options = options
     

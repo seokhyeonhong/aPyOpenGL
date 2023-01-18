@@ -9,10 +9,7 @@ class TextureType(Enum):
 class Texture:
     texture_id_map = {} # texture map to avoid loading the same texture twice
     
-    def __init__(
-        self,
-        filename=None
-    ):
+    def __init__(self, filename=None):
         self.__texture_id = Texture.texture_id_map[filename] if filename in Texture.texture_id_map else None
 
     def set_texture(self, filename, nearest=False):
@@ -58,10 +55,8 @@ class CubemapTexture:
     Also, the texture faces should be in jpg format
     """
     texture_id_map = {} # texture map to avoid loading the same texture twice
-    def __init__(
-        self,
-        dirname=None
-    ):
+
+    def __init__(self, dirname=None):
         self.__texture_id = None
     
     def set_texture(self, dirname):
