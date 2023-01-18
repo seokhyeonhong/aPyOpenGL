@@ -12,9 +12,10 @@ from pymovis.vis.render import Render
 from pymovis.vis.glconst import INCH_TO_METER
 
 """ Global variables """
-HEIGHTMAP_DIR = "./data/heightmaps"
 SPARSITY      = 15
 SIZE          = 200
+HEIGHTMAP_DIR = "./data/heightmaps"
+SAVE_DIR      = "./data/dataset/heightmap"
 
 """ Load from saved files """
 def load_all_heightmaps():
@@ -25,7 +26,7 @@ def load_all_heightmaps():
     return files
 
 def load_all_patches():
-    data = np.load(os.path.join(HEIGHTMAP_DIR, "processed", f"heightmap_sparsity{SPARSITY}_size{SIZE}.npy"))
+    data = np.load(os.path.join(SAVE_DIR, f"sparsity{SPARSITY}_size{SIZE}.npy"))
     print(f"Loaded patches: {data.shape}")
     return data
 
@@ -83,10 +84,9 @@ def preprocess():
     heightmap_files = load_all_heightmaps()
     patches = sample_all_patches(heightmap_files)
 
-    save_path = os.path.join(HEIGHTMAP_DIR, "processed")
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-    np.save(os.path.join(save_path, f"heightmap_sparsity{SPARSITY}_size{SIZE}.npy"), patches)
+    if not os.path.exists(SAVE_DIR):
+        os.makedirs(SAVE_DIR)
+    np.save(os.path.join(SAVE_DIR, f"sparsity{SPARSITY}_size{SIZE}.npy"), patches)
     print(f"Saved patches: {patches.shape}")
 
 def visualize():

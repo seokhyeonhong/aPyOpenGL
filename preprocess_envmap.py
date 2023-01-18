@@ -1,8 +1,9 @@
-from OpenGL.GL import *
 import os
 import pickle
 import time
 
+from OpenGL.GL import *
+from tqdm import tqdm
 import numpy as np
 
 from pymovis.motion.ops import npmotion
@@ -18,28 +19,28 @@ from pymovis.vis.heightmap import Heightmap
 from pymovis.vis.glconst import INCH_TO_METER
 
 """ Global variables for the dataset """
-MOTION_DIR    = "./data/animations/processed"
+DATASET_DIR   = "./data/dataset"
+
+MOTION_DIR    = f"{DATASET_DIR}/motion"
 WINDOW_SIZE   = 50
 WINDOW_OFFSET = 20
 FPS           = 30
 
-HEIGHTMAP_DIR = "./data/heightmaps/processed"
+HEIGHTMAP_DIR = f"{DATASET_DIR}/heightmap"
 SPARSITY      = 15
 SIZE          = 200
 TOP_K_SAMPLES = 10
 H_SCALE       = 2 * INCH_TO_METER
 V_SCALE       = INCH_TO_METER
 
-DATASET_DIR   = "./data/dataset"
-
-""" Load from saved files """
+""" Load processed data """
 def load_processed_motions(split):
     # skeleton
     with open(os.path.join(MOTION_DIR, "skeleton.pkl"), "rb") as f:
         skeleton = pickle.load(f)
 
     # features
-    motion_path = os.path.join(MOTION_DIR, f"motion_{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy")
+    motion_path = os.path.join(MOTION_DIR, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy")
     features = np.load(motion_path)
 
     # make motion
@@ -50,7 +51,7 @@ def load_processed_motions(split):
     return motions, skeleton, features
 
 def load_processed_heightmaps():
-    heightmap_path = os.path.join(HEIGHTMAP_DIR, f"heightmap_sparsity{SPARSITY}_size{SIZE}.npy")
+    heightmap_path = os.path.join(HEIGHTMAP_DIR, f"sparsity{SPARSITY}_size{SIZE}.npy")
     heightmaps = np.load(heightmap_path)
     return heightmaps
 
@@ -170,37 +171,43 @@ def generate_dataset(split="train"):
 
     heightmaps = load_processed_heightmaps()
 
-    # create directories
-    feature_dir = os.path.join(DATASET_DIR, split, "features")
-    vis_dir = os.path.join(DATASET_DIR, split, "vis")
+    # create directory
+    envmap_dir = os.path.join(DATASET_DIR, "envmap")
+    vis_dir = os.path.join(DATASET_DIR, "vis")
 
-    if not os.path.exists(feature_dir):
-        os.makedirs(feature_dir)
+    if not os.path.exists(envmap_dir):
+        os.makedirs(envmap_dir)
     if not os.path.exists(vis_dir):
         os.makedirs(vis_dir)
 
-    # generate and save dataset
-    start = time.perf_counter()
-    for idx, motion_contact in enumerate(zip(motions, feet_p, contact)):
-        print("Processing motion %d / %d" % (idx + 1, len(motions)), end="\r")
+    # extract envmap dataset
+    envmaps, vis_data = [], []
+    for motion_contact in tqdm(zip(motions, feet_p, contact), total=len(motions), desc="Generating envmap dataset"):
         patch, envmap = sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES)
-        for idx2, (p, e) in enumerate(zip(patch, envmap)):
-            with open(os.path.join(vis_dir, f"{idx}_{idx2}.pkl"), "wb") as f:
-                pickle.dump([motion_contact[0], p, e, motion_contact[2]], f)
-            np.save(os.path.join(feature_dir, f"{idx}_{idx2}.npy"), np.concatenate([features[idx], e[..., 1]], axis=-1))
+        envmaps.append(envmap)
+        vis_data.append([motion_contact[0], patch, envmap, motion_contact[2]])
+
+    envmaps = np.stack(envmaps, axis=0)
+    print("Envmap dataset shape:", envmaps.shape)
+
+    # save
+    envmap_path = os.path.join(envmap_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.npy")
+    np.save(envmap_path, envmaps)
     
-    print(f"Processed {len(motions)} motions in {time.perf_counter() - start:.2f} seconds")
+    vis_path = os.path.join(vis_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl")
+    with open(vis_path, "wb") as f:
+        pickle.dump(vis_data, f)
 
 def visualize(split):
-    vis_dir = os.path.join(DATASET_DIR, split, "vis")
-    for idx, file in enumerate(os.listdir(vis_dir)):
-        print("Visualizing %d / %d" % (idx + 1, len(os.listdir(vis_dir))), end="\r")
-        with open(os.path.join(vis_dir, file), "rb") as f:
-            motion, patch, envmap, contact = pickle.load(f)
+    vis_dir = os.path.join(DATASET_DIR, "vis")
+    with open(os.path.join(vis_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl"), "rb") as f:
+        vis_data = pickle.load(f)
 
-        app_manager = AppManager()
-        app = MyApp(motion, contact, patch, envmap)
-        app_manager.run(app)
+    for motion, patch, envmap, contact in vis_data:
+        for p, e in zip(patch, envmap):
+            app_manager = AppManager()
+            app = MyApp(motion, contact, p, e)
+            app_manager.run(app)
 
 class MyApp(MotionApp):
     def __init__(self, motion, contact, heightmap, envmap):
@@ -236,11 +243,8 @@ class MyApp(MotionApp):
             self.sphere.set_position(p).set_scale(0.1).set_material([1, 1, 0]).draw()
 
 def main():
-    # dataset generation
-    # generate_dataset("train")
-
-    # dataset visualization
-    visualize("train")
+    generate_dataset("test")
+    visualize("test")
 
 if __name__ == "__main__":
     main()

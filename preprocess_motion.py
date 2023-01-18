@@ -18,6 +18,7 @@ WINDOW_SIZE   = 50
 WINDOW_OFFSET = 20
 FPS           = 30
 MOTION_DIR    = "./data/animations"
+SAVE_DIR      = "./data/dataset/motion"
 
 """ Load from saved files """
 def load_motions():
@@ -31,43 +32,43 @@ def load_motions():
 
 def load_processed_data():
     # skeleton
-    with open(os.path.join(MOTION_DIR, "processed", "skeleton.pkl"), "rb") as f:
+    with open(os.path.join(SAVE_DIR, "skeleton.pkl"), "rb") as f:
         skeleton = pickle.load(f)
 
     # windows
-    train_windows = np.load(os.path.join(MOTION_DIR, "processed", f"motion_train_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"))
-    test_windows  = np.load(os.path.join(MOTION_DIR, "processed", f"motion_test_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"))
+    train_windows = np.load(os.path.join(SAVE_DIR, f"train_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"))
+    test_windows  = np.load(os.path.join(SAVE_DIR, f"test_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"))
 
     return skeleton, train_windows, test_windows
 
 """ Save processed data """
 def save_skeleton(skeleton):
-    save_dir = os.path.join(MOTION_DIR, "processed")
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+    if not os.path.exists(SAVE_DIR):
+        os.makedirs(SAVE_DIR)
 
-    save_path = os.path.join(save_dir, "skeleton.pkl")
+    save_path = os.path.join(SAVE_DIR, "skeleton.pkl")
     with open(save_path, "wb") as f:
         pickle.dump(skeleton, f)
 
 def save_windows(motions):
-    save_dir = os.path.join(MOTION_DIR, "processed")
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-
-    train_windows, test_windows = [], []
+    # load and permute the order
+    windows = []
     for w in util.run_parallel_sync(get_windows, motions, desc="Extracting windows"):
-        train_windows.extend(w[:int(len(w) * 0.8)])
-        test_windows.extend(w[int(len(w) * 0.8):])
+        windows.extend(w)
+    windows = np.stack(windows, axis=0).astype(np.float32)
+    np.random.shuffle(windows)
 
-    train_windows = np.stack(train_windows, axis=0).astype(np.float32)
-    test_windows  = np.stack(test_windows, axis=0).astype(np.float32)
+    # split train/test
+    train_windows = windows[:int(len(windows) * 0.8)]
+    test_windows  = windows[int(len(windows) * 0.8):]
+
     print("Train windows:", train_windows.shape)
     print("Test windows:", test_windows.shape)
 
+    # save
     print("Saving windows")
-    np.save(os.path.join(save_dir, f"motion_train_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"), train_windows)
-    np.save(os.path.join(save_dir, f"motion_test_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"), test_windows)
+    np.save(os.path.join(SAVE_DIR, f"train_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"), train_windows)
+    np.save(os.path.join(SAVE_DIR, f"test_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"), test_windows)
 
 """ Extract windows a motion clip """
 def get_windows(motion):
@@ -91,15 +92,16 @@ def get_windows(motion):
 
 """ Main functions """
 def preprocess():
+    util.seed()
     motions = load_motions()
     save_skeleton(motions[0].skeleton)
     save_windows(motions)
 
-def visualize(step=1, train=True, test=True):
+def visualize(train=True, test=True):
     skeleton, train_windows, test_windows = load_processed_data()
 
     if train:
-        for window in train_windows[::step]:
+        for window in train_windows:
             local_R6, root_p = window[:, :-3], window[:, -3:]
             local_R = npmotion.R.from_R6(local_R6.reshape(-1, 6)).reshape(WINDOW_SIZE, -1, 3, 3)
             motion = Motion.from_numpy(skeleton, local_R, root_p, fps=FPS)
@@ -109,7 +111,7 @@ def visualize(step=1, train=True, test=True):
             app_manager.run(app)
     
     if test:
-        for window in test_windows[::step]:
+        for window in test_windows:
             local_R6, root_p = window[:, :-3], window[:, -3:]
             local_R = npmotion.R.from_R6(local_R6.reshape(-1, 6)).reshape(WINDOW_SIZE, -1, 3, 3)
             motion = Motion.from_numpy(skeleton, local_R, root_p, fps=FPS)

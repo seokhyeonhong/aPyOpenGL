@@ -53,65 +53,63 @@ class WindowDataset(Dataset):
         return self[0].shape[-1]
 
 class PairDataset(Dataset):
-    def __init__(self, dataset_path, target_x, target_y, train=True, window_size=50, window_offset=20, fps=30):
-        self.dataset_path = dataset_path
-        self.target_x = target_x
-        self.target_y = target_y
+    """ Dataset pair of (X, Y) where X is a motion and Y is a environment feature """
+    def __init__(self, dataset_dir, train):
+        self.dataset_dir = dataset_dir
         self.train = train
 
-        # load input and output file paths
-        base_path = os.path.join(dataset_path, f"{'train' if train else 'test'}_size{window_size}_offset{window_offset}_fps{fps}")
-        self.X = torch.from_numpy(np.load(os.path.join(base_path, f"{target_x}.npy"))).float()
-        self.Y = torch.from_numpy(np.load(os.path.join(base_path, f"{target_y}.npy"))).float()
-
-        if len(self.X) != len(self.Y):
-            raise ValueError("Number of input and output files must be equal")
-
-        # load skeleton
-        with open(os.path.join(dataset_path, "skeleton.pkl"), "rb") as f:
+        self.path = os.path.join(dataset_dir, "train" if train else "test", "features")
+        self.data = []
+        for f in os.listdir(self.path):
+            self.data.append(os.path.join(self.path, f))
+        
+        with open(os.path.join(dataset_dir, "skeleton.pkl"), "rb") as f:
             self.skeleton = pickle.load(f)
     
     def __len__(self):
-        return len(self.X)
+        return len(self.data)
     
     def __getitem__(self, idx):
-        return self.X[idx], self.Y[idx]
+        with open(self.data[idx], "rb") as f:
+            X, Y = pickle.load(f)
+            X, Y = torch.from_numpy(X).float(), torch.from_numpy(Y).float()
+            return X, Y
     
-    def get_mean_std(self, dim, target):
-        if target not in [self.target_x, self.target_y]:
-            raise ValueError(f"target must be either '{self.target_x}' or '{self.target_y}'")
-        
+    def get_motion_statistics(self, dim):
         # load and return mean and std if they exist
-        mean_path = os.path.join(self.dataset_path, f"{target}_mean.pt")
-        std_path = os.path.join(self.dataset_path, f"{target}_std.pt")
-        if os.path.exists(mean_path) and os.path.exists(std_path):
-            mean = torch.load(mean_path)
-            std = torch.load(std_path)
-            return mean, std
+        X_mean_path = os.path.join(self.dataset_dir, "X_mean.pt")
+        X_std_path  = os.path.join(self.dataset_dir, "X_std.pt")
+        Y_mean_path = os.path.join(self.dataset_dir, "Y_mean.pt")
+        Y_std_path  = os.path.join(self.dataset_dir, "Y_std.pt")
+
+        if os.path.exists(X_mean_path) and os.path.exists(X_std_path) and os.path.exists(Y_mean_path) and os.path.exists(Y_std_path):
+            X_mean = torch.load(X_mean_path)
+            X_std  = torch.load(X_std_path)
+            Y_mean = torch.load(Y_mean_path)
+            Y_std  = torch.load(Y_std_path)
+            return X_mean, X_std, Y_mean, Y_std
         
-        # raise error if it is not a training set
         if not self.train:
             raise ValueError("Mean and std must be calculated and saved on training set first")
 
         # load all windows in parallel
         indices = list(range(len(self)))
-        items = util.run_parallel_sync(self.__getitem__, indices)
-        Xs = [item[0] for item in items]
-        Ys = [item[1] for item in items]
-
+        items   = util.run_parallel_async(self.__getitem__, indices)
+        X, Y    = zip(*items)
+        
+        X       = torch.stack(X, dim=0)
+        Y       = torch.stack(Y, dim=0)
+        
         # calculate mean and std
-        input = torch.stack(Xs if target == self.target_x else Ys, dim=0)
-        mean = torch.mean(input, dim=dim)
-        std = torch.std(input, dim=dim) + 1e-8
+        X_mean = torch.mean(X, dim=dim)
+        X_std  = torch.std(X, dim=dim) + 1e-8
+        Y_mean = torch.mean(Y, dim=dim)
+        Y_std  = torch.std(Y, dim=dim) + 1e-8
 
         # save mean and std
-        torch.save(mean, mean_path)
-        torch.save(std, std_path)
+        torch.save(X_mean, X_mean_path)
+        torch.save(X_std,  X_std_path)
+        torch.save(Y_mean, Y_mean_path)
+        torch.save(Y_std,  Y_std_path)
 
-        return mean, std
-    
-    def get_feature_dim(self, target):
-        if target not in [self.target_x, self.target_y]:
-            raise ValueError(f"target must be either '{self.target_x}' or '{self.target_y}'")
-        X, Y = self[0]
-        return X.shape[-1] if target == self.target_x else Y.shape[-1]
+        return X_mean, X_std, Y_mean, Y_std
