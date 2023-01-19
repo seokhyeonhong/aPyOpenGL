@@ -3,16 +3,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pymovis.utils import torchconst
-from model.mlp import MLP, MultiLinear
-from model.transformer import MultiHeadAttention, PhaseMultiHeadAttention
+from pymovis.learning.mlp import MLP, MultiLinear
+from pymovis.learning.transformer import MultiHeadAttention, PhaseMultiHeadAttention
 
 class ContextTransformer(nn.Module):
-    def __init__(self, dof, num_layers=6, num_heads=8, d_model=512, d_ff=2048):
+    def __init__(self, motion_features, env_features, num_layers=6, num_heads=8, d_model=512, d_ff=2048):
         super(ContextTransformer, self).__init__()
         if d_model % num_heads != 0:
             raise ValueError(f"d_model must be divisible by num_heads, but d_model={d_model} and num_heads={num_heads}")
 
-        self.dof = dof
+        self.motion_features = motion_features
+        self.env_features = env_features
         self.num_layers = num_layers
         self.num_heads = num_heads
         self.d_model = d_model
@@ -20,7 +21,7 @@ class ContextTransformer(nn.Module):
         
         # encoders
         self.encoder = nn.Sequential(
-            nn.Linear(dof * 2, d_model),
+            nn.Linear(motion_features * 2 + env_features, d_model),
             nn.PReLU(),
             nn.Linear(d_model, d_model),
             nn.PReLU(),
@@ -51,7 +52,7 @@ class ContextTransformer(nn.Module):
         self.decoder = nn.Sequential(
             nn.Linear(d_model, d_model),
             nn.PReLU(),
-            nn.Linear(d_model, dof),
+            nn.Linear(d_model, motion_features),
         )
 
     def forward(self, x, mask_in, p_kf):

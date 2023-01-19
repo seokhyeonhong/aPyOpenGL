@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from model.mlp import MLP
+from pymovis.learning.mlp import MLP
 
 class PLU(nn.Module):
     def __init__(self, alpha=0.1, c=1.0):

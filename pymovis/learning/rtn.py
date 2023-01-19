@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from model.mlp import MLP, PhaseMLP
+from pymovis.learning.mlp import MLP, PhaseMLP
 
 class RTN(nn.Module):
     def __init__(self,

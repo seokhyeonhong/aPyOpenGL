@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pymovis.utils import torchconst
-from model.transformer import MultiHeadAttention
+from pymovis.learning.transformer import MultiHeadAttention
 
 class KinematicTransformer(nn.Module):
     def __init__(self, geometry_dim, motion_dim, num_layers=6, num_heads=8, d_model=512, d_ff=2048):
