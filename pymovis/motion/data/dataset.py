@@ -3,9 +3,9 @@ import pickle
 import torch
 from torch.utils.data import Dataset
 import numpy as np
+import random
 
-from pymovis.motion.core import Skeleton
-from pymovis.utils import torchconst, util
+from pymovis.utils import util
 
 class WindowDataset(Dataset):
     def __init__(self, path):
@@ -52,64 +52,64 @@ class WindowDataset(Dataset):
     def get_feature_dim(self):
         return self[0].shape[-1]
 
+""" Dataset pair of (X, Y) where X is a set of motion features and Y is a set of environment features """
 class PairDataset(Dataset):
-    """ Dataset pair of (X, Y) where X is a motion and Y is a environment feature """
-    def __init__(self, dataset_dir, train):
-        self.dataset_dir = dataset_dir
+    def __init__(self, base_dir, train, X_name="motion", Y_name="envmap", window_size=50, window_offset=20, fps=30, sparsity=15, size=200, top_k_samples=10):
+        self.base_dir = base_dir
         self.train = train
+        self.X_name = X_name
+        self.Y_name = Y_name
 
-        self.path = os.path.join(dataset_dir, "train" if train else "test", "features")
-        self.data = []
-        for f in os.listdir(self.path):
-            self.data.append(os.path.join(self.path, f))
+        self.window_size = window_size
+        self.window_offset = window_offset
+        self.fps = fps
+        self.sparsity = sparsity
+        self.size = size
+        self.top_k_samples = top_k_samples
+
+        self.X = np.load(os.path.join(base_dir, X_name, f"{'train' if train else 'test'}_size{window_size}_offset{window_offset}_fps{fps}.npy"))
+        self.Y = np.load(os.path.join(base_dir, Y_name, f"{'train' if train else 'test'}_size{window_size}_offset{window_offset}_sparsity{sparsity}_size{size}_top{top_k_samples}.npy"))
         
-        with open(os.path.join(dataset_dir, "skeleton.pkl"), "rb") as f:
+        with open(os.path.join(base_dir, X_name, "skeleton.pkl"), "rb") as f:
             self.skeleton = pickle.load(f)
-    
+        
     def __len__(self):
-        return len(self.data)
+        return len(self.X)
     
     def __getitem__(self, idx):
-        with open(self.data[idx], "rb") as f:
-            X, Y = pickle.load(f)
-            X, Y = torch.from_numpy(X).float(), torch.from_numpy(Y).float()
-            return X, Y
+        rand = random.randint(0, self.top_k_samples - 1)
+        return torch.from_numpy(self.X[idx]).float(), torch.from_numpy(self.Y[idx, rand]).float()
     
     def get_motion_statistics(self, dim):
         # load and return mean and std if they exist
-        X_mean_path = os.path.join(self.dataset_dir, "X_mean.pt")
-        X_std_path  = os.path.join(self.dataset_dir, "X_std.pt")
-        Y_mean_path = os.path.join(self.dataset_dir, "Y_mean.pt")
-        Y_std_path  = os.path.join(self.dataset_dir, "Y_std.pt")
+        mean_path = os.path.join(self.base_dir, self.X_name, "mean.pt")
+        std_path  = os.path.join(self.base_dir, self.X_name, "std.pt")
 
-        if os.path.exists(X_mean_path) and os.path.exists(X_std_path) and os.path.exists(Y_mean_path) and os.path.exists(Y_std_path):
-            X_mean = torch.load(X_mean_path)
-            X_std  = torch.load(X_std_path)
-            Y_mean = torch.load(Y_mean_path)
-            Y_std  = torch.load(Y_std_path)
-            return X_mean, X_std, Y_mean, Y_std
+        if os.path.exists(mean_path) and os.path.exists(std_path):
+            mean = torch.load(mean_path)
+            std  = torch.load(std_path)
+            return mean, std
         
         if not self.train:
             raise ValueError("Mean and std must be calculated and saved on training set first")
 
         # load all windows in parallel
         indices = list(range(len(self)))
-        items   = util.run_parallel_async(self.__getitem__, indices)
-        X, Y    = zip(*items)
-        
+        X       = [self.__getitem__(i)[0] for i in indices]
         X       = torch.stack(X, dim=0)
-        Y       = torch.stack(Y, dim=0)
         
         # calculate mean and std
-        X_mean = torch.mean(X, dim=dim)
-        X_std  = torch.std(X, dim=dim) + 1e-8
-        Y_mean = torch.mean(Y, dim=dim)
-        Y_std  = torch.std(Y, dim=dim) + 1e-8
+        mean = torch.mean(X, dim=dim)
+        std  = torch.std(X, dim=dim) + 1e-8
 
         # save mean and std
-        torch.save(X_mean, X_mean_path)
-        torch.save(X_std,  X_std_path)
-        torch.save(Y_mean, Y_mean_path)
-        torch.save(Y_std,  Y_std_path)
+        torch.save(mean, mean_path)
+        torch.save(std,  std_path)
 
-        return X_mean, X_std, Y_mean, Y_std
+        return mean, std
+    
+    def motion_dim(self):
+        return self.X.shape[-1]
+    
+    def env_dim(self):
+        return self.Y.shape[-2] # TODO: Fix this part after fixing the dataset

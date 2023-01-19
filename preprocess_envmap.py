@@ -159,8 +159,11 @@ def sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES):
 
     env_map = np.repeat(env_map[None, ...], num_samples, axis=0)
     env_map[..., 1] = np.concatenate(env_y, axis=0)
+
+    root_traj = np.concatenate([base, forward], axis=-1)
+    root_traj = np.repeat(root_traj[None, ...], num_samples, axis=0)
     
-    return terr_patches, env_map
+    return terr_patches, env_map, root_traj
 
 """ Main functions """
 def generate_dataset(split="train"):
@@ -171,6 +174,17 @@ def generate_dataset(split="train"):
 
     heightmaps = load_processed_heightmaps()
 
+    # extract envmap dataset
+    env_maps, vis_data = [], []
+    for motion_contact in tqdm(zip(motions, feet_p, contact), total=len(motions), desc="Generating envmap dataset"):
+        patch, env_map, root_traj = sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES)
+        env_data = np.concatenate([root_traj, env_map[..., 1]], axis=-1).astype(np.float32)
+        env_maps.append(env_data)
+        vis_data.append([motion_contact[0], patch, env_map, motion_contact[2]])
+
+    env_maps = np.stack(env_maps, axis=0)
+    print("Envmap dataset shape:", env_maps.shape)
+
     # create directory
     envmap_dir = os.path.join(DATASET_DIR, "envmap")
     vis_dir = os.path.join(DATASET_DIR, "vis")
@@ -180,19 +194,10 @@ def generate_dataset(split="train"):
     if not os.path.exists(vis_dir):
         os.makedirs(vis_dir)
 
-    # extract envmap dataset
-    envmaps, vis_data = [], []
-    for motion_contact in tqdm(zip(motions, feet_p, contact), total=len(motions), desc="Generating envmap dataset"):
-        patch, envmap = sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES)
-        envmaps.append(envmap)
-        vis_data.append([motion_contact[0], patch, envmap, motion_contact[2]])
-
-    envmaps = np.stack(envmaps, axis=0)
-    print("Envmap dataset shape:", envmaps.shape)
-
     # save
+    print("Saving envmap dataset")
     envmap_path = os.path.join(envmap_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.npy")
-    np.save(envmap_path, envmaps)
+    np.save(envmap_path, env_maps)
     
     vis_path = os.path.join(vis_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl")
     with open(vis_path, "wb") as f:
