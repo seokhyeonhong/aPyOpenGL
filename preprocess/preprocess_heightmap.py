@@ -1,15 +1,12 @@
-import os
+import sys
+sys.path.append(".")
 
+import os
 import time
 import numpy as np
 import scipy.ndimage as ndimage
 
 from pymovis.utils import util
-from pymovis.vis.heightmap import Heightmap
-from pymovis.vis.app import App
-from pymovis.vis.appmanager import AppManager
-from pymovis.vis.render import Render
-from pymovis.vis.glconst import INCH_TO_METER
 
 """ Global variables """
 SPARSITY      = 15
@@ -24,11 +21,6 @@ def load_all_heightmaps():
         if f.endswith(".txt"):
             files.append(os.path.join(HEIGHTMAP_DIR, f))
     return files
-
-def load_all_patches():
-    data = np.load(os.path.join(SAVE_DIR, f"sparsity{SPARSITY}_size{SIZE}.npy"))
-    print(f"Loaded patches: {data.shape}")
-    return data
 
 """ Sample patches """
 def sample_all_patches(files):
@@ -77,8 +69,8 @@ def sample_patch(xyd_fx_fy, heightmap):
 
     return None if np.any(np.abs(P) > 50) else P
 
-""" Main functions """
-def preprocess():
+""" Main function """
+def main():
     util.seed()
     
     heightmap_files = load_all_heightmaps()
@@ -88,29 +80,6 @@ def preprocess():
         os.makedirs(SAVE_DIR)
     np.save(os.path.join(SAVE_DIR, f"sparsity{SPARSITY}_size{SIZE}.npy"), patches)
     print(f"Saved patches: {patches.shape}")
-
-def visualize():
-    class MyApp(App):
-        def __init__(self, heightmap):
-            super().__init__()
-            self.heightmap = Render.mesh(heightmap.mesh).set_texture("grid.png").set_uv_repeat(0.1)
-            self.axis = Render.axis()
-        
-        def render(self):
-            super().render()
-            self.heightmap.draw()
-            self.axis.draw()
-
-    X = load_all_patches()
-    for x in X:
-        app_manager = AppManager()
-        heightmap = Heightmap(x, h_scale=INCH_TO_METER * 2)
-        app = MyApp(heightmap)
-        app_manager.run(app)
-
-def main():
-    preprocess()
-    visualize()
 
 if __name__ == "__main__":
     main()

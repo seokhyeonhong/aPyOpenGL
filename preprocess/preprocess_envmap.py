@@ -1,6 +1,8 @@
+import sys
+sys.path.append(".")
+
 import os
 import pickle
-import time
 
 from OpenGL.GL import *
 from tqdm import tqdm
@@ -8,14 +10,7 @@ import numpy as np
 
 from pymovis.motion.ops import npmotion
 from pymovis.motion.core import Motion
-
-from pymovis.utils import util
 from pymovis.learning.rbf import RBF
-
-from pymovis.vis.appmanager import AppManager
-from pymovis.vis.app import MotionApp
-from pymovis.vis.render import Render
-from pymovis.vis.heightmap import Heightmap
 from pymovis.vis.glconst import INCH_TO_METER
 
 """ Global variables for the dataset """
@@ -48,7 +43,7 @@ def load_processed_motions(split):
     local_R = npmotion.R.from_R6(local_R6.reshape(-1, 6)).reshape(-1, WINDOW_SIZE, skeleton.num_joints, 3, 3)
     motions = [Motion.from_numpy(skeleton, R, p, fps=FPS) for R, p in zip(local_R, root_p)]
 
-    return motions, skeleton, features
+    return motions
 
 def load_processed_heightmaps():
     heightmap_path = os.path.join(HEIGHTMAP_DIR, f"sparsity{SPARSITY}_size{SIZE}.npy")
@@ -168,7 +163,7 @@ def sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES):
 """ Main functions """
 def generate_dataset(split="train"):
     # load processed data
-    motions, skeleton, features = load_processed_motions(split)
+    motions = load_processed_motions(split)
     contact_info = [get_contact_info(motion) for motion in motions]
     feet_p, contact = zip(*contact_info)
 
@@ -203,53 +198,9 @@ def generate_dataset(split="train"):
     with open(vis_path, "wb") as f:
         pickle.dump(vis_data, f)
 
-def visualize(split):
-    vis_dir = os.path.join(DATASET_DIR, "vis")
-    with open(os.path.join(vis_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl"), "rb") as f:
-        vis_data = pickle.load(f)
-
-    for motion, patch, envmap, contact in vis_data:
-        for p, e in zip(patch, envmap):
-            app_manager = AppManager()
-            app = MyApp(motion, contact, p, e)
-            app_manager.run(app)
-
-class MyApp(MotionApp):
-    def __init__(self, motion, contact, heightmap, envmap):
-        super().__init__(motion)
-        self.contact = contact
-        self.sphere = Render.sphere().set_material([0, 1, 0])
-        self.grid.set_visible(False)
-        self.axis.set_visible(False)
-        
-        jid_left_foot  = self.motion.skeleton.idx_by_name["LeftFoot"]
-        jid_left_toe   = self.motion.skeleton.idx_by_name["LeftToe"]
-        jid_right_foot = self.motion.skeleton.idx_by_name["RightFoot"]
-        jid_right_toe  = self.motion.skeleton.idx_by_name["RightToe"]
-        self.jid       = [jid_left_foot, jid_left_toe, jid_right_foot, jid_right_toe]
-
-        self.heightmap_mesh = Render.mesh(Heightmap(heightmap, h_scale=H_SCALE, v_scale=V_SCALE, offset=0).mesh).set_texture("grid.png").set_uv_repeat(0.1)
-
-        self.envmap = envmap
-    
-    def render(self):
-        super().render()
-        contact = self.contact[self.frame]
-        envmap = self.envmap[self.frame]
-
-        glDisable(GL_DEPTH_TEST)
-        for idx, jid in enumerate(self.jid):
-            self.sphere.set_position(self.motion.global_p[self.frame, jid]).set_material([0, 1, 0]).set_scale(0.1 * contact[idx]).draw()
-        glEnable(GL_DEPTH_TEST)
-
-        self.heightmap_mesh.draw()
-
-        for p in envmap:
-            self.sphere.set_position(p).set_scale(0.1).set_material([1, 1, 0]).draw()
-
 def main():
+    generate_dataset("train")
     generate_dataset("test")
-    visualize("test")
 
 if __name__ == "__main__":
     main()

@@ -1,3 +1,6 @@
+import sys
+sys.path.append(".")
+
 import os
 import pickle
 
@@ -5,13 +8,8 @@ import numpy as np
 
 from pymovis.motion.data import bvh
 from pymovis.motion.ops import npmotion
-from pymovis.motion.core import Motion
 
 from pymovis.utils import util
-
-from pymovis.vis.appmanager import AppManager
-from pymovis.vis.app import MotionApp
-from pymovis.vis.render import Render
 
 """ Global variables for the dataset """
 WINDOW_SIZE   = 50
@@ -29,17 +27,6 @@ def load_motions():
     
     motions = bvh.load_parallel(files, v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
     return motions
-
-def load_processed_data():
-    # skeleton
-    with open(os.path.join(SAVE_DIR, "skeleton.pkl"), "rb") as f:
-        skeleton = pickle.load(f)
-
-    # windows
-    train_windows = np.load(os.path.join(SAVE_DIR, f"train_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"))
-    test_windows  = np.load(os.path.join(SAVE_DIR, f"test_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"))
-
-    return skeleton, train_windows, test_windows
 
 """ Save processed data """
 def save_skeleton(skeleton):
@@ -90,39 +77,12 @@ def get_windows(motion):
 
     return windows
 
-""" Main functions """
-def preprocess():
+""" Main function """
+def main():
     util.seed()
     motions = load_motions()
     save_skeleton(motions[0].skeleton)
     save_windows(motions)
-
-def visualize(train=True, test=True):
-    skeleton, train_windows, test_windows = load_processed_data()
-
-    if train:
-        for window in train_windows:
-            local_R6, root_p = window[:, :-3], window[:, -3:]
-            local_R = npmotion.R.from_R6(local_R6.reshape(-1, 6)).reshape(WINDOW_SIZE, -1, 3, 3)
-            motion = Motion.from_numpy(skeleton, local_R, root_p, fps=FPS)
-
-            app_manager = AppManager()
-            app = MotionApp(motion)
-            app_manager.run(app)
-    
-    if test:
-        for window in test_windows:
-            local_R6, root_p = window[:, :-3], window[:, -3:]
-            local_R = npmotion.R.from_R6(local_R6.reshape(-1, 6)).reshape(WINDOW_SIZE, -1, 3, 3)
-            motion = Motion.from_numpy(skeleton, local_R, root_p, fps=FPS)
-
-            app_manager = AppManager()
-            app = MotionApp(motion)
-            app_manager.run(app)
-
-def main():
-    preprocess()
-    visualize()
 
 if __name__ == "__main__":
     main()
