@@ -17,8 +17,10 @@ SAVE_DIR      = "./data/dataset/heightmap"
 """ Load from saved files """
 def load_all_heightmaps():
     files = []
-    for f in os.listdir(HEIGHTMAP_DIR):
+    for f in sorted(os.listdir(HEIGHTMAP_DIR)):
         if f.endswith(".txt"):
+            print(f)
+            breakpoint()
             files.append(os.path.join(HEIGHTMAP_DIR, f))
     return files
 

@@ -11,7 +11,7 @@ class WindowDataset(Dataset):
     def __init__(self, path):
         self.path = path
         self.windows = []
-        for f in os.listdir(path):
+        for f in sorted(os.listdir(path)):
             if f.endswith(".txt"):
                 self.windows.append(os.path.join(path, f))
         

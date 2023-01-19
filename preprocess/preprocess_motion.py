@@ -21,7 +21,7 @@ SAVE_DIR      = "./data/dataset/motion"
 """ Load from saved files """
 def load_motions():
     files = []
-    for file in os.listdir(MOTION_DIR):
+    for file in sorted(os.listdir(MOTION_DIR)):
         if file.endswith(".bvh"):
             files.append(os.path.join(MOTION_DIR, file))
     
