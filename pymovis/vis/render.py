@@ -10,13 +10,13 @@ from pymovis.vis.primitives import *
 from pymovis.vis.material import Material
 from pymovis.vis.shader import Shader
 from pymovis.vis.primitives import Cube
-from pymovis.vis.texture import Texture
+from pymovis.vis.texture import Texture, TextureType, TextureLoader
 from pymovis.vis.text import FontTexture
 from pymovis.vis import glconst
 
 class RenderMode(Enum):
-    PHONG  = 0
-    SHADOW = 1
+    ePHONG  = 0
+    eSHADOW = 1
 
 class RenderInfo:
     sky_color         = glm.vec4(1.0)
@@ -32,7 +32,7 @@ class RenderInfo:
 
 """ Global rendering state and functions """
 class Render:
-    render_mode      = RenderMode.PHONG
+    render_mode      = RenderMode.ePHONG
     render_info      = RenderInfo()
     primitive_meshes = {}
     font_texture     = None
@@ -79,7 +79,7 @@ class Render:
     
     @staticmethod
     def set_render_mode(mode, width, height):
-        if mode == RenderMode.SHADOW:
+        if mode == RenderMode.eSHADOW:
             glBindFramebuffer(GL_FRAMEBUFFER, Render.depth_map_fbo)
         else:
             glBindFramebuffer(GL_FRAMEBUFFER, 0)
@@ -87,7 +87,7 @@ class Render:
 
     @staticmethod
     def render_options(p):
-        if Render.render_mode == RenderMode.SHADOW:
+        if Render.render_mode == RenderMode.eSHADOW:
             return RenderOptions(p, Render.shadow_shader, Render.draw_shadow)
         else:
             return RenderOptions(p, Render.primitive_shader, Render.draw_phong)
@@ -165,7 +165,7 @@ class Render:
     def draw_phong(option: RenderOptions, shader: Shader):
         if option is None or shader is None:
             return
-        if Render.render_mode == RenderMode.SHADOW:
+        if Render.render_mode == RenderMode.eSHADOW:
             return
 
         shader.use()
@@ -221,7 +221,7 @@ class Render:
     def draw_shadow(option: RenderOptions, shader: Shader):
         if option is None or shader is None:
             return
-        if Render.render_mode != RenderMode.SHADOW:
+        if Render.render_mode != RenderMode.eSHADOW:
             return
         
         shader.use()
@@ -319,7 +319,7 @@ class Render:
     def draw_cubemap(option: RenderOptions, shader: Shader):
         if option is None or shader is None:
             return
-        if Render.render_mode == RenderMode.SHADOW:
+        if Render.render_mode == RenderMode.eSHADOW:
             return
         
         # adjust depth settings for optimized rendering
@@ -418,7 +418,7 @@ class RenderOptions:
         if not self.visible:
             return
         
-        if Render.render_mode == RenderMode.SHADOW:
+        if Render.render_mode == RenderMode.eSHADOW:
             if self.shadow_func is not None:
                 self.shadow_func(self, self.shadow_shader)
         else:
@@ -455,12 +455,12 @@ class RenderOptions:
         self.material.set_albedo(glm.vec3(x, y, z))
         return self
 
-    def set_texture(self, filename):
-        self.material.set_texture(filename)
+    def set_texture(self, filename, texture_type=TextureType.eALBEDO):
+        self.material.set_texture(TextureLoader().load(filename), texture_type)
         return self
     
     def set_cubemap(self, dirname):
-        self.material.set_cubemap(dirname)
+        self.material.set_texture(TextureLoader().load_cubemap(dirname), TextureType.eCUBEMAP)
         return self
     
     def set_uv_repeat(self, u, v=None):

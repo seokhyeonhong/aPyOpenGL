@@ -74,8 +74,8 @@ class MyApp(MotionApp):
         # for e in env_map:
         #     self.sphere.set_position(e).draw()
         
-        for m in self.dupl_motions:
-            m.render_by_frame(self.frame, 0.5)
+        for i, m in enumerate(self.dupl_motions):
+            m.render_by_frame(self.frame, (i + 1) * 0.25)
 
 
 if __name__ == "__main__":

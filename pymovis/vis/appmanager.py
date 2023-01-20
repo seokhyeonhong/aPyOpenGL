@@ -4,13 +4,13 @@ import glm
 
 from pymovis.vis.app import App
 from pymovis.vis.render import Render, RenderMode
-from pymovis.vis import glconst
+from pymovis.vis.glconst import SHADOW_MAP_SIZE
 
 class AppManager:
     def __init__(
         self,
-        width: int = 1920,
-        height: int = 1080,
+        width: int  = 960,
+        height: int = 540,
     ):
         self.do_capture = False
         self.width = width
@@ -84,13 +84,13 @@ class AppManager:
             Render.update_render_view(self.app, width, height)
 
             # render shadow
-            Render.set_render_mode(RenderMode.SHADOW, glconst.SHADOW_MAP_SIZE, glconst.SHADOW_MAP_SIZE)
-            glViewport(0, 0, glconst.SHADOW_MAP_SIZE, glconst.SHADOW_MAP_SIZE)
+            Render.set_render_mode(RenderMode.eSHADOW, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE)
+            glViewport(0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE)
             glClear(GL_DEPTH_BUFFER_BIT)
             self.app.render()
 
             # render scene
-            Render.set_render_mode(RenderMode.PHONG, width, height)
+            Render.set_render_mode(RenderMode.ePHONG, width, height)
             glViewport(0, 0, width, height)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             self.app.render()

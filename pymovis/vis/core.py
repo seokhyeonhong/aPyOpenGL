@@ -133,19 +133,15 @@ class Vertex:
         return res
 
 class Mesh:
-    def __init__(
-        self,
-        vao     : VAO,
-        vertices: list[Vertex],
-        indices : list[int]
-    ):
-        self.__vao      = vao
-        self.__vertices = vertices
-        self.__indices  = indices
-    
-    @property
-    def vao(self):
-        return self.__vao
+    def __init__(self, vao=None, vertices=None, indices=None):
+        self.vao      = vao
+        self.vertices = vertices
+        self.indices  = indices
+
+        self.is_skinned = False
+        self.joint_order = []
+        self.name_to_idx = {}
+        self.joint_bind_trf_inv = []
     
     def generate_vertices(self):
         pass
