@@ -68,7 +68,7 @@ def get_windows(motion):
         # Dimensions: (WINDOW_SIZE, D)
         window.align_by_frame(9)
         
-        local_R6 = npmotion.R6.from_R(window.local_R).reshape(WINDOW_SIZE, -1)
+        local_R6 = npmotion.R_to_R6(window.local_R).reshape(WINDOW_SIZE, -1)
         root_p   = window.root_p.reshape(WINDOW_SIZE, -1)
  
         window   = np.concatenate([local_R6, root_p], axis=-1)

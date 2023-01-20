@@ -38,7 +38,7 @@ def visualize(train=True, test=True):
     if train:
         for window in train_windows:
             local_R6, root_p = window[:, :-3], window[:, -3:]
-            local_R = npmotion.R.from_R6(local_R6.reshape(-1, 6)).reshape(WINDOW_SIZE, -1, 3, 3)
+            local_R = npmotion.R6_to_R(local_R6.reshape(-1, 6)).reshape(WINDOW_SIZE, -1, 3, 3)
             motion = Motion.from_numpy(skeleton, local_R, root_p, fps=FPS)
 
             app_manager = AppManager()
@@ -48,7 +48,7 @@ def visualize(train=True, test=True):
     if test:
         for window in test_windows:
             local_R6, root_p = window[:, :-3], window[:, -3:]
-            local_R = npmotion.R.from_R6(local_R6.reshape(-1, 6)).reshape(WINDOW_SIZE, -1, 3, 3)
+            local_R = npmotion.R6_to_R(local_R6.reshape(-1, 6)).reshape(WINDOW_SIZE, -1, 3, 3)
             motion = Motion.from_numpy(skeleton, local_R, root_p, fps=FPS)
 
             app_manager = AppManager()

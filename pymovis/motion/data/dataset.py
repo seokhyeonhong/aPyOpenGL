@@ -78,7 +78,7 @@ class PairDataset(Dataset):
     
     def __getitem__(self, idx):
         rand = random.randint(0, self.top_k_samples - 1)
-        return torch.from_numpy(self.X[idx]).float(), torch.from_numpy(self.Y[idx, rand]).float()
+        return torch.from_numpy(self.X[idx]).float(), torch.from_numpy(self.Y[idx, rand]).float(), rand
     
     def get_motion_statistics(self, dim):
         # load and return mean and std if they exist
@@ -112,4 +112,4 @@ class PairDataset(Dataset):
         return self.X.shape[-1]
     
     def env_dim(self):
-        return self.Y.shape[-2] # TODO: Fix this part after fixing the dataset
+        return self.Y.shape[-1]

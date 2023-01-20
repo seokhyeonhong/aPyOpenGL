@@ -11,3 +11,6 @@ test_*
 *.pth
 *.npy
 _*.py
+
+# incomplete codes
+*fbx*

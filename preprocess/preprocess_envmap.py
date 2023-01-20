@@ -40,7 +40,7 @@ def load_processed_motions(split):
 
     # make motion
     local_R6, root_p = features[..., :-3], features[..., -3:]
-    local_R = npmotion.R.from_R6(local_R6.reshape(-1, 6)).reshape(-1, WINDOW_SIZE, skeleton.num_joints, 3, 3)
+    local_R = npmotion.R6_to_R(local_R6.reshape(-1, 6)).reshape(-1, WINDOW_SIZE, skeleton.num_joints, 3, 3)
     motions = [Motion.from_numpy(skeleton, R, p, fps=FPS) for R, p in zip(local_R, root_p)]
 
     return motions
@@ -116,12 +116,13 @@ def sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES):
     err      = err_down + err_up
 
     # best fitting terrains
+    # terr_ids = np.argsort(err)[-num_samples:]
     terr_ids = np.argsort(err)[:num_samples]
     terr_patches = heightmaps[terr_ids]
 
     # terrain fit editing
     terr_residuals = (feet_down_y - feet_down_y_mean) - (terr_down_y[terr_ids] - terr_down_y_mean[terr_ids])
-    terr_fine_func = [RBF(smooth=0.01, function="gaussian", eps=1e-8) for _ in range(num_samples)]
+    terr_fine_func = [RBF(smooth=0.1, function="gaussian", eps=2e-3) for _ in range(num_samples)]
     edits = []
     for i in range(num_samples):
         h, w = terr_patches[i].shape
@@ -158,6 +159,7 @@ def sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES):
     root_traj = np.concatenate([base, forward], axis=-1)
     root_traj = np.repeat(root_traj[None, ...], num_samples, axis=0)
     
+    # return np.stack(edits, axis=0), env_map, root_traj
     return terr_patches, env_map, root_traj
 
 """ Main functions """
@@ -171,7 +173,8 @@ def generate_dataset(split="train"):
 
     # extract envmap dataset
     env_maps, vis_data = [], []
-    for motion_contact in tqdm(zip(motions, feet_p, contact), total=len(motions), desc="Generating envmap dataset"):
+    for motion_contact in tqdm(zip(motions[::2048], feet_p[::2048], contact[::2048]), total=len(motions), desc="Generating envmap dataset"):
+    # for motion_contact in tqdm(zip(motions, feet_p, contact), total=len(motions), desc="Generating envmap dataset"):
         patch, env_map, root_traj = sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES)
         env_data = np.concatenate([root_traj, env_map[..., 1]], axis=-1).astype(np.float32)
         env_maps.append(env_data)
@@ -191,16 +194,18 @@ def generate_dataset(split="train"):
 
     # save
     print("Saving envmap dataset")
-    envmap_path = os.path.join(envmap_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.npy")
+    envmap_path = os.path.join(envmap_dir, f"{split}_temp.npy")
+    # envmap_path = os.path.join(envmap_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.npy")
     np.save(envmap_path, env_maps)
     
-    vis_path = os.path.join(vis_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl")
+    vis_path = os.path.join(vis_dir, f"{split}_temp.pkl")
+    # vis_path = os.path.join(vis_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl")
     with open(vis_path, "wb") as f:
         pickle.dump(vis_data, f)
 
 def main():
     generate_dataset("train")
-    generate_dataset("test")
+    # generate_dataset("test")
 
 if __name__ == "__main__":
     main()

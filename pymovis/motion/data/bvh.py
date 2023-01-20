@@ -130,7 +130,7 @@ def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=np
 
     poses = poses[1::sampling_step]
     name = os.path.splitext(os.path.basename(filename))[0]
-    return Motion(name=name, skeleton=skeleton, poses=poses, global_v=None, fps=target_fps)
+    return Motion(name=name, skeleton=skeleton, poses=poses, fps=target_fps)
 
 def load_parallel(files, cpus=mp.cpu_count(), **kwargs):
-    return util.run_parallel_sync(load, files, cpus, desc=f"Loading {len(files)} BVH files", **kwargs)
+    return util.run_parallel(load, files, cpus, desc=f"Loading {len(files)} BVH files", **kwargs)

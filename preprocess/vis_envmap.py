@@ -30,7 +30,8 @@ V_SCALE       = INCH_TO_METER
 """ Load processed data """
 def load_processed_envmap(split):
     vis_dir = os.path.join(DATASET_DIR, "vis")
-    with open(os.path.join(vis_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl"), "rb") as f:
+    with open(os.path.join(vis_dir, f"{split}_temp.pkl"), "rb") as f:
+    # with open(os.path.join(vis_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl"), "rb") as f:
         vis_data = pickle.load(f)
 
     return vis_data
@@ -87,7 +88,7 @@ class MyApp(MotionApp):
             self.sphere.set_position(p).set_scale(0.1).set_material([1, 1, 0]).draw()
 
 def main():
-    visualize()
+    visualize(test=False)
 
 if __name__ == "__main__":
     main()
