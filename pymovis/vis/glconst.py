@@ -11,3 +11,7 @@ TEXT_RESOLUTION = 64
 
 """ Length conversion """
 INCH_TO_METER = 0.0254
+
+""" Material constants """
+MAX_MATERIAL_NUM = 5
+MAX_MATERIAL_TEXTURES = 25

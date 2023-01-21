@@ -35,7 +35,7 @@ class Heightmap:
         positions = np.stack([px, py, pz], axis=-1)
 
         for i, pos in enumerate(positions.reshape(-1, 3)):
-            vertices[i].set_position(pos)
+            vertices[i].position = pos
         
         # vertex normals
         normals = np.empty((h, w, 3), dtype=np.float32)
@@ -50,13 +50,13 @@ class Heightmap:
         normals[:, 0] = normals[:, -1] = np.array([0, 1, 0])
 
         for i, normal in enumerate(normals.reshape(-1, 3)):
-            vertices[i].set_normal(normal)
+            vertices[i].normal = normal
         
         # vertex UV coordinates
         uvs = np.stack([px, pz], axis=-1)
 
         for i, uv in enumerate(uvs.reshape(-1, 2)):
-            vertices[i].set_uv(uv)
+            vertices[i].uv= uv
 
         # vertex indices
         indices = np.empty((h - 1, w - 1, 6), dtype=np.int32)

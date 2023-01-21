@@ -6,6 +6,7 @@
 layout(location=0) in vec3 vPosition;
 layout(location=1) in vec3 vNormal;
 layout(location=2) in vec2 vTexCoord;
+layout(location=3) in int  vMaterialID;
 
 // --------------------------------------------
 // output vertex data
@@ -13,6 +14,7 @@ layout(location=2) in vec2 vTexCoord;
 out vec3 fPosition;
 out vec3 fNormal;
 out vec2 fTexCoord;
+flat out int  fMaterialID;
 out vec4 fPosLightSpace;
 
 // --------------------------------------------
@@ -29,5 +31,6 @@ void main()
     fNormal        = normalize(transpose(inverse(mat3(M))) * vNormal);
     fTexCoord      = vTexCoord;
     fPosLightSpace = lightSpaceMatrix * vec4(fPosition, 1.0);
+    fMaterialID    = vMaterialID;
     gl_Position    = P * V * vec4(fPosition, 1.0);
 }

@@ -20,7 +20,7 @@ class Material:
     def set_texture(self, texture, texture_type):
         if texture_type == TextureType.eALBEDO or texture_type == TextureType.eDIFFUSE:
             self.albedo_map = texture
-        elif texture_type == TextureType.eCUBE_MAP:
+        elif texture_type == TextureType.eCUBEMAP:
             self.cubemap = texture
         else:
             raise Exception("Texture type not supported")

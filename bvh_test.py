@@ -27,8 +27,8 @@ class MyApp(MotionApp):
         self.right_foot_idx = self.motion.skeleton.idx_by_name["RightFoot"]
 
         # heightmap
-        self.heightmap = Heightmap.load_from_file("./data/heightmaps/hmap_010_smooth.txt")
-        self.heightmap_mesh = Render.mesh(self.heightmap.mesh).set_texture("grid.png").set_uv_repeat(0.1)
+        # self.heightmap = Heightmap.load_from_file("./data/heightmaps/hmap_010_smooth.txt")
+        # self.heightmap_mesh = Render.mesh(self.heightmap.mesh).set_texture("grid.png").set_uv_repeat(0.1)
 
         # grid for environment map
         grid_x = np.linspace(-1, 1, 11)
@@ -36,7 +36,8 @@ class MyApp(MotionApp):
         grid_x, grid_z = np.meshgrid(grid_x, grid_z)
         grid_y = np.zeros_like(grid_x)
         self.env_map = np.stack([grid_x, grid_y, grid_z], axis=-1)
-        self.sphere = Render.sphere(0.05).set_material([0, 1, 0])
+        self.sphere = Render.sphere(0.05).set_color([0, 1, 0])
+        # self.cubemap = Render.cubemap("skybox")
 
         # velocity-based locomotion scaling
         self.scale_motion()
@@ -76,6 +77,7 @@ class MyApp(MotionApp):
         
         for i, m in enumerate(self.dupl_motions):
             m.render_by_frame(self.frame, (i + 1) * 0.25)
+        # self.cubemap.draw()
 
 
 if __name__ == "__main__":
@@ -83,6 +85,7 @@ if __name__ == "__main__":
     # motion = bvh.load("D:/data/LaFAN1/aiming1_subject1.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
     motion.align_by_frame(0)
 
-    app_manager = AppManager()
-    app = MyApp(motion, [0.8, 0.9, 1.1, 1.2])
-    app_manager.run(app)
+    for i in range(2):
+        app_manager = AppManager()
+        app = MyApp(motion, [0.8, 0.9, 1.1, 1.2])
+        app_manager.run(app)

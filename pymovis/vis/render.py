@@ -12,7 +12,7 @@ from pymovis.vis.shader import Shader
 from pymovis.vis.primitives import Cube
 from pymovis.vis.texture import Texture, TextureType, TextureLoader
 from pymovis.vis.text import FontTexture
-from pymovis.vis import glconst
+from pymovis.vis.glconst import SHADOW_MAP_SIZE, TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES
 
 class RenderMode(Enum):
     ePHONG  = 0
@@ -53,7 +53,7 @@ class Render:
         depth_map = glGenTextures(1)
 
         glBindTexture(GL_TEXTURE_2D, depth_map)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, glconst.SHADOW_MAP_SIZE, glconst.SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, None)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, None)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
@@ -124,36 +124,32 @@ class Render:
         cylinder_height = 0.8
 
         R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
-        x_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0.9, 0, 0).set_orientation(R_x).set_material(albedo=glm.vec3(1, 0, 0)).set_color_mode(True)
-        x_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0.4, 0, 0).set_orientation(R_x).set_material(albedo=glm.vec3(1, 0, 0)).set_color_mode(True)
+        x_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0.9, 0, 0).set_orientation(R_x).set_color(glm.vec3(1, 0, 0)).set_color_mode(True)
+        x_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0.4, 0, 0).set_orientation(R_x).set_color(glm.vec3(1, 0, 0)).set_color_mode(True)
 
-        y_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.9, 0).set_material(albedo=glm.vec3(0, 1, 0)).set_color_mode(True)
-        y_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.4, 0).set_material(albedo=glm.vec3(0, 1, 0)).set_color_mode(True)
+        y_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.9, 0).set_color(glm.vec3(0, 1, 0)).set_color_mode(True)
+        y_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.4, 0).set_color(glm.vec3(0, 1, 0)).set_color_mode(True)
 
         R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
-        z_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.9).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1)).set_color_mode(True)
-        z_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.4).set_orientation(R_z).set_material(albedo=glm.vec3(0, 0, 1)).set_color_mode(True)
+        z_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.9).set_orientation(R_z).set_color(glm.vec3(0, 0, 1)).set_color_mode(True)
+        z_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.4).set_orientation(R_z).set_color(glm.vec3(0, 0, 1)).set_color_mode(True)
         return RenderOptionsVec([x_head, x_body, y_head, y_body, z_head, z_body])
 
     @staticmethod
-    def text(t=""):
+    def text(t="", color=glm.vec3(0)):
         if Render.font_texture is None:
             Render.font_texture = FontTexture()
 
         res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=False))
-        res.set_text(str(t))
-        res.set_material(albedo=glm.vec3(0))
-        return res
+        return res.set_text(str(t)).set_color(color)
 
     @staticmethod
-    def text_on_screen(t=""):
+    def text_on_screen(t="", color=glm.vec3(0)):
         if Render.font_texture is None:
             Render.font_texture = FontTexture()
 
         res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=True))
-        res.set_text(str(t))
-        res.set_material(albedo=glm.vec3(0))
-        return res
+        return res.set_text(str(t)).set_color(glm.vec3(0))
 
     @staticmethod
     def cubemap(dirname, scale=100):
@@ -188,26 +184,68 @@ class Render:
         transform = T * R * S
         shader.set_mat4("M", transform)
 
-        # set textures
-        shader.set_int("uMaterial.albedoMap", 0)
-        if option.texture_id is not None:
-            shader.set_int("uMaterial.id", 0)
-            glActiveTexture(GL_TEXTURE0)
-            glBindTexture(GL_TEXTURE_2D, option.texture_id)
-        else:
-            shader.set_int("uMaterial.id", -1)
+        # texture indexing
+        if shader.is_texture_updated is False:
+            shader.set_int("uShadowMap", 1)
+            for i in range(MAX_MATERIAL_TEXTURES):
+                shader.set_int(f"uTextures[{i}]", i + 2)
+            shader.is_texture_updated = True
+
+        # TODO: fix this
+        # set environment map 
+        # shader.set_int("uMaterial.albedoMap", 0)
+        # if option.texture_id is not None:
+        #     shader.set_int("uMaterial.id", 0)
+        #     glActiveTexture(GL_TEXTURE0)
+        #     glBindTexture(GL_TEXTURE_2D, option.texture_id)
+        # else:
+        #     shader.set_int("uMaterial.id", -1)
         
-        shader.set_int("uShadowMap", 1)
+        # set shadow map
         glActiveTexture(GL_TEXTURE1)
         glBindTexture(GL_TEXTURE_2D, Render.depth_map)
+        
+        # remove all textures
+        for i in range(MAX_MATERIAL_TEXTURES):
+            glActiveTexture(GL_TEXTURE2 + i)
+            glBindTexture(GL_TEXTURE_2D, 0)
+        
+        # material settings
+        rgba = [glm.vec4(1)] * MAX_MATERIAL_NUM
+        # attribs = [glm.vec3(0)] * MAX_MATERIAL_NUM
+        texture_id = [glm.ivec4(-1)] * MAX_MATERIAL_NUM
+
+        def gl_set_texture(texture_id, count):
+            if texture_id == 0 or count >= MAX_MATERIAL_TEXTURES:
+                return -1
             
-        # set material
+            idx_on_shader = count
+            glActiveTexture(GL_TEXTURE2 + count)
+            glBindTexture(GL_TEXTURE_2D, texture_id)
+            count += 1
+            return idx_on_shader
+        
+        texture_count = 0
+        for i in range(len(option.materials)):
+            if i >= MAX_MATERIAL_NUM:
+                break
+
+            material = option.materials[i]
+            rgba[i] = glm.vec4(material.albedo, material.alpha)
+
+            texture_id[i].x = gl_set_texture(material.albedo_map.texture_id, texture_count)
+        # shader.set_multiple_vec3("uMaterial.diffuse",  [m.diffuse for m in option.materials])
+        # shader.set_multiple_vec3("uMaterial.specular", [m.specular for m in option.materials])
+        # shader.set_multiple_float("uMaterial.shininess", [m.shininess for m in option.materials])
+        # shader.set_multiple_vec4("uMaterial.albedo",   rgba)
+        for i in range(MAX_MATERIAL_NUM):
+            shader.set_vec4(f"uMaterial[{i}].albedo", rgba[i] if i < len(option.materials) else glm.vec4(1))
+            shader.set_vec3(f"uMaterial[{i}].diffuse", option.materials[i].diffuse if i < len(option.materials) else glm.vec3(0))
+            shader.set_vec3(f"uMaterial[{i}].specular", option.materials[i].specular if i < len(option.materials) else glm.vec3(0))
+            shader.set_float(f"uMaterial[{i}].shininess", option.materials[i].shininess if i < len(option.materials) else 0)
+            shader.set_ivec4(f"uMaterial[{i}].textureID", texture_id[i])
+
         shader.set_bool("uColorMode",           option.color_mode)
-        shader.set_vec3("uMaterial.diffuse",    option.material.diffuse)
-        shader.set_vec3("uMaterial.specular",   option.material.specular)
-        shader.set_float("uMaterial.shininess", option.material.shininess)
-        shader.set_vec3("uMaterial.albedo",     option.material.albedo)
-        shader.set_float("uMaterial.alpha",     option.material.alpha)
         shader.set_vec2("uvScale",              option.uv_repeat)
 
         # final rendering
@@ -254,7 +292,7 @@ class Render:
         else:
             x = 0
             y = 0
-            scale = option.scale.x / glconst.TEXT_RESOLUTION
+            scale = option.scale.x / TEXT_RESOLUTION
 
         # shader settings
         shader.use()
@@ -275,7 +313,7 @@ class Render:
             shader.set_mat4("M", M)
 
         shader.set_int("uText", 0)
-        shader.set_vec3("uTextColor", option.material.albedo)
+        shader.set_vec3("uTextColor", option.materials[0].albedo.xyz)
 
         glActiveTexture(GL_TEXTURE0)
         glBindVertexArray(Render.font_texture.vao)
@@ -369,8 +407,8 @@ class Render:
     @staticmethod
     def clear():
         Render.primitive_meshes.clear()
-        Texture.clear()
         Render.font_texture = None
+        TextureLoader.clear()
 
 """ Rendering options for a primitive (e.g. position, orientation, material, etc.) """
 class RenderOptions:
@@ -392,7 +430,7 @@ class RenderOptions:
         self.scale         = glm.vec3(1.0)
 
         # material  
-        self.material      = Material()
+        self.materials     = [Material()]
         self.uv_repeat     = glm.vec2(1.0)
         self.text          = ""
         self.color_mode    = False
@@ -405,14 +443,6 @@ class RenderOptions:
     @property
     def vao(self):
         return self.mesh.vao
-
-    @property
-    def texture_id(self):
-        return self.material.albedo_map.texture_id
-    
-    @property
-    def cubemap_id(self):
-        return self.material.cubemap.texture_id
 
     def draw(self):
         if not self.visible:
@@ -442,26 +472,34 @@ class RenderOptions:
             self.scale = glm.vec3(x, y, z)
         return self
 
-    def set_material(self, albedo=None, diffuse=None, specular=None):
-        if albedo != None:
-            self.material.set_albedo(albedo)
-        if diffuse != None:
-            self.material.set_diffuse(diffuse)
-        if specular != None:
-            self.material.set_specular(specular)
+    def set_color(self, color, material_id=0):
+        if len(self.materials) == 0:
+            self.materials.append(Material())
+            material_id = 0
+        
+        if material_id < len(self.materials):
+            self.materials[material_id].albedo = glm.vec3(color)
+            self.materials[material_id].albedo_map.texture_id = 0
+
         return self
     
-    def set_text_color(self, x, y, z):
-        self.material.set_albedo(glm.vec3(x, y, z))
+    def set_text_color(self, color):
+        self.material.set_albedo(glm.vec3(color))
         return self
 
-    def set_texture(self, filename, texture_type=TextureType.eALBEDO):
-        self.material.set_texture(TextureLoader().load(filename), texture_type)
+    def set_texture(self, filename, texture_type=TextureType.eALBEDO, material_id=0):
+        if len(self.materials) == 0:
+            self.materials.append(Material())
+            material_id = 0
+        
+        if material_id < len(self.materials):
+            self.materials[material_id].set_texture(TextureLoader.load(filename), texture_type)
+
         return self
     
-    def set_cubemap(self, dirname):
-        self.material.set_texture(TextureLoader().load_cubemap(dirname), TextureType.eCUBEMAP)
-        return self
+    # def set_cubemap(self, dirname):
+    #     self.material.set_texture(TextureLoader.load_cubemap(dirname), TextureType.eCUBEMAP)
+    #     return self
     
     def set_uv_repeat(self, u, v=None):
         if v is None:
@@ -474,8 +512,14 @@ class RenderOptions:
         self.text = str(text)
         return self
     
-    def set_alpha(self, alpha):
-        self.material.set_alpha(alpha)
+    def set_alpha(self, alpha, material_id=0):
+        if len(self.materials) == 0:
+            self.materials.append(Material())
+            material_id = 0
+
+        if material_id < len(self.materials):
+            self.materials[material_id].set_alpha(alpha)
+
         return self
     
     def set_color_mode(self, color_mode):

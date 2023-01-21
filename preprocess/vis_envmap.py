@@ -58,7 +58,7 @@ class MyApp(MotionApp):
     def __init__(self, motion, contact, heightmap, envmap):
         super().__init__(motion)
         self.contact = contact
-        self.sphere = Render.sphere().set_material([0, 1, 0])
+        self.sphere = Render.sphere().set_color([0, 1, 0])
         self.grid.set_visible(False)
         self.axis.set_visible(False)
         
@@ -79,13 +79,13 @@ class MyApp(MotionApp):
 
         glDisable(GL_DEPTH_TEST)
         for idx, jid in enumerate(self.jid):
-            self.sphere.set_position(self.motion.global_p[self.frame, jid]).set_material([0, 1, 0]).set_scale(0.1 * contact[idx]).draw()
+            self.sphere.set_position(self.motion.global_p[self.frame, jid]).set_color([0, 1, 0]).set_scale(0.1 * contact[idx]).draw()
         glEnable(GL_DEPTH_TEST)
 
         self.heightmap_mesh.draw()
 
         for p in envmap:
-            self.sphere.set_position(p).set_scale(0.1).set_material([1, 1, 0]).draw()
+            self.sphere.set_position(p).set_scale(0.1).set_color([1, 1, 0]).draw()
 
 def main():
     visualize(test=False)

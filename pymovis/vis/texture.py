@@ -17,32 +17,17 @@ class TextureType(Enum):
     eGLOSSINESS   = 9
     eCUBEMAP      = 10
 
-""" Texture management class """
+""" Texture info """
 class Texture:
-    def __init__(self, path=None, texture_id=None):
+    def __init__(self, path=None, texture_id=0):
         self.texture_loader = TextureLoader()
 
         self.path = path
         self.texture_id = texture_id
-    
-    def create(self, path, nearest=False):
-        return self.texture_loader.create(path, nearest)
-    
-    def create_cubemap(self, dirname):
-        return self.texture_loader.create_cubemap(dirname)
 
-    def load(self, path):
-        return self.texture_loader.load(path)
-    
-    def load_cubemap(self, dirname):
-        return self.texture_loader.load_cubemap(dirname)
-    
-    @staticmethod
-    def clear():
-        TextureLoader().clear()
-
-""" All texture files are loaded in this singleton class """
+""" All textures are loaded in this class """
 class TextureLoader:
+    # Singleton
     __instance = None
     def __new__(cls):
         if TextureLoader.__instance is None:
@@ -52,19 +37,46 @@ class TextureLoader:
     def __init__(self):
         self.__texture_map = {}
         self.__cubemap_texture_map = {}
+
+    @staticmethod
+    def create(path, nearest=False):
+        return TextureLoader().__create(path, nearest)
+
+    @staticmethod
+    def create_cubemap(path):
+        return TextureLoader().__create_cubemap(path)
     
-    def create(self, path, nearest=False):
+    @staticmethod
+    def load(path):
+        return TextureLoader().__load(path)
+    
+    @staticmethod
+    def load_cubemap(path):
+        return TextureLoader().__load_cubemap(path)
+
+    @staticmethod
+    def clear():
+        instance = TextureLoader()
+        for texture in instance.__texture_map.values():
+            glDeleteTextures(1, texture.texture_id)
+        instance.__texture_map.clear()
+
+        for texture in instance.__cubemap_texture_map.values():
+            glDeleteTextures(1, texture.texture_id)
+        instance.__cubemap_texture_map.clear()
+
+    def __create(self, path, nearest=False):
         if path in self.__texture_map:
             glDeleteTextures(1, self.__texture_map[path].texture_id)
             del self.__texture_map[path]
         
-        texture_id, width, height, channel = self.generate_texture(path, nearest)
+        texture_id = self.generate_texture(path, nearest)
         texture = Texture(path, texture_id)
         self.__texture_map[path] = texture
 
         return texture
 
-    def create_cubemap(self, dirname):
+    def __create_cubemap(self, dirname):
         if dirname in self.__cubemap_texture_map:
             glDeleteTextures(1, self.__cubemap_texture_map[dirname].texture_id)
             del self.__cubemap_texture_map[dirname]
@@ -75,18 +87,22 @@ class TextureLoader:
 
         return texture
 
-    def load(self, path):
-        if path in self.__texture_map:
-            return self.__texture_map[path]
-        else:
-            return self.create(path)
+    def __load(self, path):
+        if path not in self.__texture_map:
+            texture_id = self.generate_texture(path)
+            texture = Texture(path, texture_id)
+            self.__texture_map[path] = texture
+            
+        return self.__texture_map[path]
 
-    def load_cubemap(self, path):
-        if path in self.__cubemap_texture_map:
-            return self.__cubemap_texture_map[path]
-        else:
-            return self.create_cubemap(path)
+    def __load_cubemap(self, dirname):
+        if dirname not in self.__cubemap_texture_map:
+            texture_id = self.generate_cubemap_texture(dirname)
+            texture = Texture(dirname, texture_id)
+            self.__cubemap_texture_map[dirname] = texture
 
+        return self.__cubemap_texture_map[dirname]
+        
     def generate_texture(self, filename, nearest=False):
         texture_id = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, texture_id)
@@ -110,7 +126,7 @@ class TextureLoader:
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         
-        return texture_id, texture_image.width, texture_image.height, 4
+        return texture_id
 
     def generate_cubemap_texture(self, dirname):
         texture_id = glGenTextures(1)
@@ -135,11 +151,3 @@ class TextureLoader:
         
         return texture_id
     
-    def clear(self):
-        for texture in self.__texture_map.values():
-            glDeleteTextures(1, texture.texture_id)
-        self.__texture_map.clear()
-
-        for texture in self.__cubemap_texture_map.values():
-            glDeleteTextures(1, texture.texture_id)
-        self.__cubemap_texture_map.clear()

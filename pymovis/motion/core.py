@@ -148,7 +148,7 @@ class Pose:
 
         _, global_p = npmotion.R_fk(self.local_R, self.root_p, self.skeleton)
         for i in range(self.skeleton.num_joints):
-            self.joint_sphere.set_position(global_p[i]).set_material(albedo=albedo).draw()
+            self.joint_sphere.set_position(global_p[i]).set_color(albedo).draw()
 
             if i != 0:
                 parent_pos = global_p[self.skeleton.parent_idx[i]]
@@ -161,7 +161,7 @@ class Pose:
                 angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
                 rotation = glm.rotate(glm.mat4(1.0), angle, axis)
                 
-                self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_material(albedo=albedo).draw()
+                self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_color(albedo).draw()
 
     """ IK functions """
     def two_bone_ik(self, base_idx, effector_idx, target_p, eps=1e-8):
@@ -368,7 +368,7 @@ class Motion:
             self.joint_bone   = Render.cylinder(0.03, 1.0)
 
         for i in range(self.skeleton.num_joints):
-            self.joint_sphere.set_position(self.global_p[frame, i]).set_material(albedo=albedo).draw()
+            self.joint_sphere.set_position(self.global_p[frame, i]).set_color(albedo).draw()
 
         for i in range(1, self.skeleton.num_joints):
             parent_pos = self.global_p[frame, self.skeleton.parent_idx[i]]
@@ -381,4 +381,4 @@ class Motion:
             angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
             rotation = glm.rotate(glm.mat4(1.0), angle, axis)
             
-            self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_material(albedo=albedo).draw()
+            self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_color(albedo).draw()

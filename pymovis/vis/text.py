@@ -4,27 +4,27 @@ import freetype as ft
 from OpenGL.GL import *
 import glm
 
-from pymovis.vis import glconst
+from pymovis.vis.glconst import TEXT_RESOLUTION
 
+class Character:
+    def __init__(self, texture_id: int, size: glm.ivec2, bearing: glm.ivec2, advance: int):
+        self.texture_id = texture_id
+        self.size = size
+        self.bearing = bearing
+        self.advance = advance
 
 class FontTexture:
     def __init__(self, font_filename="consola.ttf"):
-        class Character:
-            def __init__(self, texture_id: int, size: glm.ivec2, bearing: glm.ivec2, advance: int):
-                self.texture_id = texture_id
-                self.size = size
-                self.bearing = bearing
-                self.advance = advance
 
         self.character_map = {}
 
         face = ft.Face(self.get_font_path(font_filename))
-        face.set_pixel_sizes(0, glconst.TEXT_RESOLUTION)
+        face.set_pixel_sizes(0, TEXT_RESOLUTION)
 
         # disable byte-alignment restriction
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
 
-        ## load 128 ASCII characters
+        # load 128 ASCII characters
         for c in range(128):
             char = chr(c)
             face.load_char(char, ft.FT_LOAD_RENDER)

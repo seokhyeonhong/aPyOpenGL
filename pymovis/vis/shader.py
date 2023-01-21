@@ -32,12 +32,13 @@ def load_code(filename):
 
 class Shader:
     def __init__(self, vertex_path, fragment_path, geometry_path=None):
-        self.__vertex_shader   = load_shader(vertex_path, GL_VERTEX_SHADER)
-        self.__fragment_shader = load_shader(fragment_path, GL_FRAGMENT_SHADER)
-        self.__geometry_shader = load_shader(geometry_path, GL_GEOMETRY_SHADER) if geometry_path is not None else None
+        self.__vertex_shader    = load_shader(vertex_path, GL_VERTEX_SHADER)
+        self.__fragment_shader  = load_shader(fragment_path, GL_FRAGMENT_SHADER)
+        self.__geometry_shader  = load_shader(geometry_path, GL_GEOMETRY_SHADER) if geometry_path is not None else None
         self.build()
 
-        self.is_view_updated   = False
+        self.is_view_updated    = False
+        self.is_texture_updated = False
         
     def build(self):
         self.__program = glCreateProgram()
@@ -64,5 +65,15 @@ class Shader:
     def set_vec2(self, name, value):  glUniform2fv(glGetUniformLocation(self.__program, name), 1, glm.value_ptr(value))
     def set_vec3(self, name, value):  glUniform3fv(glGetUniformLocation(self.__program, name), 1, glm.value_ptr(value))
     def set_vec4(self, name, value):  glUniform4fv(glGetUniformLocation(self.__program, name), 1, glm.value_ptr(value))
+    def set_ivec3(self, name, value): glUniform3iv(glGetUniformLocation(self.__program, name), 1, glm.value_ptr(value))
+    def set_ivec4(self, name, value): glUniform4iv(glGetUniformLocation(self.__program, name), 1, glm.value_ptr(value))
     def set_mat3(self, name, value):  glUniformMatrix3fv(glGetUniformLocation(self.__program, name), 1, GL_FALSE, glm.value_ptr(value))
     def set_mat4(self, name, value):  glUniformMatrix4fv(glGetUniformLocation(self.__program, name), 1, GL_FALSE, glm.value_ptr(value))
+
+
+    def set_multiple_float(self, name, value): glUniform1fv(glGetUniformLocation(self.__program, name), len(value), value)
+    def set_multiple_vec3(self, name, value):  glUniform3fv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))
+    def set_multiple_vec4(self, name, value):  glUniform4fv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))
+    def set_multiple_mat4(self, name, value):  glUniformMatrix4fv(glGetUniformLocation(self.__program, name), len(value), GL_FALSE, glm.value_ptr(value))
+    def set_multiple_ivec3(self, name, value): glUniform3iv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))
+    def set_multiple_ivec4(self, name, value): glUniform4iv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))

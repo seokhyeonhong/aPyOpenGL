@@ -17,7 +17,7 @@ class VAO:
         Constructor from a list of vertices and indices
         """
         id      = glGenVertexArrays(1)
-        vbos    = glGenBuffers(3)
+        vbos    = glGenBuffers(4)
         ebo     = glGenBuffers(1)
         indices = indices
 
@@ -53,6 +53,13 @@ class VAO:
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(2)
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
+
+        # material id
+        data = np.array([v.material_id for v in vertex_array], dtype=np.int32).flatten()
+        glBindBuffer(GL_ARRAY_BUFFER, vbos[3])
+        glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
+        glEnableVertexAttribArray(3)
+        glVertexAttribIPointer(3, 1, GL_INT, 0, ctypes.c_void_p(0))
 
         # indices
         indices = np.array(indices, dtype=np.uint32)
@@ -94,48 +101,28 @@ class VAO:
         return len(self.__indices)
 
 class Vertex:
-    def __init__(
-        self,
-        position: glm.vec3 = glm.vec3(0),
-        normal  : glm.vec3 = glm.vec3(0),
-        uv      : glm.vec2 = glm.vec2(0)
-    ):
-        self.__position = position
-        self.__normal   = normal
-        self.__uv       = uv
-    
-    @property
-    def position(self):
-        return self.__position
-    
-    @property
-    def normal(self):
-        return self.__normal
-
-    @property
-    def uv(self):
-        return self.__uv
-
-    def set_position(self, position):
-        self.__position = glm.vec3(position)
-    
-    def set_normal(self, normal):
-        self.__normal = glm.normalize(glm.vec3(normal))
-    
-    def set_uv(self, uv):
-        self.__uv = glm.vec2(uv)
+    def __init__(self):
+        self.position    = glm.vec3(0)
+        self.normal      = glm.vec3(0)
+        self.uv          = glm.vec2(0)
+        self.material_id = 0
 
     @staticmethod
     def make_vertex_array(positions, normals, tex_coords):
         res = []
         for i in range(len(positions)):
-            res.append(Vertex(positions[i], normals[i], tex_coords[i]))
+            v = Vertex()
+            v.position    = positions[i]
+            v.normal      = normals[i]
+            v.uv          = tex_coords[i]
+            v.material_id = 0
+            res.append(v)
         return res
 
 class Mesh:
     def __init__(self, vao=None, vertices=None, indices=None):
         self.vao      = vao
-        self.vertices = vertices
+        self.vertices: list[Vertex] = vertices
         self.indices  = indices
 
         self.is_skinned = False

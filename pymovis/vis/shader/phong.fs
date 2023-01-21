@@ -6,6 +6,7 @@
 in vec3 fPosition;
 in vec3 fNormal;
 in vec2 fTexCoord;
+flat in int  fMaterialID;
 in vec4 fPosLightSpace;
 
 // --------------------------------------------
@@ -23,16 +24,21 @@ uniform sampler2D uShadowMap;
 // --------------------------------------------
 // material structure
 // --------------------------------------------
+#define MAX_MATERIAL_NUM 5
 struct Material {
-    int       id;
-    vec3      albedo;
+    ivec4     textureID; // albedo, normal, metalic, emissive
+    vec4      albedo;
     vec3      diffuse;
     vec3      specular;
     float     shininess;
-    float     alpha;
-    sampler2D albedoMap;
 };
-uniform Material uMaterial;
+uniform Material uMaterial[MAX_MATERIAL_NUM];
+
+// --------------------------------------------
+// textures
+// --------------------------------------------
+#define MAX_MATERIAL_TEXTURE 25
+uniform sampler2D uTextures[MAX_MATERIAL_TEXTURE];
 
 // --------------------------------------------
 // light structure
@@ -83,20 +89,18 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir)
 }
 
 // --------------------------------------------
-vec4 BlinnPhong(vec3 albedo)
+vec4 BlinnPhong(vec3 albedo, vec3 N, vec3 V)
 {
     // vec3 ambient = albedo;
     vec3 ambient = uLight.color * 0.1f;
 
-    vec3 N = normalize(fNormal);
     vec3 L = uLight.vector.w == 1.0f ? normalize(uLight.vector.xyz - fPosition) : normalize(-uLight.vector.xyz);
 
-    vec3 diffuse = max(dot(N, L), 0.0f) * uMaterial.diffuse * uLight.color;
+    vec3 diffuse = max(dot(N, L), 0.0f) * uMaterial[fMaterialID].diffuse * uLight.color;
 
-    vec3 V = normalize(viewPosition - fPosition);
     // vec3 R = reflect(-L, N); // for phong shading, use R instead of H
     vec3 H = normalize(L + V); // for blinn-phong shading, use H instead of R
-    vec3 specular = pow(max(dot(V, H), 0.0f), uMaterial.shininess) * uMaterial.specular * uLight.color;
+    vec3 specular = pow(max(dot(V, H), 0.0f), uMaterial[fMaterialID].shininess) * uMaterial[fMaterialID].specular * uLight.color;
     
     // attenuation
     float atten = 1.0f;
@@ -122,19 +126,39 @@ vec3 GammaCorrection(vec3 color, float gamma)
 // --------------------------------------------
 void main()
 {
+    // find material texture ID
+    int albedoID = uMaterial[fMaterialID].textureID.x;
+
+    // texture scaling
     vec2 uv = fTexCoord * uvScale;
+
+    // find material attributes
+    vec3 materialColor = uMaterial[fMaterialID].albedo.rgb;
+    float alpha = uMaterial[fMaterialID].albedo.a;
+
+    // set normal
+    vec3 N = normalize(fNormal);
+    vec3 V = normalize(viewPosition - fPosition);
+
+    // materials
+    vec3 albedo = materialColor;
+
+    // --------------------------------------------
+    // albedo texture
+    if (uMaterial[fMaterialID].textureID.x >= 0)
+    {
+        albedo = texture(uTextures[albedoID], uv).rgb;
+    }
+
+    // --------------------------------------------
+    // rendering
     if (uColorMode)
     {
-        FragColor = vec4(uMaterial.albedo, 1.0f);
+        FragColor = vec4(albedo, 1.0f);
     }
-    else if (uMaterial.id >= 0)
-    {
-        FragColor = BlinnPhong(texture(uMaterial.albedoMap, uv).rgb);
-    }
-    else
-    {
-        FragColor = BlinnPhong(uMaterial.albedo);
-    }
+    
+    FragColor = BlinnPhong(albedo, N, V);
+    FragColor.a = alpha;
 
     // Fog
     // float D = length(viewPosition - fPosition);
@@ -143,7 +167,6 @@ void main()
     // vec3 color = FragColor.rgb;
     // color = mix(color, fog_color, fog_amount);
     // FragColor.rgb = color;
-    FragColor.a = uMaterial.alpha;
     // vec3 fogColor = vec3(0.5);
     // float d = length(fPosition - viewPosition);
     // float fogFactor = clamp((d - 10.0) / 10.0, 0.0, 1.0);
