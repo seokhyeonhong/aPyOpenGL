@@ -19,8 +19,6 @@ def load_all_heightmaps():
     files = []
     for f in sorted(os.listdir(HEIGHTMAP_DIR)):
         if f.endswith(".txt"):
-            print(f)
-            breakpoint()
             files.append(os.path.join(HEIGHTMAP_DIR, f))
     return files
 

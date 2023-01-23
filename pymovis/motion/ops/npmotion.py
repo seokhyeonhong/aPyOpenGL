@@ -31,7 +31,7 @@ def R_fk(R, root_p, skeleton):
 
     global_R, global_p = [R[..., 0, :, :]], [root_p]
     for i in range(1, len(parents)):
-        global_R.append(np.matmul(global_R[parents[i]], R[..., i, :, :]))
+        global_R.append(np.matmul(global_R[parents[i]], skeleton.pre_Rs[i] @ R[..., i, :, :]))
         global_p.append(np.matmul(global_R[parents[i]], bone_offsets[i]) + global_p[parents[i]])
     
     global_R = np.stack(global_R, axis=-3) # (..., N, 3, 3)

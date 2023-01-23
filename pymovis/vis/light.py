@@ -7,8 +7,8 @@ class Light:
         color: glm.vec3 =glm.vec3(1.0),
         intensity: float = 1.0,
         L: float = 5.0,
-        z_near: float = 1.0,
-        z_far: float = 40.0
+        z_near: float = 0.1,
+        z_far: float = 100.0
     ):
         self.__focus_position = focus_position
         self.__color = color
@@ -53,9 +53,9 @@ class DirectionalLight(Light):
         focus_position: glm.vec3 = glm.vec3(0),
         color: glm.vec3 = glm.vec3(1.0),
         intensity: float = 1.0,
-        L: float = 5.0,
+        L: float = 7.0,
         z_near: float = 1.0,
-        z_far: float = 40.0
+        z_far: float = 50.0
     ):
         self.__direction   = direction
         super().__init__(focus_position, color, intensity, L, z_near, z_far)

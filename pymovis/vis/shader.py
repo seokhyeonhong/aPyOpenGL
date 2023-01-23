@@ -37,6 +37,7 @@ class Shader:
         self.__geometry_shader  = load_shader(geometry_path, GL_GEOMETRY_SHADER) if geometry_path is not None else None
         self.build()
 
+        self.name = os.path.splitext(os.path.basename(vertex_path))[0]
         self.is_view_updated    = False
         self.is_texture_updated = False
         

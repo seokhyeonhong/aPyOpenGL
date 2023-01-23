@@ -1,6 +1,6 @@
 import numpy as np
 
-from pymovis.vis.core import Vertex, VAO, Mesh
+from pymovis.vis.core import VertexGL, VAO, MeshGL
 from pymovis.vis.render import Render
 from pymovis.vis.glconst import INCH_TO_METER
 
@@ -24,7 +24,7 @@ class Heightmap:
         self.offset = np.sum(self.data) / (h * w) if self.offset is None else self.offset
         print(f"Loaded Heightmap: {h}x{w} points ({self.h_scale * h:.4f}m x {self.h_scale * w:.4f}m)")
 
-        vertices = [Vertex() for _ in range(h * w)]
+        vertices = [VertexGL() for _ in range(h * w)]
 
         # vertex positions
         px = self.h_scale * (np.arange(w) - w / 2)
@@ -68,7 +68,7 @@ class Heightmap:
 
         # VAO and mesh
         vao = VAO.from_vertex_array(vertices, indices)
-        self.mesh = Mesh(vao, vertices, indices)
+        self.mesh = MeshGL(vao, vertices, indices)
 
     def sample_height(self, x, z):
         h, w  = self.data.shape

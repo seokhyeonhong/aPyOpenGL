@@ -9,8 +9,9 @@ test_*
 # file formats
 *.pt
 *.pth
+*.pkl
 *.npy
 _*.py
 
 # incomplete codes
-*fbx*
+# *fbx*

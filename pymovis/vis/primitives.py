@@ -1,7 +1,7 @@
 import glm
 import numpy as np
 
-from pymovis.vis.core import VAO, Vertex, Mesh
+from pymovis.vis.core import VAO, VertexGL, MeshGL
 
 def get_color_by_position(position):
     colors = []
@@ -14,12 +14,12 @@ def get_color_by_position(position):
   /        / 
  v3------v0
 """
-class Plane(Mesh):
+class Plane(VAO):
     def __init__(self):
         positions, normals, tex_coords, indices = self.generate_vertices()
-        vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
+        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
         vao = VAO.from_vertex_array(vertices, indices)
-        super().__init__(vao, vertices, indices)
+        super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
     def generate_vertices(self):
         positions = [
@@ -46,12 +46,12 @@ class Plane(Mesh):
  |/      |/  
  v2------v3  
 """
-class Cube(Mesh):
+class Cube(VAO):
     def __init__(self):
         positions, normals, tex_coords, indices = self.generate_vertices()
-        vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
+        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
         vao = VAO.from_vertex_array(vertices, indices)
-        super().__init__(vao, vertices, indices)
+        super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
     def generate_vertices(self):
         v = [
@@ -112,7 +112,7 @@ class Cube(Mesh):
         # ]
         return positions, normals, tex_coords, indices
 
-class Sphere(Mesh):
+class Sphere(VAO):
     def __init__(
         self,
         radius,
@@ -120,9 +120,9 @@ class Sphere(Mesh):
         sectors=16
     ):
         positions, normals, tex_coords, indices = self.generate_vertices(radius, stacks, sectors)
-        vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
+        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
         vao = VAO.from_vertex_array(vertices, indices)
-        super().__init__(vao, vertices, indices)
+        super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
     def generate_vertices(self, radius, stacks, sectors):
         # TODO: Optimization using numpy (e.g. without for loops)
@@ -165,7 +165,7 @@ class Sphere(Mesh):
 
         return positions, normals, tex_coords, indices
 
-class Cone(Mesh):
+class Cone(VAO):
     def __init__(
         self,
         radius,
@@ -173,9 +173,9 @@ class Cone(Mesh):
         sectors=16
     ):
         positions, normals, tex_coords, indices = self.generate_vertices(radius, height, sectors)
-        vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
+        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
         vao = VAO.from_vertex_array(vertices, indices)
-        super().__init__(vao, vertices, indices)
+        super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
     
     def generate_vertices(self, radius, height, sectors):
         positions, normals, tex_coords = [], [], []
@@ -219,7 +219,7 @@ class Cone(Mesh):
 
         return positions, normals, tex_coords, indices
 
-class Cylinder(Mesh):
+class Cylinder(VAO):
     def __init__(
         self,
         radius,
@@ -227,9 +227,9 @@ class Cylinder(Mesh):
         sectors=16
     ):
         positions, normals, tex_coords, indices = self.generate_vertices(radius, height, sectors)
-        vertices = Vertex.make_vertex_array(positions, normals, tex_coords)
+        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
         vao = VAO.from_vertex_array(vertices, indices)
-        super().__init__(vao, vertices, indices)
+        super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
     
     def generate_vertices(self, radius, height, sectors):
         positions, normals, tex_coords = [], [], []
@@ -294,7 +294,7 @@ class Cylinder(Mesh):
         
         return positions, normals, tex_coords, indices
 
-class Cubemap(Mesh):
+class Cubemap(VAO):
     """
     Cubemap is actually not a mesh itself, but this implementation is convenient for rendering.
     """
@@ -302,7 +302,7 @@ class Cubemap(Mesh):
         positions = self.generate_vertices()
         positions = np.array(positions, dtype=np.float32) * scale
         vao = VAO.from_positions(positions)
-        super().__init__(vao, None, None)
+        super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
     
     def generate_vertices(self):
         positions = [

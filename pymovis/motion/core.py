@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from OpenGL.GL import *
 import numpy as np
 import copy
 import glm
@@ -49,6 +51,7 @@ class Skeleton:
 
         self.v_up = v_up
         self.v_forward = v_forward
+        self.pre_Rs = []
         
         self.parent_idx = []
         self.children_idx = []
@@ -66,19 +69,19 @@ class Skeleton:
                 res.append(i)
         return res
 
-    def add_joint(self, joint_name, parent_idx=None):
+    def add_joint(self, joint_name, parent_idx=None, pre_R=np.eye(3)):
         joint_idx = len(self.joints)
 
-        if parent_idx is None:
-            assert len(self.joints) == 0, "Only one root joint is allowed"
+        if parent_idx is None or parent_idx == -1:
+            # assert len(self.joints) == 0, "Only one root joint is allowed"
             self.parent_idx.append(-1)
-            self.children_idx.append(list())
         else:
             self.parent_idx.append(parent_idx)
             self.children_idx[parent_idx].append(joint_idx)
 
         joint = Joint(joint_name)
         self.idx_by_name[joint_name] = len(self.joints)
+        self.pre_Rs.append(pre_R)
         self.joints.append(joint)
         self.children_idx.append(list())
     
@@ -363,12 +366,13 @@ class Motion:
     def render_by_frame(self, frame, albedo=glm.vec3(1, 0, 0)):
         frame = max(0, min(frame, self.num_frames - 1))
         
+        # glDisable(GL_DEPTH_TEST)
         if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):
             self.joint_sphere = Render.sphere(0.05)
             self.joint_bone   = Render.cylinder(0.03, 1.0)
 
-        for i in range(self.skeleton.num_joints):
-            self.joint_sphere.set_position(self.global_p[frame, i]).set_color(albedo).draw()
+        # for i in range(self.skeleton.num_joints):
+        #     self.joint_sphere.set_position(self.global_p[frame, i]).set_color(albedo).draw()
 
         for i in range(1, self.skeleton.num_joints):
             parent_pos = self.global_p[frame, self.skeleton.parent_idx[i]]
@@ -381,4 +385,5 @@ class Motion:
             angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
             rotation = glm.rotate(glm.mat4(1.0), angle, axis)
             
-            self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_color(albedo).draw()
+            # self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_color(albedo).draw()
+        # glEnable(GL_DEPTH_TEST)

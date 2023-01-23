@@ -7,13 +7,18 @@ import numpy as np
 
 from pymovis.motion.data import bvh
 from pymovis.motion.core import Motion
-from pymovis.motion.ops import npmotion
 
-from pymovis.vis.core import Vertex, VAO, Mesh
 from pymovis.vis.render import Render
-from pymovis.vis.app import MotionApp
+from pymovis.vis.app import App, MotionApp
 from pymovis.vis.appmanager import AppManager
-from pymovis.vis.heightmap import Heightmap
+
+class SimpleApp(App):
+    def __init__(self):
+        super().__init__()
+        self.m = Render.plane()
+    
+    def render(self):
+        self.m.draw()
 
 class MyApp(MotionApp):
     def __init__(self, motion: Motion, vel_factor):
@@ -85,7 +90,10 @@ if __name__ == "__main__":
     # motion = bvh.load("D:/data/LaFAN1/aiming1_subject1.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
     motion.align_by_frame(0)
 
-    for i in range(2):
-        app_manager = AppManager()
-        app = MyApp(motion, [0.8, 0.9, 1.1, 1.2])
-        app_manager.run(app)
+    app_manager = AppManager()
+    app = MyApp(motion, [0.8, 0.9, 1.1, 1.2])
+    app_manager.run(app)
+
+    app_manager = AppManager()
+    app = SimpleApp()
+    app_manager.run(app)

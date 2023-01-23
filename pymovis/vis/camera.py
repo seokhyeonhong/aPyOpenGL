@@ -40,7 +40,7 @@ class Camera:
         return glm.lookAt(self.__position, self.__focus_position, self.__up)
 
     def get_projection_matrix(self, width, height):
-        aspect = width / height
+        aspect = width / (height + 1e-8)
         if self.__is_perspective:
             return glm.perspective(self.__zoom_factor * self.__fov_y, aspect, self.__z_near, self.__z_far)
         else:

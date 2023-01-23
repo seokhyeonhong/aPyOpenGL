@@ -12,6 +12,8 @@ from pymovis.vis.shader import Shader
 from pymovis.vis.primitives import Cube
 from pymovis.vis.texture import Texture, TextureType, TextureLoader
 from pymovis.vis.text import FontTexture
+from pymovis.vis.mesh import Mesh
+from pymovis.vis.model import Model
 from pymovis.vis.glconst import SHADOW_MAP_SIZE, TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES
 
 class RenderMode(Enum):
@@ -39,11 +41,12 @@ class Render:
 
     @staticmethod
     def initialize_shaders():
-        Render.primitive_shader = Shader("phong.vs", "phong.fs")
-        Render.shadow_shader    = Shader("shadow.vs", "shadow.fs")
-        Render.text_shader      = Shader("text.vs", "text.fs")
+        Render.primitive_shader = Shader("phong.vs",   "phong.fs")
+        Render.lbs_shader       = Shader("lbs.vs",     "phong.fs")
+        Render.shadow_shader    = Shader("shadow.vs",  "shadow.fs")
+        Render.text_shader      = Shader("text.vs",    "text.fs")
         Render.cubemap_shader   = Shader("cubemap.vs", "cubemap.fs")
-        Render.shaders = [Render.primitive_shader, Render.shadow_shader, Render.text_shader, Render.cubemap_shader]
+        Render.shaders = [Render.primitive_shader, Render.lbs_shader, Render.shadow_shader, Render.text_shader, Render.cubemap_shader]
         Render.generate_shadow_buffer()
     
     @staticmethod
@@ -113,8 +116,27 @@ class Render:
         return RenderOptions(Cylinder(radius, height, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
-    def mesh(mesh):
-        return RenderOptions(mesh, Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+    def mesh(mesh: Mesh):
+        if mesh.use_skinning:
+            ro = RenderOptions(mesh.mesh_gl.vao, Render.lbs_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+            ro.set_skinning(True).set_buffer_transforms(mesh.buffer)
+        else:
+            ro = RenderOptions(mesh.mesh_gl.vao, Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+        
+        ro.set_materials(mesh.materials)
+        return ro
+
+    @staticmethod
+    def model(model: Model, update=True):
+        # if update:
+        #     model.update_mesh()
+        
+        meshes = model.meshes
+        rov = []
+        for mesh in meshes:
+            rov.append(Render.mesh(mesh))
+
+        return RenderOptionsVec(rov)
 
     @staticmethod
     def axis():
@@ -178,11 +200,15 @@ class Render:
             shader.is_view_updated = True
 
         # update model
-        T = glm.translate(glm.mat4(1.0), option.position)
-        R = glm.mat4(option.orientation)
-        S = glm.scale(glm.mat4(1.0), option.scale)
-        transform = T * R * S
-        shader.set_mat4("M", transform)
+        if option.use_skinning:
+            for idx, buffer in enumerate(option.buffer_transforms):
+                shader.set_mat4(f"uLbsJoints[{idx}]", buffer)
+        else:
+            T = glm.translate(glm.mat4(1.0), option.position)
+            R = glm.mat4(option.orientation)
+            S = glm.scale(glm.mat4(1.0), option.scale)
+            transform = T * R * S
+            shader.set_mat4("M", transform)
 
         # texture indexing
         if shader.is_texture_updated is False:
@@ -234,10 +260,7 @@ class Render:
             rgba[i] = glm.vec4(material.albedo, material.alpha)
 
             texture_id[i].x = gl_set_texture(material.albedo_map.texture_id, texture_count)
-        # shader.set_multiple_vec3("uMaterial.diffuse",  [m.diffuse for m in option.materials])
-        # shader.set_multiple_vec3("uMaterial.specular", [m.specular for m in option.materials])
-        # shader.set_multiple_float("uMaterial.shininess", [m.shininess for m in option.materials])
-        # shader.set_multiple_vec4("uMaterial.albedo",   rgba)
+
         for i in range(MAX_MATERIAL_NUM):
             shader.set_vec4(f"uMaterial[{i}].albedo", rgba[i] if i < len(option.materials) else glm.vec4(1))
             shader.set_vec3(f"uMaterial[{i}].diffuse", option.materials[i].diffuse if i < len(option.materials) else glm.vec3(0))
@@ -245,12 +268,12 @@ class Render:
             shader.set_float(f"uMaterial[{i}].shininess", option.materials[i].shininess if i < len(option.materials) else 0)
             shader.set_ivec4(f"uMaterial[{i}].textureID", texture_id[i])
 
-        shader.set_bool("uColorMode",           option.color_mode)
-        shader.set_vec2("uvScale",              option.uv_repeat)
+        shader.set_bool("uColorMode", option.color_mode)
+        shader.set_vec2("uvScale",    option.uv_repeat)
 
         # final rendering
         glBindVertexArray(option.vao.id)
-        glDrawElements(GL_TRIANGLES, option.vao.len_indices, GL_UNSIGNED_INT, None)
+        glDrawElements(GL_TRIANGLES, len(option.vao.indices), GL_UNSIGNED_INT, None)
 
         # unbind vao
         glBindVertexArray(0)
@@ -265,16 +288,22 @@ class Render:
         shader.use()
 
         shader.set_mat4("lightSpaceMatrix", Render.render_info.light_matrix)
-        T = glm.translate(glm.mat4(1.0), option.position)
-        R = glm.mat4(option.orientation)
-        S = glm.scale(glm.mat4(1.0), option.scale)
-        transform = T * R * S
-        shader.set_mat4("M", transform)
+
+        if option.use_skinning:
+            shader.set_bool(f"uIsSkinned", True)
+            for idx, buffer in enumerate(option.buffer_transforms):
+                shader.set_mat4(f"uLbsJoints[{idx}]", buffer)
+        else:
+            shader.set_bool(f"uIsSkinned", False)
+            T = glm.translate(glm.mat4(1.0), option.position)
+            R = glm.mat4(option.orientation)
+            S = glm.scale(glm.mat4(1.0), option.scale)
+            shader.set_mat4("M", T * R * S)
 
         # final rendering
         glCullFace(GL_FRONT)
         glBindVertexArray(option.vao.id)
-        glDrawElements(GL_TRIANGLES, option.vao.len_indices, GL_UNSIGNED_INT, None)
+        glDrawElements(GL_TRIANGLES, len(option.vao.indices), GL_UNSIGNED_INT, None)
         glCullFace(GL_BACK)
 
         # unbind vao
@@ -414,13 +443,13 @@ class Render:
 class RenderOptions:
     def __init__(
         self,
-        mesh,
+        vao: VAO,
         shader,
         draw_func,
         shadow_shader=None,
         shadow_func=None,
     ):
-        self.mesh          = mesh
+        self.vao           = vao
         self.shader        = shader
         self.shadow_shader = shadow_shader
 
@@ -429,8 +458,12 @@ class RenderOptions:
         self.orientation   = glm.mat3(1.0)
         self.scale         = glm.vec3(1.0)
 
+        # joint
+        self.use_skinning  = False
+        self.buffer_transforms = []
+
         # material  
-        self.materials     = [Material()]
+        self.materials     = [Material()] * MAX_MATERIAL_NUM
         self.uv_repeat     = glm.vec2(1.0)
         self.text          = ""
         self.color_mode    = False
@@ -439,10 +472,6 @@ class RenderOptions:
         self.visible       = True
         self.draw_func     = draw_func
         self.shadow_func   = shadow_func
-
-    @property
-    def vao(self):
-        return self.mesh.vao
 
     def draw(self):
         if not self.visible:
@@ -483,6 +512,20 @@ class RenderOptions:
 
         return self
     
+    def set_material(self, material, material_id=0):
+        if len(self.materials) == 0:
+            self.materials.append(Material())
+            material_id = 0
+        
+        if material_id < len(self.materials):
+            self.materials[material_id] = material
+
+        return self
+    
+    def set_materials(self, materials):
+        self.materials = materials
+        return self
+    
     def set_text_color(self, color):
         self.material.set_albedo(glm.vec3(color))
         return self
@@ -500,6 +543,13 @@ class RenderOptions:
     # def set_cubemap(self, dirname):
     #     self.material.set_texture(TextureLoader.load_cubemap(dirname), TextureType.eCUBEMAP)
     #     return self
+    def set_skinning(self, use_skinning):
+        self.use_skinning = use_skinning
+        return self
+    
+    def set_buffer_transforms(self, buffer_transforms):
+        self.buffer_transforms = buffer_transforms
+        return self
     
     def set_uv_repeat(self, u, v=None):
         if v is None:

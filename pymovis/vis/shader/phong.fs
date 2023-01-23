@@ -155,10 +155,14 @@ void main()
     if (uColorMode)
     {
         FragColor = vec4(albedo, 1.0f);
+        return;
     }
-    
-    FragColor = BlinnPhong(albedo, N, V);
-    FragColor.a = alpha;
+    else
+    {
+        FragColor = BlinnPhong(albedo, N, V);
+        // FragColor.rgb = vec3(fMaterialID) * 0.1f;
+        FragColor.a = alpha;
+    }
 
     // Fog
     // float D = length(viewPosition - fPosition);
