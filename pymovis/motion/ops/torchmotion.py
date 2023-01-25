@@ -2,7 +2,6 @@ import torch
 import torch.nn.functional as F
 
 from pymovis.motion.core import Skeleton
-from pymovis.utils import torchconst
 
 """
 Functions that convert between different rotation representations.
@@ -67,8 +66,8 @@ def R_to_R6(R: torch.Tensor) -> torch.Tensor:
     """
     if R.shape[-2:] != (3, 3):
         raise ValueError(f"r.shape[-2:] = {R.shape[-2:]} != (3, 3)")
-    x = normalize_vector(R[..., 0, :], axis=-1)
-    y = normalize_vector(R[..., 1, :], axis=-1)
+    x = R[..., 0, :]
+    y = R[..., 1, :]
     return torch.cat([x, y], dim=-1) # (..., 6)
 
 """ Conversion from E """
@@ -232,8 +231,8 @@ def Q_mul(Q0: torch.Tensor, Q1: torch.Tensor) -> torch.Tensor:
     """
     if Q0.shape[-1] != 4 or Q1.shape[-1] != 4:
         raise ValueError(f"q0.shape[-1] = {Q0.shape[-1]} != 4 or q1.shape[-1] = {Q1.shape[-1]} != 4")
-    w0, x0, y0, z0 = torch.unbind(Q0, dim=-1)
-    w1, x1, y1, z1 = torch.unbind(Q1, dim=-1)
+    w0, x0, y0, z0 = torch.unbind(Q0[..., None, :], dim=-2)
+    w1, x1, y1, z1 = torch.unbind(Q1[..., None, :], dim=-2)
 
     res = torch.cat([
         w1 * w0 - x1 * x0 - y1 * y0 - z1 * z0,

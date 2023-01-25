@@ -46,8 +46,8 @@ def R_to_R6(R):
     """
     if R.shape[-2:] != (3, 3):
         raise ValueError(f"R.shape[-2:] = {R.shape[-2:]} != (3, 3)")
-    r0 = normalize_vector(R[..., 0, :], axis=-1)
-    r1 = normalize_vector(R[..., 1, :], axis=-1)
+    r0 = R[..., 0, :]
+    r1 = R[..., 1, :]
     return np.concatenate([r0, r1], axis=-1) # (..., 6)
 
 """ Conversion from E """

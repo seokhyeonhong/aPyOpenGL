@@ -19,6 +19,7 @@ WINDOW_OFFSET = 20
 FPS           = 30
 MOTION_DIR    = "./data/animations"
 SAVE_DIR      = "./data/dataset/motion"
+SAVE_FILENAME = f"size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"
 
 """ Load from saved files """
 def load_processed_data():
@@ -27,8 +28,8 @@ def load_processed_data():
         skeleton = pickle.load(f)
 
     # windows
-    train_windows = np.load(os.path.join(SAVE_DIR, f"train_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"))
-    test_windows  = np.load(os.path.join(SAVE_DIR, f"test_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"))
+    train_windows = np.load(os.path.join(SAVE_DIR, f"train_{SAVE_FILENAME}"))
+    test_windows  = np.load(os.path.join(SAVE_DIR, f"test_{SAVE_FILENAME}"))
 
     return skeleton, train_windows, test_windows
 

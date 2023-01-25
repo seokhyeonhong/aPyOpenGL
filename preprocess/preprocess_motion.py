@@ -55,8 +55,8 @@ def save_windows(motions):
 
     # save
     print("Saving windows")
-    np.save(os.path.join(SAVE_DIR, "train_" + SAVE_FILENAME), train_windows)
-    np.save(os.path.join(SAVE_DIR, "test_" + SAVE_FILENAME), test_windows)
+    np.save(os.path.join(SAVE_DIR, f"train_{SAVE_FILENAME}"), train_windows)
+    np.save(os.path.join(SAVE_DIR, f"test_{SAVE_FILENAME}"), test_windows)
 
 """ Extract windows a motion clip """
 def get_windows(motion):

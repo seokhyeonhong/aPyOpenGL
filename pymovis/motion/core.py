@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from OpenGL.GL import *
 import numpy as np
 import copy
-import glm
 
 from pymovis.utils import npconst
 from pymovis.motion.ops import npmotion

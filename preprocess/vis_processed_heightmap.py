@@ -24,9 +24,9 @@ def load_all_patches():
 
 """ Main function """
 class MyApp(App):
-    def __init__(self, heightmap):
+    def __init__(self, heightmap: Heightmap):
         super().__init__()
-        self.heightmap = Render.mesh(heightmap.mesh).set_texture("grid.png").set_uv_repeat(0.1)
+        self.heightmap = Render.vao(heightmap.vao).set_texture("grid.png").set_uv_repeat(0.1)
         self.axis = Render.axis()
     
     def render(self):
