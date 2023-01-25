@@ -14,7 +14,7 @@ from pymovis.vis.texture import Texture, TextureType, TextureLoader
 from pymovis.vis.text import FontTexture
 from pymovis.vis.mesh import Mesh
 from pymovis.vis.model import Model
-from pymovis.vis.glconst import SHADOW_MAP_SIZE, TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES
+from pymovis.vis.const import SHADOW_MAP_SIZE, TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES
 
 class RenderMode(Enum):
     ePHONG  = 0
@@ -128,9 +128,6 @@ class Render:
 
     @staticmethod
     def model(model: Model, update=True):
-        # if update:
-        #     model.update_mesh()
-        
         meshes = model.meshes
         rov = []
         for mesh in meshes:
@@ -146,15 +143,15 @@ class Render:
         cylinder_height = 0.8
 
         R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
-        x_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0.9, 0, 0).set_orientation(R_x).set_color(glm.vec3(1, 0, 0)).set_color_mode(True)
-        x_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0.4, 0, 0).set_orientation(R_x).set_color(glm.vec3(1, 0, 0)).set_color_mode(True)
+        x_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0.9, 0, 0).set_orientation(R_x).set_albedo(glm.vec3(1, 0, 0)).set_color_mode(True)
+        x_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0.4, 0, 0).set_orientation(R_x).set_albedo(glm.vec3(1, 0, 0)).set_color_mode(True)
 
-        y_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.9, 0).set_color(glm.vec3(0, 1, 0)).set_color_mode(True)
-        y_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.4, 0).set_color(glm.vec3(0, 1, 0)).set_color_mode(True)
+        y_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.9, 0).set_albedo(glm.vec3(0, 1, 0)).set_color_mode(True)
+        y_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.4, 0).set_albedo(glm.vec3(0, 1, 0)).set_color_mode(True)
 
         R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
-        z_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.9).set_orientation(R_z).set_color(glm.vec3(0, 0, 1)).set_color_mode(True)
-        z_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.4).set_orientation(R_z).set_color(glm.vec3(0, 0, 1)).set_color_mode(True)
+        z_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.9).set_orientation(R_z).set_albedo(glm.vec3(0, 0, 1)).set_color_mode(True)
+        z_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.4).set_orientation(R_z).set_albedo(glm.vec3(0, 0, 1)).set_color_mode(True)
         return RenderOptionsVec([x_head, x_body, y_head, y_body, z_head, z_body])
 
     @staticmethod
@@ -163,7 +160,7 @@ class Render:
             Render.font_texture = FontTexture()
 
         res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=False))
-        return res.set_text(str(t)).set_color(color)
+        return res.set_text(str(t)).set_albedo(color)
 
     @staticmethod
     def text_on_screen(t="", color=glm.vec3(0)):
@@ -171,7 +168,7 @@ class Render:
             Render.font_texture = FontTexture()
 
         res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=True))
-        return res.set_text(str(t)).set_color(glm.vec3(0))
+        return res.set_text(str(t)).set_albedo(glm.vec3(0))
 
     @staticmethod
     def cubemap(dirname, scale=100):
@@ -501,7 +498,7 @@ class RenderOptions:
             self.scale = glm.vec3(x, y, z)
         return self
 
-    def set_color(self, color, material_id=0):
+    def set_albedo(self, color, material_id=0):
         if len(self.materials) == 0:
             self.materials.append(Material())
             material_id = 0
@@ -543,6 +540,7 @@ class RenderOptions:
     # def set_cubemap(self, dirname):
     #     self.material.set_texture(TextureLoader.load_cubemap(dirname), TextureType.eCUBEMAP)
     #     return self
+
     def set_skinning(self, use_skinning):
         self.use_skinning = use_skinning
         return self
@@ -598,6 +596,17 @@ class RenderOptionsVec:
             option.switch_visible()
         return self
     
+    def set_all_alphas(self, alpha):
+        for option in self.options:
+            for material in option.materials:
+                material.set_alpha(alpha)
+        return self
+    
+    def set_albedo(self, albedo, material_id=0):
+        for option in self.options:
+            option.set_albedo(albedo, material_id)
+        return self
+
     def set_visible(self, visible):
         for option in self.options:
             option.set_visible(visible)

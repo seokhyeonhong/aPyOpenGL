@@ -4,7 +4,7 @@ import glm
 
 from pymovis.vis.app import App
 from pymovis.vis.render import Render, RenderMode
-from pymovis.vis.glconst import SHADOW_MAP_SIZE
+from pymovis.vis.const import SHADOW_MAP_SIZE
 
 class AppManager:
     def __init__(

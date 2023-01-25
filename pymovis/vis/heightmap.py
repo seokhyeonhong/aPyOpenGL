@@ -2,7 +2,7 @@ import numpy as np
 
 from pymovis.vis.core import VertexGL, VAO, MeshGL
 from pymovis.vis.render import Render
-from pymovis.vis.glconst import INCH_TO_METER
+from pymovis.vis.const import INCH_TO_METER
 
 class Heightmap:
     def __init__(self, data, h_scale=INCH_TO_METER, v_scale=INCH_TO_METER, offset=None):

@@ -5,12 +5,13 @@ import copy
 
 import numpy as np
 
-from pymovis.motion.data import bvh
+from pymovis.motion.data import bvh, fbx
 from pymovis.motion.core import Motion
 
 from pymovis.vis.render import Render
 from pymovis.vis.app import App, MotionApp
 from pymovis.vis.appmanager import AppManager
+from pymovis.vis.model import Model
 
 class SimpleApp(App):
     def __init__(self):
@@ -21,9 +22,8 @@ class SimpleApp(App):
         self.m.draw()
 
 class MyApp(MotionApp):
-    def __init__(self, motion: Motion, vel_factor):
-        super().__init__(motion)
-        self.motion = motion
+    def __init__(self, motion: Motion, model, vel_factor):
+        super().__init__(motion, model)
         self.vel_factor = vel_factor
 
         self.left_leg_idx   = self.motion.skeleton.idx_by_name["LeftUpLeg"]
@@ -41,7 +41,7 @@ class MyApp(MotionApp):
         grid_x, grid_z = np.meshgrid(grid_x, grid_z)
         grid_y = np.zeros_like(grid_x)
         self.env_map = np.stack([grid_x, grid_y, grid_z], axis=-1)
-        self.sphere = Render.sphere(0.05).set_color([0, 1, 0])
+        self.sphere = Render.sphere(0.05).set_albedo([0, 1, 0])
         # self.cubemap = Render.cubemap("skybox")
 
         # velocity-based locomotion scaling
@@ -80,20 +80,18 @@ class MyApp(MotionApp):
         # for e in env_map:
         #     self.sphere.set_position(e).draw()
         
-        for i, m in enumerate(self.dupl_motions):
-            m.render_by_frame(self.frame, (i + 1) * 0.25)
-        # self.cubemap.draw()
+        for i, motion in enumerate(self.dupl_motions):
+            self.model.set_pose_by_source(motion.poses[self.frame])
+            Render.model(self.model).draw()
+            self.render_xray(motion.poses[self.frame])
+        # # self.cubemap.draw()
 
 
 if __name__ == "__main__":
+    app_manager = AppManager()
+
     motion = bvh.load("./data/animations/PFNN_LocomotionFlat01_000.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
-    # motion = bvh.load("D:/data/LaFAN1/aiming1_subject1.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
+    model = fbx.FBX("./data/models/model_skeleton.fbx").model()
     motion.align_by_frame(0)
-
-    app_manager = AppManager()
-    app = MyApp(motion, [0.8, 0.9, 1.1, 1.2])
-    app_manager.run(app)
-
-    app_manager = AppManager()
-    app = SimpleApp()
+    app = MyApp(motion, model, [0.8, 0.9, 1.1, 1.2])
     app_manager.run(app)

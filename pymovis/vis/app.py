@@ -5,12 +5,16 @@ import os
 import datetime
 import cv2
 import numpy as np
+import glm
 
 from pymovis.motion.core import Motion
+from pymovis.motion.ops import npmotion
 
 from pymovis.vis.camera import Camera
 from pymovis.vis.light import DirectionalLight, PointLight
 from pymovis.vis.render import Render
+from pymovis.vis.model import Model
+from pymovis.vis.const import LAFAN_BVH_TO_FBX
 
 class App:
     def __init__(
@@ -44,9 +48,6 @@ class App:
         pass
 
     def render(self):
-        pass
-    
-    def render_xray(self):
         pass
     
     def terminate(self):
@@ -117,9 +118,15 @@ class App:
 
 """ Class for motion data visualization """
 class MotionApp(App):
-    def __init__(self, motion: Motion):
+    def __init__(self, motion: Motion, model: Model=None, skeleton_dict=LAFAN_BVH_TO_FBX):
         super().__init__()
         self.motion = motion
+        self.model = model
+        if self.model is not None:
+            if skeleton_dict is None:
+                raise ValueError("skeleton_dict must be provided if model is provided")
+            self.model.set_source_skeleton(self.motion.skeleton, skeleton_dict)
+
         self.frame = 0
         self.prev_frame = -1
         self.playing = True
@@ -186,8 +193,8 @@ class MotionApp(App):
                 
             self.captures.append(super().capture_screen())
             self.prev_frame = self.frame
-
-    def render(self):
+        
+    def render(self, render_xray=False):
         # time setting
         if self.playing:
             self.frame = min(int(glfw.get_time() * self.motion.fps), len(self.motion) - 1)
@@ -198,6 +205,39 @@ class MotionApp(App):
         self.grid.draw()
         self.axis.draw()
         self.motion.render_by_frame(self.frame)
+
+        if self.model is not None:
+            self.model.set_pose_by_source(self.motion.poses[self.frame])
+            Render.model(self.model).draw()
+        else:
+            self.render_xray(self.motion.poses[self.frame])
+
+        if render_xray:
+            self.render_xray(self.motion.poses[self.frame])
+
+    def render_xray(self, pose):
+        glDisable(GL_DEPTH_TEST)
+        if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):
+            self.joint_sphere = Render.sphere(0.03)
+            self.joint_bone   = Render.cylinder(0.03, 1.0)
+        
+        global_R, global_p = npmotion.R_fk(pose.local_R, pose.root_p, pose.skeleton)
+        for i in range(pose.skeleton.num_joints):
+            self.joint_sphere.set_position(global_p[i]).set_albedo([0, 1, 1]).draw()
+
+        for i in range(1, self.motion.skeleton.num_joints):
+            parent_pos = global_p[pose.skeleton.parent_idx[i]]
+
+            center = glm.vec3((parent_pos + global_p[i]) / 2)
+            dist = np.linalg.norm(parent_pos - global_p[i])
+            dir = glm.vec3((global_p[i] - parent_pos) / (dist + 1e-8))
+
+            axis = glm.cross(glm.vec3(0, 1, 0), dir)
+            angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
+            rotation = glm.rotate(glm.mat4(1.0), angle, axis)
+            
+            self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo([0, 1, 1]).draw()
+        glEnable(GL_DEPTH_TEST)
 
     def terminate(self):
         self.motion.__delattr__("joint_sphere")

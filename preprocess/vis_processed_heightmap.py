@@ -8,7 +8,7 @@ from pymovis.vis.heightmap import Heightmap
 from pymovis.vis.app import App
 from pymovis.vis.appmanager import AppManager
 from pymovis.vis.render import Render
-from pymovis.vis.glconst import INCH_TO_METER
+from pymovis.vis.const import INCH_TO_METER
 
 """ Global variables """
 SPARSITY      = 15

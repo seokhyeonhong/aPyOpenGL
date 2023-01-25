@@ -160,7 +160,6 @@ void main()
     else
     {
         FragColor = BlinnPhong(albedo, N, V);
-        // FragColor.rgb = vec3(fMaterialID) * 0.1f;
         FragColor.a = alpha;
     }
 

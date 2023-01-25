@@ -10,7 +10,7 @@ from pymovis.vis.appmanager import AppManager
 from pymovis.vis.app import MotionApp
 from pymovis.vis.render import Render
 from pymovis.vis.heightmap import Heightmap
-from pymovis.vis.glconst import INCH_TO_METER
+from pymovis.vis.const import INCH_TO_METER
 
 """ Global variables for the dataset """
 DATASET_DIR   = "./data/dataset"
@@ -58,7 +58,7 @@ class MyApp(MotionApp):
     def __init__(self, motion, contact, heightmap, envmap):
         super().__init__(motion)
         self.contact = contact
-        self.sphere = Render.sphere().set_color([0, 1, 0])
+        self.sphere = Render.sphere().set_albedo([0, 1, 0])
         self.grid.set_visible(False)
         self.axis.set_visible(False)
         
@@ -79,13 +79,13 @@ class MyApp(MotionApp):
 
         glDisable(GL_DEPTH_TEST)
         for idx, jid in enumerate(self.jid):
-            self.sphere.set_position(self.motion.global_p[self.frame, jid]).set_color([0, 1, 0]).set_scale(0.1 * contact[idx]).draw()
+            self.sphere.set_position(self.motion.global_p[self.frame, jid]).set_albedo([0, 1, 0]).set_scale(0.1 * contact[idx]).draw()
         glEnable(GL_DEPTH_TEST)
 
         self.heightmap_mesh.draw()
 
         for p in envmap:
-            self.sphere.set_position(p).set_scale(0.1).set_color([1, 1, 0]).draw()
+            self.sphere.set_position(p).set_scale(0.1).set_albedo([1, 1, 0]).draw()
 
 def main():
     visualize(test=False)

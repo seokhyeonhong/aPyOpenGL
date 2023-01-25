@@ -9,36 +9,13 @@ from pymovis.vis.render import Render
 from pymovis.vis.app import MotionApp
 from pymovis.vis.model import Model
 from pymovis.vis.appmanager import AppManager
+from pymovis.vis.const import LAFAN_BVH_TO_FBX
 
-BVH_TO_FBX = {
-    "Hips":          "Model:Hips",
-    "LeftUpLeg":     "Model:LeftUpLeg",
-    "LeftLeg":       "Model:LeftLeg",
-    "LeftFoot":      "Model:LeftFoot",
-    "LeftToe":       "Model:LeftToe",
-    "RightUpLeg":    "Model:RightUpLeg",
-    "RightLeg":      "Model:RightLeg",
-    "RightFoot":     "Model:RightFoot",
-    "RightToe":      "Model:RightToe",
-    "Spine":         "Model:Spine",
-    "Spine1":        "Model:Spine1",
-    "Spine2":        "Model:Spine2",
-    "Neck":          "Model:Neck",
-    "Head":          "Model:Head",
-    "LeftShoulder":  "Model:LeftShoulder",
-    "LeftArm":       "Model:LeftArm",
-    "LeftForeArm":   "Model:LeftForeArm",
-    "LeftHand":      "Model:LeftHand",
-    "RightShoulder": "Model:RightShoulder",
-    "RightArm":      "Model:RightArm",
-    "RightForeArm":  "Model:RightForeArm",
-    "RightHand":     "Model:RightHand",
-}
 
 class MyApp(MotionApp):
     def __init__(self, model: Model, motion: Motion):
         super().__init__(motion)
-        model.set_source_skeleton(motion.skeleton, BVH_TO_FBX)
+        model.set_source_skeleton(motion.skeleton, LAFAN_BVH_TO_FBX)
         self.model = model
         self.motion = motion
 

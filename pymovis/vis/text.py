@@ -4,7 +4,7 @@ import freetype as ft
 from OpenGL.GL import *
 import glm
 
-from pymovis.vis.glconst import TEXT_RESOLUTION
+from pymovis.vis.const import TEXT_RESOLUTION
 
 class Character:
     def __init__(self, texture_id: int, size: glm.ivec2, bearing: glm.ivec2, advance: int):

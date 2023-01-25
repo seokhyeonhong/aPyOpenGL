@@ -11,7 +11,7 @@ import numpy as np
 from pymovis.motion.ops import npmotion
 from pymovis.motion.core import Motion
 from pymovis.learning.rbf import RBF
-from pymovis.vis.glconst import INCH_TO_METER
+from pymovis.vis.const import INCH_TO_METER
 
 """ Global variables for the dataset """
 DATASET_DIR   = "./data/dataset"

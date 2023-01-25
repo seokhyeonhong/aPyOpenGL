@@ -1,5 +1,5 @@
 import glm
-from pymovis.vis import glconst
+from pymovis.vis.const import CAM_DOLLY_SENSITIVITY, CAM_TUMBLE_SENSITIVITY, CAM_ZOOM_SENSITIVITY, CAM_TRACK_SENSITIVITY
 
 class Camera:
     def __init__(
@@ -48,7 +48,7 @@ class Camera:
             return glm.ortho(-width * scale, width * scale, -height * scale, height * scale, self.__z_near, self.__z_far)
     
     def dolly(self, yoffset):
-        yoffset *= glconst.CAM_DOLLY_SENSITIVITY
+        yoffset *= CAM_DOLLY_SENSITIVITY
 
         disp = self.__orientation[2] * yoffset
         self.__position += disp
@@ -57,7 +57,7 @@ class Camera:
         self.update()
     
     def zoom(self, yoffset):
-        yoffset *= glconst.CAM_ZOOM_SENSITIVITY
+        yoffset *= CAM_ZOOM_SENSITIVITY
 
         if self.__is_perspective:
             self.__zoom_factor -= yoffset
@@ -69,8 +69,8 @@ class Camera:
         self.update()
 
     def tumble(self, dx, dy):
-        dx *= glconst.CAM_TUMBLE_SENSITIVITY
-        dy *= glconst.CAM_TUMBLE_SENSITIVITY
+        dx *= CAM_TUMBLE_SENSITIVITY
+        dy *= CAM_TUMBLE_SENSITIVITY
 
         disp = glm.vec4(self.__position - self.__focus_position, 1)
         alpha = 2.0
@@ -83,8 +83,8 @@ class Camera:
         self.update()
     
     def track(self, dx, dy):
-        dx *= glconst.CAM_TRACK_SENSITIVITY
-        dy *= glconst.CAM_TRACK_SENSITIVITY
+        dx *= CAM_TRACK_SENSITIVITY
+        dy *= CAM_TRACK_SENSITIVITY
 
         VT = glm.transpose(self.get_view_matrix())
         self.__position += glm.vec3(-dx * VT[0] - dy * VT[1])
