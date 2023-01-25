@@ -6,6 +6,8 @@ import pickle
 
 from OpenGL.GL import *
 
+from pymovis.motion.data.fbx import FBX
+
 from pymovis.vis.appmanager import AppManager
 from pymovis.vis.app import MotionApp
 from pymovis.vis.render import Render
@@ -43,7 +45,8 @@ def visualize(train=True, test=True):
         for motion, patch, envmap, contact in train_data:
             for p, e in zip(patch, envmap):
                 app_manager = AppManager()
-                app = MyApp(motion, contact, p, e)
+                model = FBX("./data/models/model_skeleton.fbx").model()
+                app = MyApp(motion, model, contact, p, e)
                 app_manager.run(app)
     
     if test:
@@ -51,12 +54,13 @@ def visualize(train=True, test=True):
         for motion, patch, envmap, contact in test_data:
             for p, e in zip(patch, envmap):
                 app_manager = AppManager()
-                app = MyApp(motion, contact, p, e)
+                model = FBX("./data/models/model_skeleton.fbx").model()
+                app = MyApp(motion, model, contact, p, e)
                 app_manager.run(app)
 
 class MyApp(MotionApp):
-    def __init__(self, motion, contact, heightmap, envmap):
-        super().__init__(motion)
+    def __init__(self, motion, model, contact, heightmap, envmap):
+        super().__init__(motion, model)
         self.contact = contact
         self.sphere = Render.sphere().set_albedo([0, 1, 0])
         self.grid.set_visible(False)
@@ -68,7 +72,7 @@ class MyApp(MotionApp):
         jid_right_toe  = self.motion.skeleton.idx_by_name["RightToe"]
         self.jid       = [jid_left_foot, jid_left_toe, jid_right_foot, jid_right_toe]
 
-        self.heightmap_mesh = Render.mesh(Heightmap(heightmap, h_scale=H_SCALE, v_scale=V_SCALE, offset=0).mesh).set_texture("grid.png").set_uv_repeat(0.1)
+        self.heightmap_mesh = Render.vao(Heightmap(heightmap, h_scale=H_SCALE, v_scale=V_SCALE, offset=0).vao).set_texture("grid.png").set_uv_repeat(0.1)
 
         self.envmap = envmap
     

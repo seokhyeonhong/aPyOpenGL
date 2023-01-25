@@ -116,6 +116,10 @@ class Render:
         return RenderOptions(Cylinder(radius, height, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
+    def vao(vao):
+        return RenderOptions(vao, Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+
+    @staticmethod
     def mesh(mesh: Mesh):
         if mesh.use_skinning:
             ro = RenderOptions(mesh.mesh_gl.vao, Render.lbs_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
@@ -127,7 +131,7 @@ class Render:
         return ro
 
     @staticmethod
-    def model(model: Model, update=True):
+    def model(model: Model):
         meshes = model.meshes
         rov = []
         for mesh in meshes:
@@ -210,7 +214,7 @@ class Render:
         # texture indexing
         if shader.is_texture_updated is False:
             shader.set_int("uShadowMap", 1)
-            for i in range(MAX_MATERIAL_TEXTURES):
+            for i in range(len(option.materials)):
                 shader.set_int(f"uTextures[{i}]", i + 2)
             shader.is_texture_updated = True
 
@@ -258,11 +262,11 @@ class Render:
 
             texture_id[i].x = gl_set_texture(material.albedo_map.texture_id, texture_count)
 
-        for i in range(MAX_MATERIAL_NUM):
-            shader.set_vec4(f"uMaterial[{i}].albedo", rgba[i] if i < len(option.materials) else glm.vec4(1))
-            shader.set_vec3(f"uMaterial[{i}].diffuse", option.materials[i].diffuse if i < len(option.materials) else glm.vec3(0))
-            shader.set_vec3(f"uMaterial[{i}].specular", option.materials[i].specular if i < len(option.materials) else glm.vec3(0))
-            shader.set_float(f"uMaterial[{i}].shininess", option.materials[i].shininess if i < len(option.materials) else 0)
+        for i in range(len(option.materials)):
+            shader.set_vec4(f"uMaterial[{i}].albedo", rgba[i])
+            shader.set_vec3(f"uMaterial[{i}].diffuse", option.materials[i].diffuse)
+            shader.set_vec3(f"uMaterial[{i}].specular", option.materials[i].specular)
+            shader.set_float(f"uMaterial[{i}].shininess", option.materials[i].shininess)
             shader.set_ivec4(f"uMaterial[{i}].textureID", texture_id[i])
 
         shader.set_bool("uColorMode", option.color_mode)
@@ -460,7 +464,7 @@ class RenderOptions:
         self.buffer_transforms = []
 
         # material  
-        self.materials     = [Material()] * MAX_MATERIAL_NUM
+        self.materials     = [Material()]
         self.uv_repeat     = glm.vec2(1.0)
         self.text          = ""
         self.color_mode    = False

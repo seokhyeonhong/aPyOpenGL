@@ -17,6 +17,7 @@ WINDOW_OFFSET = 20
 FPS           = 30
 MOTION_DIR    = "./data/animations"
 SAVE_DIR      = "./data/dataset/motion"
+SAVE_FILENAME = f"size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"
 
 """ Load from saved files """
 def load_motions():
@@ -54,8 +55,8 @@ def save_windows(motions):
 
     # save
     print("Saving windows")
-    np.save(os.path.join(SAVE_DIR, f"train_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"), train_windows)
-    np.save(os.path.join(SAVE_DIR, f"test_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"), test_windows)
+    np.save(os.path.join(SAVE_DIR, "train_" + SAVE_FILENAME), train_windows)
+    np.save(os.path.join(SAVE_DIR, "test_" + SAVE_FILENAME), test_windows)
 
 """ Extract windows a motion clip """
 def get_windows(motion):
@@ -68,8 +69,11 @@ def get_windows(motion):
         # Dimensions: (WINDOW_SIZE, D)
         window.align_by_frame(9)
         
-        local_R6 = npmotion.R_to_R6(window.local_R).reshape(WINDOW_SIZE, -1)
-        root_p   = window.root_p.reshape(WINDOW_SIZE, -1)
+        local_R = np.stack([pose.local_R for pose in window.poses], axis=0)
+        root_p  = np.stack([pose.root_p for pose in window.poses], axis=0)
+
+        local_R6 = npmotion.R_to_R6(local_R).reshape(WINDOW_SIZE, -1)
+        root_p   = root_p.reshape(WINDOW_SIZE, -1)
  
         window   = np.concatenate([local_R6, root_p], axis=-1)
         windows.append(window)

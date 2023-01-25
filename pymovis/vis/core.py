@@ -13,9 +13,6 @@ class VAO:
 
     @classmethod
     def from_vertex_array(cls, vertex_array: list[VertexGL], indices) -> VAO:
-        """
-        Constructor from a list of vertices and indices
-        """
         id      = glGenVertexArrays(1)
         vbos    = glGenBuffers(8)
         ebo     = glGenBuffers(1)
@@ -39,13 +36,6 @@ class VAO:
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(1)
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
-
-        # # color - deprecated
-        # data = np.array([v.color for v in vertex_array]).flatten()
-        # glBindBuffer(GL_ARRAY_BUFFER, self.vbos[2])
-        # glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
-        # glEnableVertexAttribArray(2)
-        # glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
 
         # tex_coord
         data = np.array([v.uv for v in vertex_array]).flatten()
@@ -94,6 +84,7 @@ class VAO:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL_STATIC_DRAW)
 
+        # unbind
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
@@ -101,9 +92,6 @@ class VAO:
     
     @classmethod
     def from_positions(cls, positions) -> VAO:
-        """
-        Constructor from a list of positions
-        """
         id      = glGenVertexArrays(1)
         vbos    = glGenBuffers(1)
         ebo     = None
@@ -132,7 +120,7 @@ class VertexGL:
         self.skinning_weights2 = skinning_weights2
 
     @staticmethod
-    def make_vertex_array(positions, normals, tex_coords, lbs_indices1=None, lbs_weights1=None, lbs_indices2=None, lbs_weights2=None):
+    def make_vertex_array(positions, normals, tex_coords, lbs_indices1=None, lbs_weights1=None, lbs_indices2=None, lbs_weights2=None) -> list[VertexGL]:
         vertex_array = []
         for i in range(len(positions)):
             if lbs_indices2 is not None and lbs_weights2 is not None:

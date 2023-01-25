@@ -1,7 +1,6 @@
 import numpy as np
 
 from pymovis.vis.core import VertexGL, VAO, MeshGL
-from pymovis.vis.render import Render
 from pymovis.vis.const import INCH_TO_METER
 
 class Heightmap:
@@ -24,18 +23,13 @@ class Heightmap:
         self.offset = np.sum(self.data) / (h * w) if self.offset is None else self.offset
         print(f"Loaded Heightmap: {h}x{w} points ({self.h_scale * h:.4f}m x {self.h_scale * w:.4f}m)")
 
-        vertices = [VertexGL() for _ in range(h * w)]
-
         # vertex positions
-        px = self.h_scale * (np.arange(w) - w / 2)
-        pz = self.h_scale * (np.arange(h) - h / 2)
+        px = self.h_scale * (np.arange(w, dtype=np.float32) - w / 2)
+        pz = self.h_scale * (np.arange(h, dtype=np.float32) - h / 2)
         px, pz = np.meshgrid(px, pz)
 
         py = self.sample_height(px, pz)
         positions = np.stack([px, py, pz], axis=-1)
-
-        for i, pos in enumerate(positions.reshape(-1, 3)):
-            vertices[i].position = pos
         
         # vertex normals
         normals = np.empty((h, w, 3), dtype=np.float32)
@@ -46,17 +40,11 @@ class Heightmap:
         cross = cross / (np.linalg.norm(cross, axis=-1, keepdims=True) + 1e-8)
 
         normals[1:-1, 1:-1] = cross
-        normals[0, :] = normals[-1, :] = np.array([0, 1, 0])
-        normals[:, 0] = normals[:, -1] = np.array([0, 1, 0])
-
-        for i, normal in enumerate(normals.reshape(-1, 3)):
-            vertices[i].normal = normal
+        normals[0, :] = normals[-1, :] = np.array([0, 1, 0], dtype=np.float32)
+        normals[:, 0] = normals[:, -1] = np.array([0, 1, 0], dtype=np.float32)
         
         # vertex UV coordinates
         uvs = np.stack([px, pz], axis=-1)
-
-        for i, uv in enumerate(uvs.reshape(-1, 2)):
-            vertices[i].uv= uv
 
         # vertex indices
         indices = np.empty((h - 1, w - 1, 6), dtype=np.int32)
@@ -66,9 +54,9 @@ class Heightmap:
         indices[..., 5] = indices[..., 0] + w + 1
         indices = indices.flatten()
 
-        # VAO and mesh
-        vao = VAO.from_vertex_array(vertices, indices)
-        self.mesh = MeshGL(vao, vertices, indices)
+        # vertices and vao
+        vertices = VertexGL.make_vertex_array(positions.reshape(-1, 3), normals.reshape(-1, 3), uvs.reshape(-1, 2))
+        self.vao = VAO.from_vertex_array(vertices, indices)
 
     def sample_height(self, x, z):
         h, w  = self.data.shape

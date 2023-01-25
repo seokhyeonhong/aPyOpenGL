@@ -71,6 +71,8 @@ class Shader:
     def set_mat3(self, name, value):  glUniformMatrix3fv(glGetUniformLocation(self.__program, name), 1, GL_FALSE, glm.value_ptr(value))
     def set_mat4(self, name, value):  glUniformMatrix4fv(glGetUniformLocation(self.__program, name), 1, GL_FALSE, glm.value_ptr(value))
 
+    # def set_struct(self, name, value, struct_name): glUniform1fv(glGetUniformLocation(self.__program, name), f"{struct_name}.Type", value)
+
 
     def set_multiple_float(self, name, value): glUniform1fv(glGetUniformLocation(self.__program, name), len(value), value)
     def set_multiple_vec3(self, name, value):  glUniform3fv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))

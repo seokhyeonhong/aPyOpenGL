@@ -3,7 +3,6 @@ import glm
 import numpy as np
 
 # from pymovis.motion.core import Pose
-from pymovis.motion.ops import npmotion
 from pymovis.vis.core import MeshGL
 
 class Mesh:
@@ -30,7 +29,7 @@ class Mesh:
         buffer_updated = [False] * len(self.mesh_gl.joint_order)
         self.buffer = [glm.mat4(1.0)] * len(self.mesh_gl.joint_order)
 
-        global_R, global_p = npmotion.R_fk(pose.local_R, pose.root_p, self.source_skeleton)
+        global_R, global_p = pose.global_R, pose.global_p
         for i in range(self.source_skeleton.num_joints):
             world_trf = np.concatenate((global_R[i], global_p[i][:, None]), axis=1)
             world_trf = np.concatenate((world_trf, np.array([[0, 0, 0, 1]])), axis=0).astype(np.float32)

@@ -8,8 +8,6 @@ import glm
 from pymovis.utils import npconst
 from pymovis.motion.ops import npmotion
 
-from pymovis.vis.render import Render
-
 class Joint:
     """
     Joint of a skeleton
@@ -69,7 +67,7 @@ class Skeleton:
                 res.append(i)
         return res
 
-    def add_joint(self, joint_name, parent_idx=None, pre_R=np.eye(3)):
+    def add_joint(self, joint_name, parent_idx=None):
         joint_idx = len(self.joints)
 
         if parent_idx is None or parent_idx == -1:
@@ -81,7 +79,6 @@ class Skeleton:
 
         joint = Joint(joint_name)
         self.idx_by_name[joint_name] = len(self.joints)
-        self.pre_Rs.append(pre_R)
         self.joints.append(joint)
         self.children_idx.append(list())
     
@@ -113,6 +110,7 @@ class Pose:
         self.skeleton = skeleton
         self.local_R = local_R
         self.root_p = root_p
+        self.global_R, self.global_p = npmotion.R_fk(self.local_R, self.root_p, self.skeleton)
     
     @classmethod
     def from_bvh(cls, skeleton, local_E, order, root_p):
@@ -144,27 +142,21 @@ class Pose:
     def left(self):
         return npmotion.normalize_vector(np.cross(self.up, self.forward))
 
-    def draw(self, albedo=glm.vec3(1.0, 0.0, 0.0)):
-        if not hasattr(self, "joint_sphere"):
-            self.joint_sphere = Render.sphere(0.05)
-            self.joint_bone   = Render.cylinder(0.03, 1.0)
+    """ Manipulation functions """
+    def set_root_p(self, root_p):
+        delta = root_p - self.root_p
+        self.translate_root_p(delta)
 
-        _, global_p = npmotion.R_fk(self.local_R, self.root_p, self.skeleton)
-        for i in range(self.skeleton.num_joints):
-            self.joint_sphere.set_position(global_p[i]).set_albedo(albedo).draw()
-
-            if i != 0:
-                parent_pos = global_p[self.skeleton.parent_idx[i]]
-
-                center = glm.vec3((parent_pos + global_p[i]) / 2)
-                dist = np.linalg.norm(parent_pos - global_p[i])
-                dir = glm.vec3((global_p[i] - parent_pos) / (dist + 1e-8))
-
-                axis = glm.cross(glm.vec3(0, 1, 0), dir)
-                angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
-                rotation = glm.rotate(glm.mat4(1.0), angle, axis)
-                
-                self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo(albedo).draw()
+    def translate_root_p(self, delta):
+        self.root_p += delta
+        self.global_p += delta
+    
+    def rotate_root(self, delta):
+        self.local_R[0] = np.matmul(delta, self.local_R[0])
+        self.global_R, self.global_p = npmotion.R_fk(self.local_R, self.root_p, self.skeleton)
+    
+    def update(self):
+        self.global_R, self.global_p = npmotion.R_fk(self.local_R, self.root_p, self.skeleton)
 
     """ IK functions """
     def two_bone_ik(self, base_idx, effector_idx, target_p, eps=1e-8):
@@ -172,14 +164,12 @@ class Pose:
         if self.skeleton.parent_idx[mid_idx] != base_idx:
             raise ValueError(f"{base_idx} and {effector_idx} are not in a two bone IK hierarchy")
 
-        global_R, global_p = npmotion.R_fk(self.local_R, self.root_p, self.skeleton)
+        a = self.global_p[base_idx]
+        b = self.global_p[mid_idx]
+        c = self.global_p[effector_idx]
 
-        a = global_p[base_idx]
-        b = global_p[mid_idx]
-        c = global_p[effector_idx]
-
-        global_a_R = global_R[base_idx]
-        global_b_R = global_R[mid_idx]
+        global_a_R = self.global_R[base_idx]
+        global_b_R = self.global_R[mid_idx]
 
         lab = np.linalg.norm(b - a)
         lcb = np.linalg.norm(b - c)
@@ -227,12 +217,6 @@ class Motion:
         self.fps = fps
         self.frametime = 1.0 / fps
 
-        # local rotations and root positions are stored separately from the poses
-        # to make the computation faster
-        self.local_R = np.stack([pose.local_R for pose in poses], axis=0)
-        self.root_p  = np.stack([pose.root_p for pose in poses], axis=0)
-        self.global_R, self.global_p = npmotion.R_fk(self.local_R, self.root_p, self.skeleton)
-    
     def __len__(self):
         return len(self.poses)
         
@@ -242,18 +226,12 @@ class Motion:
 
     @classmethod
     def from_numpy(cls, skeleton, local_R, root_p, fps=30.0):
-        poses = []
-        for i in range(local_R.shape[0]):
-            pose = Pose.from_numpy(skeleton, local_R[i], root_p[i])
-            poses.append(pose)
+        poses = [Pose.from_numpy(skeleton, local_R[i], root_p[i]) for i in range(local_R.shape[0])]
         return cls("default", skeleton, poses, fps=fps)
 
     @classmethod
     def from_torch(cls, skeleton, local_R, root_p, fps=30.0):
-        poses = []
-        for i in range(local_R.shape[0]):
-            pose = Pose.from_numpy(skeleton, local_R[i].cpu().numpy(), root_p[i].cpu().numpy())
-            poses.append(pose)
+        poses = [Pose.from_numpy(skeleton, local_R[i].cpu().numpy(), root_p[i].cpu().numpy()) for i in range(local_R.shape[0])]
         return cls("default", skeleton, poses, fps=fps)
 
     def make_window(self, start, end):
@@ -263,14 +241,6 @@ class Motion:
             copy.deepcopy(self.poses[start:end]),
             self.fps
         )
-
-    def update(self):
-        """ Called whenever self.local_R or self.root_p are changed """
-        for i in range(self.num_frames):
-            self.poses[i].local_R = self.local_R[i]
-            self.poses[i].root_p = self.root_p[i]
-
-        self.global_R, self.global_p = npmotion.R_fk(self.local_R, self.root_p, self.skeleton)
     
     def get_pose_by_frame(self, frame):
         return self.poses[frame]
@@ -281,8 +251,9 @@ class Motion:
 
     """ Alignment functions """
     def align_to_origin_by_frame(self, frame):
-        self.root_p -= self.root_p[frame] * npconst.XZ()
-        self.update()
+        delta = -self.poses[frame].root_p * npconst.XZ()
+        for pose in self.poses:
+            pose.translate_root_p(delta)
     
     def align_to_forward_by_frame(self, frame, forward=npconst.FORWARD()):
         forward_from = self.poses[frame].forward
@@ -297,93 +268,12 @@ class Motion:
         angle = angle * np.sign(axis[1])
         R_delta = npmotion.E_to_R(angle, "y")
         
-        # update root rotation - R: (nof, noj, 3, 3), R_delta: (3, 3)
-        self.local_R[:, 0] = np.matmul(R_delta, self.local_R[:, 0])
-
-        # update root position - R_delta: (3, 3), p: (nof, 3) -> (nof, 3)
-        self.root_p = self.root_p - self.poses[frame].base
-        self.root_p = np.matmul(R_delta, self.root_p.T).T + self.poses[frame].base
-        self.root_p = self.root_p
-        
-        self.update()
+        base = self.poses[frame].base
+        for pose in self.poses:
+            pose.local_R[0] = np.matmul(R_delta, pose.local_R[0])
+            pose.root_p = np.matmul(R_delta, (pose.root_p - base).T).T + base
+            pose.update()
     
     def align_by_frame(self, frame, forward=npconst.FORWARD()):
         self.align_to_origin_by_frame(frame)
         self.align_to_forward_by_frame(frame, forward)
-    
-    """ Manipulation functions """
-    def translate_root(self, delta):
-        self.root_p += delta
-        self.update()
-    
-    def set_root_p(self, p):
-        self.root_p = p
-        self.update()
-    
-    def two_bone_ik(self, base_idx, effector_idx, target_p, eps=1e-8):
-        if self.skeleton.parent_idx[self.skeleton.parent_idx[effector_idx]] != base_idx:
-            raise ValueError(f"{base_idx} and {effector_idx} are not in a two bone IK hierarchy")
-        
-        mid_idx = self.skeleton.parent_idx[effector_idx]
-
-        """ p and R for base, mid, and effector are in (nof, 3) """
-        a = self.global_p[:, base_idx]
-        b = self.global_p[:, mid_idx]
-        c = self.global_p[:, effector_idx]
-
-        global_a_R = self.global_R[:, base_idx]
-        global_b_R = self.global_R[:, mid_idx]
-
-        lab = np.linalg.norm(b - a, axis=1)
-        lcb = np.linalg.norm(b - c, axis=1)
-        lat = np.clip(np.linalg.norm(target_p - a, axis=1), eps, lab + lcb - eps)
-
-        ac_ab_0 = np.arccos(np.clip(np.sum(npmotion.normalize_vector(c - a) * npmotion.normalize_vector(b - a), axis=-1), -1, 1))
-        ba_bc_0 = np.arccos(np.clip(np.sum(npmotion.normalize_vector(a - b) * npmotion.normalize_vector(c - b), axis=-1), -1, 1))
-        ac_at_0 = np.arccos(np.clip(np.sum(npmotion.normalize_vector(c - a) * npmotion.normalize_vector(target_p - a), axis=-1), -1, 1))
-
-        ac_ab_1 = np.arccos(np.clip((lcb*lcb - lab*lab - lat*lat) / (-2*lab*lat), -1, 1))
-        ba_bc_1 = np.arccos(np.clip((lat*lat - lab*lab - lcb*lcb) / (-2*lab*lcb), -1, 1))
-
-        # d = global_b_R @ np.array([0, 0, 1])
-        axis_0 = npmotion.normalize_vector(np.cross(c - a, b - a))
-        axis_1 = npmotion.normalize_vector(np.cross(c - a, target_p - a))
-
-        r0 = npmotion.A_to_R(ac_ab_1 - ac_ab_0, np.einsum("ijk,ik->ij", npmotion.R_inv(global_a_R), axis_0)).squeeze()
-        r1 = npmotion.A_to_R(ba_bc_1 - ba_bc_0, np.einsum("ijk,ik->ij", npmotion.R_inv(global_b_R), axis_0)).squeeze()
-        r2 = npmotion.A_to_R(ac_at_0, np.einsum("ijk,ik->ij", npmotion.R_inv(global_a_R), axis_1)).squeeze()
-
-        self.local_R[:, base_idx] = self.local_R[:, base_idx] @ r0 @ r2
-        self.local_R[:, mid_idx] = self.local_R[:, mid_idx] @ r1
-
-        self.update()
-        
-    """ Rendering functions """
-    def render_by_time(self, time, albedo=glm.vec3(1, 0, 0)):
-        frame = max(0, min(int(time * self.fps), self.num_frames - 1))
-        self.render_by_frame(frame, albedo=albedo)
-    
-    def render_by_frame(self, frame, albedo=glm.vec3(1, 0, 0)):
-        frame = max(0, min(frame, self.num_frames - 1))
-        
-        # glDisable(GL_DEPTH_TEST)
-        if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):
-            self.joint_sphere = Render.sphere(0.05)
-            self.joint_bone   = Render.cylinder(0.03, 1.0)
-
-        # for i in range(self.skeleton.num_joints):
-        #     self.joint_sphere.set_position(self.global_p[frame, i]).set_albedo(albedo).draw()
-
-        for i in range(1, self.skeleton.num_joints):
-            parent_pos = self.global_p[frame, self.skeleton.parent_idx[i]]
-
-            center = glm.vec3((parent_pos + self.global_p[frame, i]) / 2)
-            dist = np.linalg.norm(parent_pos - self.global_p[frame, i])
-            dir = glm.vec3((self.global_p[frame, i] - parent_pos) / (dist + 1e-8))
-
-            axis = glm.cross(glm.vec3(0, 1, 0), dir)
-            angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
-            rotation = glm.rotate(glm.mat4(1.0), angle, axis)
-            
-            # self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo(albedo).draw()
-        # glEnable(GL_DEPTH_TEST)

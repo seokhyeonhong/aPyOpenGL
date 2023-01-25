@@ -169,8 +169,8 @@ class FBX:
         char_data = self.parser.char_data
         joints = char_data.joint_data
         for joint in joints:
-            pre_R = npmotion.Q_to_R(np.array(joint.pre_R)).squeeze()
-            skeleton.add_joint(joint.name, joint.parent_idx, pre_R)
+            # pre_R = npmotion.Q_to_R(np.array(joint.pre_R)).squeeze()
+            skeleton.add_joint(joint.name, joint.parent_idx)#, pre_R)
         return skeleton
 
     def model(self):

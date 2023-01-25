@@ -8,6 +8,7 @@ import numpy as np
 
 from pymovis.motion.ops import npmotion
 from pymovis.motion.core import Motion
+from pymovis.motion.data.fbx import FBX
 
 from pymovis.vis.appmanager import AppManager
 from pymovis.vis.app import MotionApp
@@ -42,7 +43,8 @@ def visualize(train=True, test=True):
             motion = Motion.from_numpy(skeleton, local_R, root_p, fps=FPS)
 
             app_manager = AppManager()
-            app = MotionApp(motion)
+            model = FBX("./data/models/model_skeleton.fbx").model()
+            app = MotionApp(motion, model)
             app_manager.run(app)
     
     if test:
@@ -52,7 +54,8 @@ def visualize(train=True, test=True):
             motion = Motion.from_numpy(skeleton, local_R, root_p, fps=FPS)
 
             app_manager = AppManager()
-            app = MotionApp(motion)
+            model = FBX("./data/models/model_skeleton.fbx").model()
+            app = MotionApp(motion, model)
             app_manager.run(app)
 
 def main():

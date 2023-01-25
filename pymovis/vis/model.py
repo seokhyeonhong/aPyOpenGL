@@ -1,6 +1,5 @@
 from OpenGL.GL import *
 
-# from pymovis.motion.core import Skeleton
 from pymovis.vis.mesh import Mesh
 
 class Model:

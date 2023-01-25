@@ -201,30 +201,27 @@ class MotionApp(App):
         else:
             glfw.set_time(self.frame / self.motion.fps)
         
-        # render the current frame
+        # render the environment
         self.grid.draw()
         self.axis.draw()
-        self.motion.render_by_frame(self.frame)
 
+        # render the model
         if self.model is not None:
             self.model.set_pose_by_source(self.motion.poses[self.frame])
             Render.model(self.model).draw()
-        else:
-            self.render_xray(self.motion.poses[self.frame])
 
-        if render_xray:
-            self.render_xray(self.motion.poses[self.frame])
+        self.render_xray(self.motion.poses[self.frame])
 
     def render_xray(self, pose):
-        glDisable(GL_DEPTH_TEST)
         if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):
             self.joint_sphere = Render.sphere(0.03)
-            self.joint_bone   = Render.cylinder(0.03, 1.0)
+            self.joint_bone   = Render.cone(radius=0.03, height=1, sectors=4)
         
         global_R, global_p = npmotion.R_fk(pose.local_R, pose.root_p, pose.skeleton)
-        for i in range(pose.skeleton.num_joints):
-            self.joint_sphere.set_position(global_p[i]).set_albedo([0, 1, 1]).draw()
+        # for i in range(pose.skeleton.num_joints):
+        #     self.joint_sphere.set_position(global_p[i]).set_albedo([0, 1, 1]).draw()
 
+        glDisable(GL_DEPTH_TEST)
         for i in range(1, self.motion.skeleton.num_joints):
             parent_pos = global_p[pose.skeleton.parent_idx[i]]
 
@@ -234,14 +231,10 @@ class MotionApp(App):
 
             axis = glm.cross(glm.vec3(0, 1, 0), dir)
             angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
-            rotation = glm.rotate(glm.mat4(1.0), angle, axis)
+            orientation = glm.rotate(glm.mat4(1.0), angle, axis)
             
-            self.joint_bone.set_position(center).set_orientation(rotation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo([0, 1, 1]).draw()
+            self.joint_bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo([0, 1, 1]).set_color_mode(False).draw()
         glEnable(GL_DEPTH_TEST)
-
-    def terminate(self):
-        self.motion.__delattr__("joint_sphere")
-        self.motion.__delattr__("joint_bone")
 
     """ Capture functions """
     def save_video(self, captures):
