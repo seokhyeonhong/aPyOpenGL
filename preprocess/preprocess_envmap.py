@@ -14,19 +14,23 @@ from pymovis.learning.rbf import RBF
 from pymovis.vis.const import INCH_TO_METER
 
 """ Global variables for the dataset """
-DATASET_DIR   = "./data/dataset"
+WINDOW_SIZE     = 50
+WINDOW_OFFSET   = 20
+FPS             = 30
+MOTION_DIR      = f"./data/dataset/motion"
+MOTION_FILENAME = f"size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"
 
-MOTION_DIR    = f"{DATASET_DIR}/motion"
-WINDOW_SIZE   = 50
-WINDOW_OFFSET = 20
-FPS           = 30
+SPARSITY        = 15
+SIZE            = 200
+TOP_K_SAMPLES   = 10
+H_SCALE         = 2 * INCH_TO_METER
+V_SCALE         = INCH_TO_METER
+HEIGHTMAP_DIR   = f"./data/dataset/heightmap"
+HEIGHT_FILENAME = f"sparsity{SPARSITY}_size{SIZE}.npy"
 
-HEIGHTMAP_DIR = f"{DATASET_DIR}/heightmap"
-SPARSITY      = 15
-SIZE          = 200
-TOP_K_SAMPLES = 10
-H_SCALE       = 2 * INCH_TO_METER
-V_SCALE       = INCH_TO_METER
+ENVMAP_DIR      = f"./data/dataset/envmap/"
+VIS_DIR         = f"./data/dataset/vis/"
+SAVE_FILENAME   = f"size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl"
 
 """ Load processed data """
 def load_processed_motions(split):
@@ -35,7 +39,7 @@ def load_processed_motions(split):
         skeleton = pickle.load(f)
 
     # features
-    motion_path = os.path.join(MOTION_DIR, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy")
+    motion_path = os.path.join(MOTION_DIR, f"{split}_{MOTION_FILENAME}")
     features = np.load(motion_path)
 
     # make motion
@@ -46,14 +50,14 @@ def load_processed_motions(split):
     return motions
 
 def load_processed_heightmaps():
-    heightmap_path = os.path.join(HEIGHTMAP_DIR, f"sparsity{SPARSITY}_size{SIZE}.npy")
+    heightmap_path = os.path.join(HEIGHTMAP_DIR, HEIGHT_FILENAME)
     heightmaps = np.load(heightmap_path)
     return heightmaps
 
 """ Data processing """
 def get_contact_info(motion: Motion, vel_factor=2e-4):
     def _get_contact_info_by_jid(jid):
-        global_p_jid = motion.global_p[:, jid]
+        global_p_jid = np.stack([pose.global_p[jid] for pose in motion.poses], axis=0)
         contact = np.sum((global_p_jid[1:] - global_p_jid[:-1]) ** 2, axis=-1) < vel_factor
         contact = np.concatenate([contact[0:1], contact], axis=0).astype(np.float32)
         return global_p_jid, contact
@@ -184,22 +188,18 @@ def generate_dataset(split="train"):
     print("Envmap dataset shape:", env_maps.shape)
 
     # create directory
-    envmap_dir = os.path.join(DATASET_DIR, "envmap")
-    vis_dir = os.path.join(DATASET_DIR, "vis")
-
-    if not os.path.exists(envmap_dir):
-        os.makedirs(envmap_dir)
-    if not os.path.exists(vis_dir):
-        os.makedirs(vis_dir)
+    if not os.path.exists(ENVMAP_DIR):
+        os.makedirs(ENVMAP_DIR)
+    if not os.path.exists(VIS_DIR):
+        os.makedirs(VIS_DIR)
 
     # save
     print("Saving envmap dataset")
-    envmap_path = os.path.join(envmap_dir, f"{split}_temp.npy")
-    # envmap_path = os.path.join(envmap_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.npy")
-    np.save(envmap_path, env_maps)
+    envmap_path = os.path.join(ENVMAP_DIR, f"{split}_{SAVE_FILENAME}")
+    with open(envmap_path, "wb") as f:
+        pickle.dump(env_maps, f)
     
-    vis_path = os.path.join(vis_dir, f"{split}_temp.pkl")
-    # vis_path = os.path.join(vis_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl")
+    vis_path = os.path.join(VIS_DIR, f"{split}_{SAVE_FILENAME}")
     with open(vis_path, "wb") as f:
         pickle.dump(vis_data, f)
 

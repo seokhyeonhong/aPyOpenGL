@@ -11,7 +11,7 @@ from pymovis.motion.core import Motion
 from pymovis.motion.ops import npmotion
 
 from pymovis.vis.camera import Camera
-from pymovis.vis.light import DirectionalLight, PointLight
+from pymovis.vis.light import Light, DirectionalLight, PointLight
 from pymovis.vis.render import Render
 from pymovis.vis.model import Model
 from pymovis.vis.const import LAFAN_BVH_TO_FBX
@@ -20,7 +20,7 @@ class App:
     def __init__(
         self,
         camera: Camera = Camera(),
-        light: DirectionalLight = DirectionalLight(),
+        light: Light = DirectionalLight(),
     ):
         self.camera = camera
         self.light = light

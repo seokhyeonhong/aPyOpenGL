@@ -15,25 +15,26 @@ from pymovis.vis.heightmap import Heightmap
 from pymovis.vis.const import INCH_TO_METER
 
 """ Global variables for the dataset """
-DATASET_DIR   = "./data/dataset"
+WINDOW_SIZE     = 50
+WINDOW_OFFSET   = 20
+FPS             = 30
+MOTION_DIR      = f"./data/dataset/motion"
+MOTION_FILENAME = f"size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"
 
-MOTION_DIR    = f"{DATASET_DIR}/motion"
-WINDOW_SIZE   = 50
-WINDOW_OFFSET = 20
-FPS           = 30
+SPARSITY        = 15
+SIZE            = 200
+TOP_K_SAMPLES   = 10
+H_SCALE         = 2 * INCH_TO_METER
+V_SCALE         = INCH_TO_METER
+HEIGHTMAP_DIR   = f"./data/dataset/heightmap"
+HEIGHT_FILENAME = f"sparsity{SPARSITY}_size{SIZE}.npy"
 
-HEIGHTMAP_DIR = f"{DATASET_DIR}/heightmap"
-SPARSITY      = 15
-SIZE          = 200
-TOP_K_SAMPLES = 10
-H_SCALE       = 2 * INCH_TO_METER
-V_SCALE       = INCH_TO_METER
+VIS_DIR         = f"./data/dataset/vis/"
+SAVE_FILENAME   = f"size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl"
 
 """ Load processed data """
 def load_processed_envmap(split):
-    vis_dir = os.path.join(DATASET_DIR, "vis")
-    with open(os.path.join(vis_dir, f"{split}_temp.pkl"), "rb") as f:
-    # with open(os.path.join(vis_dir, f"{split}_size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl"), "rb") as f:
+    with open(os.path.join(VIS_DIR, f"{split}_{SAVE_FILENAME}"), "rb") as f:
         vis_data = pickle.load(f)
 
     return vis_data
@@ -83,13 +84,13 @@ class MyApp(MotionApp):
 
         glDisable(GL_DEPTH_TEST)
         for idx, jid in enumerate(self.jid):
-            self.sphere.set_position(self.motion.global_p[self.frame, jid]).set_albedo([0, 1, 0]).set_scale(0.1 * contact[idx]).draw()
+            self.sphere.set_position(self.motion.poses[self.frame].global_p[jid]).set_albedo([1, 0, 0]).set_scale(0.1 * contact[idx]).draw()
         glEnable(GL_DEPTH_TEST)
 
         self.heightmap_mesh.draw()
 
         for p in envmap:
-            self.sphere.set_position(p).set_scale(0.1).set_albedo([1, 1, 0]).draw()
+            self.sphere.set_position(p).set_scale(0.1).set_albedo([0, 1, 0]).draw()
 
 def main():
     visualize(test=False)

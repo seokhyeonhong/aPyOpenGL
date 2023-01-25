@@ -15,10 +15,11 @@ SPARSITY      = 15
 SIZE          = 200
 HEIGHTMAP_DIR = "./data/heightmaps"
 SAVE_DIR      = "./data/dataset/heightmap"
+SAVE_FILENAME = f"sparsity{SPARSITY}_size{SIZE}.npy"
 
 """ Load from saved files """
 def load_all_patches():
-    data = np.load(os.path.join(SAVE_DIR, f"sparsity{SPARSITY}_size{SIZE}.npy"))
+    data = np.load(os.path.join(SAVE_DIR, SAVE_FILENAME))
     print(f"Loaded patches: {data.shape}")
     return data
 
