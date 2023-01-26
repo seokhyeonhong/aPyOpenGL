@@ -1,6 +1,3 @@
-import sys
-sys.path.append(".")
-
 import os
 import pickle
 
@@ -18,25 +15,24 @@ from pymovis.vis.const import INCH_TO_METER
 WINDOW_SIZE     = 50
 WINDOW_OFFSET   = 20
 FPS             = 30
-MOTION_DIR      = f"./data/dataset/motion"
-MOTION_FILENAME = f"size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"
+MOTION_DIR      = f"../data/dataset/motion"
+MOTION_FILENAME = f"motions_length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.pkl"
 
 SPARSITY        = 15
-SIZE            = 200
+SIZE            = 140
 TOP_K_SAMPLES   = 10
 H_SCALE         = 2 * INCH_TO_METER
 V_SCALE         = INCH_TO_METER
-HEIGHTMAP_DIR   = f"./data/dataset/heightmap"
-HEIGHT_FILENAME = f"sparsity{SPARSITY}_size{SIZE}.npy"
+HEIGHTMAP_DIR   = f"../data/dataset/heightmap"
+HEIGHT_FILENAME = f"sparsity{SPARSITY}_size{SIZE}.pkl"
 
-VIS_DIR         = f"./data/dataset/vis/"
-SAVE_FILENAME   = f"size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl"
+VIS_DIR         = f"../data/dataset/vis/"
+SAVE_FILENAME   = f"length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}_sparsity{SPARSITY}_mapsize{SIZE}_top{TOP_K_SAMPLES}.pkl"
 
 """ Load processed data """
 def load_processed_envmap(split):
     with open(os.path.join(VIS_DIR, f"{split}_{SAVE_FILENAME}"), "rb") as f:
         vis_data = pickle.load(f)
-
     return vis_data
 
 """ Main functions """
@@ -46,8 +42,9 @@ def visualize(train=True, test=True):
         for motion, patch, envmap, contact in train_data:
             for p, e in zip(patch, envmap):
                 app_manager = AppManager()
-                model = FBX("./data/models/model_skeleton.fbx").model()
+                model = FBX("../data/models/model_skeleton.fbx").model()
                 app = MyApp(motion, model, contact, p, e)
+                print(motion.name, motion.type)
                 app_manager.run(app)
     
     if test:
@@ -55,7 +52,7 @@ def visualize(train=True, test=True):
         for motion, patch, envmap, contact in test_data:
             for p, e in zip(patch, envmap):
                 app_manager = AppManager()
-                model = FBX("./data/models/model_skeleton.fbx").model()
+                model = FBX("../data/models/model_skeleton.fbx").model()
                 app = MyApp(motion, model, contact, p, e)
                 app_manager.run(app)
 

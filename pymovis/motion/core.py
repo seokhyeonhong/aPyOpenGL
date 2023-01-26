@@ -191,6 +191,8 @@ class Pose:
         self.local_R[base_idx] = self.local_R[base_idx] @ r0 @ r2
         self.local_R[mid_idx] = self.local_R[mid_idx] @ r1
 
+        self.update()
+
 class Motion:
     """
     Motion class that contains the skeleton and its sequence of poses.
@@ -204,16 +206,18 @@ class Motion:
     """
     def __init__(
         self,
-        name: str,
         skeleton: Skeleton,
-        poses: list[Pose],
-        fps: float=30.0,
+        poses:    list[Pose],
+        fps:      float = 30.0,
+        name:     str = "default",
+        type:     str = "default"
     ):
-        self.name = name
-        self.skeleton = skeleton
-        self.poses = poses
-        self.fps = fps
+        self.skeleton  = skeleton
+        self.poses     = poses
+        self.fps       = fps
         self.frametime = 1.0 / fps
+        self.name      = name
+        self.type      = type
 
     def __len__(self):
         return len(self.poses)
@@ -223,21 +227,22 @@ class Motion:
         return len(self.poses)
 
     @classmethod
-    def from_numpy(cls, skeleton, local_R, root_p, fps=30.0):
+    def from_numpy(cls, skeleton, local_R, root_p, fps=30.0, name="default", type="default"):
         poses = [Pose.from_numpy(skeleton, local_R[i], root_p[i]) for i in range(local_R.shape[0])]
-        return cls("default", skeleton, poses, fps=fps)
+        return cls(skeleton, poses, fps=fps, name=name, type=type)
 
     @classmethod
-    def from_torch(cls, skeleton, local_R, root_p, fps=30.0):
+    def from_torch(cls, skeleton, local_R, root_p, fps=30.0, name="default", type="default"):
         poses = [Pose.from_numpy(skeleton, local_R[i].cpu().numpy(), root_p[i].cpu().numpy()) for i in range(local_R.shape[0])]
-        return cls("default", skeleton, poses, fps=fps)
+        return cls(skeleton, poses, fps=fps, name=name, type=type)
 
     def make_window(self, start, end):
         return Motion(
-            self.name,
             self.skeleton,
             copy.deepcopy(self.poses[start:end]),
-            self.fps
+            self.fps,
+            self.name,
+            self.type
         )
     
     def get_pose_by_frame(self, frame):

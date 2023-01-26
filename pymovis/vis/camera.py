@@ -51,7 +51,7 @@ class Camera:
         yoffset *= CAM_DOLLY_SENSITIVITY
 
         disp = self.__orientation[2] * yoffset
-        self.__position += disp
+        self.__position       += disp
         self.__focus_position += disp
         
         self.update()
@@ -74,7 +74,7 @@ class Camera:
 
         disp = glm.vec4(self.__position - self.__focus_position, 1)
         alpha = 2.0
-        Rx = glm.rotate(glm.mat4(1.0), alpha * dy, glm.vec3(glm.transpose(self.get_view_matrix())[0]))
+        Rx = glm.rotate(glm.mat4(1.0),  alpha * dy, glm.vec3(glm.transpose(self.get_view_matrix())[0]))
         Ry = glm.rotate(glm.mat4(1.0), -alpha * dx, glm.vec3(0, 1, 0))
         R = Ry * Rx
         self.__position = self.__focus_position + glm.vec3(R * disp)
@@ -85,10 +85,10 @@ class Camera:
     def track(self, dx, dy):
         dx *= CAM_TRACK_SENSITIVITY
         dy *= CAM_TRACK_SENSITIVITY
-
         VT = glm.transpose(self.get_view_matrix())
-        self.__position += glm.vec3(-dx * VT[0] - dy * VT[1])
-        self.__focus_position += glm.vec3(-dx * VT[0] - dy * VT[1])
+        delta = glm.vec3(-dx * VT[0] - dy * VT[1])
+        self.__position       += delta
+        self.__focus_position += delta
         self.update()
     
     """ Camera manipulation functions """

@@ -136,7 +136,7 @@ def A_to_Q(angle, axis):
 
     return np.concatenate([cos, a0 * sin, a1 * sin, a2 * sin], axis=-1) # (..., 4)
 
-""" Conversion from Q """
+""" Operations for Q """
 def Q_to_R(q: np.ndarray) -> np.ndarray:
     """
     Parameters
@@ -167,31 +167,6 @@ def Q_to_R6(Q):
     r1 = np.stack([2*(q1*q2 + q0*q3), 2*(q0*q0 + q2*q2) - 1, 2*(q2*q3 - q0*q1)], axis=-1)
     return np.concatenate([r0, r1], axis=-1) # (..., 6)
 
-""" Conversion from R6 """
-def R6_to_R(R6: np.ndarray) -> np.ndarray:
-    """
-    Parameters
-        R6: (..., 6)
-    """
-    if R6.shape[-1] != 6:
-        raise ValueError(f"r6.shape[-1] = {R6.shape[-1]} != 6")
-    
-    x = normalize_vector(R6[..., 0:3], axis=-1)
-    y = normalize_vector(R6[..., 3:6] - np.sum(x * R6[..., 3:6], axis=-1, keepdims=True) * x, axis=-1)
-    z = np.cross(x, y, axis=-1)
-    return np.stack([x, y, z], axis=-2) # (..., 3, 3)
-
-""" Operations for R """
-def R_inv(R):
-    """
-    Parameters
-        R: (..., N, 3, 3)
-    """
-    if R.shape[-2:] != (3, 3):
-        raise ValueError(f"R.shape[-2:] = {R.shape[-2:]} != (3, 3)")
-    return np.transpose(R, axes=[*range(len(R.shape) - 2), -1, -2])
-
-""" Operations for Q """
 def Q_mul(x, y):
     """
     Parameters
@@ -222,3 +197,27 @@ def Q_inv(Q):
 
     res = np.asarray([1, -1, -1, -1], dtype=np.float32) * Q
     return res
+
+""" Conversion from R6 """
+def R6_to_R(R6: np.ndarray) -> np.ndarray:
+    """
+    Parameters
+        R6: (..., 6)
+    """
+    if R6.shape[-1] != 6:
+        raise ValueError(f"r6.shape[-1] = {R6.shape[-1]} != 6")
+    
+    x = normalize_vector(R6[..., 0:3], axis=-1)
+    y = normalize_vector(R6[..., 3:6] - np.sum(x * R6[..., 3:6], axis=-1, keepdims=True) * x, axis=-1)
+    z = np.cross(x, y, axis=-1)
+    return np.stack([x, y, z], axis=-2) # (..., 3, 3)
+
+""" Operations for R """
+def R_inv(R):
+    """
+    Parameters
+        R: (..., N, 3, 3)
+    """
+    if R.shape[-2:] != (3, 3):
+        raise ValueError(f"R.shape[-2:] = {R.shape[-2:]} != (3, 3)")
+    return np.transpose(R, axes=[*range(len(R.shape) - 2), -1, -2])

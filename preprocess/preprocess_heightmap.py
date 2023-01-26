@@ -1,7 +1,5 @@
-import sys
-sys.path.append(".")
-
 import os
+import pickle
 import time
 import numpy as np
 import scipy.ndimage as ndimage
@@ -10,10 +8,10 @@ from pymovis.utils import util
 
 """ Global variables """
 SPARSITY      = 15
-SIZE          = 200
-HEIGHTMAP_DIR = "./data/heightmaps"
-SAVE_DIR      = "./data/dataset/heightmap"
-SAVE_FILENAME = f"sparsity{SPARSITY}_size{SIZE}.npy"
+SIZE          = 140
+HEIGHTMAP_DIR = "../data/heightmaps"
+SAVE_DIR      = "../data/dataset/heightmap"
+SAVE_FILENAME = f"sparsity{SPARSITY}_mapsize{SIZE}.pkl"
 
 """ Load from saved files """
 def load_all_heightmaps():
@@ -79,7 +77,10 @@ def main():
 
     if not os.path.exists(SAVE_DIR):
         os.makedirs(SAVE_DIR)
-    np.save(os.path.join(SAVE_DIR, SAVE_FILENAME), patches)
+    
+    with open(os.path.join(SAVE_DIR, SAVE_FILENAME), "wb") as f:
+        pickle.dump(patches, f)
+        
     print(f"Saved patches: {patches.shape}")
 
 if __name__ == "__main__":

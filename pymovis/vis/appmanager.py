@@ -1,6 +1,5 @@
 import glfw
 from OpenGL.GL import *
-import glm
 
 from pymovis.vis.app import App
 from pymovis.vis.render import Render, RenderMode
@@ -13,16 +12,16 @@ class AppManager:
         height: int = 1080,
     ):
         self.do_capture = False
-        self.width = width
-        self.height = height
-        self.__initialize()
+        self.width      = width
+        self.height     = height
+        self.initialize()
 
     def run(self, app: App):
         self.app = app
         self.app.width, self.app.height = self.width, self.height
-        self.__start_loop()
+        self.start_loop()
 
-    def __initialize(self):
+    def initialize(self):
         # initialize glfw
         glfw.init()
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
@@ -47,7 +46,7 @@ class AppManager:
         # intialize shaders
         Render.initialize_shaders()
     
-    def __start_loop(self):
+    def start_loop(self):
         if not isinstance(self.app, App):
             raise Exception("Invalid app type")
             
@@ -130,7 +129,5 @@ class AppManager:
         self.app.on_error(error, description)
     
     def on_resize(self, window, width, height):
-        self.width = width
-        self.height = height
-
+        self.width, self.height = width, height
         self.app.on_resize(window, width, height)

@@ -1,8 +1,5 @@
-import sys
-sys.path.append(".")
-
 import os
-import numpy as np
+import pickle
 
 from pymovis.vis.heightmap import Heightmap
 from pymovis.vis.app import App
@@ -12,14 +9,14 @@ from pymovis.vis.const import INCH_TO_METER
 
 """ Global variables """
 SPARSITY      = 15
-SIZE          = 200
-HEIGHTMAP_DIR = "./data/heightmaps"
-SAVE_DIR      = "./data/dataset/heightmap"
-SAVE_FILENAME = f"sparsity{SPARSITY}_size{SIZE}.npy"
+SIZE          = 140
+SAVE_DIR      = "../data/dataset/heightmap"
+SAVE_FILENAME = f"sparsity{SPARSITY}_mapsize{SIZE}.pkl"
 
 """ Load from saved files """
 def load_all_patches():
-    data = np.load(os.path.join(SAVE_DIR, SAVE_FILENAME))
+    with open(os.path.join(SAVE_DIR, SAVE_FILENAME), "rb") as f:
+        data = pickle.load(f)
     print(f"Loaded patches: {data.shape}")
     return data
 
@@ -39,7 +36,7 @@ def main():
     X = load_all_patches()
     for x in X:
         app_manager = AppManager()
-        heightmap = Heightmap(x, h_scale=INCH_TO_METER * 2)
+        heightmap = Heightmap(x, h_scale=INCH_TO_METER * 2, v_scale=INCH_TO_METER)
         app = MyApp(heightmap)
         app_manager.run(app)
 

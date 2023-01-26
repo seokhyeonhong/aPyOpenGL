@@ -1,5 +1,8 @@
 import os
 import glm
+import numpy as np
+import ctypes
+import itertools
 from OpenGL.GL import *
 
 def check_shader_compile_error(handle):
@@ -28,7 +31,9 @@ def load_code(filename):
     curr_path = os.path.dirname(os.path.abspath(__file__))
     shader_dir_path = os.path.join(curr_path, "shader")
     shader_path = os.path.join(shader_dir_path, filename)
-    return open(shader_path, 'r').read()
+    with open(shader_path, "r") as f:
+        code = f.read()
+    return code
 
 class Shader:
     def __init__(self, vertex_path, fragment_path, geometry_path=None):
@@ -71,12 +76,10 @@ class Shader:
     def set_mat3(self, name, value):  glUniformMatrix3fv(glGetUniformLocation(self.__program, name), 1, GL_FALSE, glm.value_ptr(value))
     def set_mat4(self, name, value):  glUniformMatrix4fv(glGetUniformLocation(self.__program, name), 1, GL_FALSE, glm.value_ptr(value))
 
+    # TODO: Impelement these functions
     # def set_struct(self, name, value, struct_name): glUniform1fv(glGetUniformLocation(self.__program, name), f"{struct_name}.Type", value)
-
-
-    def set_multiple_float(self, name, value): glUniform1fv(glGetUniformLocation(self.__program, name), len(value), value)
-    def set_multiple_vec3(self, name, value):  glUniform3fv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))
-    def set_multiple_vec4(self, name, value):  glUniform4fv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))
-    def set_multiple_mat4(self, name, value):  glUniformMatrix4fv(glGetUniformLocation(self.__program, name), len(value), GL_FALSE, glm.value_ptr(value))
-    def set_multiple_ivec3(self, name, value): glUniform3iv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))
-    def set_multiple_ivec4(self, name, value): glUniform4iv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))
+    # def set_multiple_float(self, name, value): glUniform1fv(glGetUniformLocation(self.__program, name), len(value), value)
+    # def set_multiple_vec3(self, name, value):  glUniform3fv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))
+    # def set_multiple_vec4(self, name, value):  glUniform4fv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))
+    # def set_multiple_ivec3(self, name, value): glUniform3iv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))
+    # def set_multiple_ivec4(self, name, value): glUniform4iv(glGetUniformLocation(self.__program, name), len(value), glm.value_ptr(value))

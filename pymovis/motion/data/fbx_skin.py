@@ -115,5 +115,9 @@ def get_skinning(skinning_data: SkinningData, geometry, control_idx_to_vertex_id
 
             if cluster.GetAssociateModel() is not None:
                 print("Warning: Associate model is not None")
-                
+    
+    for i in range(vertex_num):
+        skinning_data.joint_weights1[i] /= vertex_skinning_weight_sum[i]
+        skinning_data.joint_weights2[i] /= vertex_skinning_weight_sum[i]
+        
     return True

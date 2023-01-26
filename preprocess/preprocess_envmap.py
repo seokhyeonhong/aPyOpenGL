@@ -1,6 +1,3 @@
-import sys
-sys.path.append(".")
-
 import os
 import pickle
 
@@ -8,7 +5,6 @@ from OpenGL.GL import *
 from tqdm import tqdm
 import numpy as np
 
-from pymovis.motion.ops import npmotion
 from pymovis.motion.core import Motion
 from pymovis.learning.rbf import RBF
 from pymovis.vis.const import INCH_TO_METER
@@ -17,41 +13,30 @@ from pymovis.vis.const import INCH_TO_METER
 WINDOW_SIZE     = 50
 WINDOW_OFFSET   = 20
 FPS             = 30
-MOTION_DIR      = f"./data/dataset/motion"
-MOTION_FILENAME = f"size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"
+MOTION_DIR      = f"../data/dataset/motion"
+MOTION_FILENAME = f"length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.pkl"
 
 SPARSITY        = 15
-SIZE            = 200
+SIZE            = 140
 TOP_K_SAMPLES   = 10
 H_SCALE         = 2 * INCH_TO_METER
 V_SCALE         = INCH_TO_METER
-HEIGHTMAP_DIR   = f"./data/dataset/heightmap"
-HEIGHT_FILENAME = f"sparsity{SPARSITY}_size{SIZE}.npy"
+HEIGHTMAP_DIR   = f"../data/dataset/heightmap"
+HEIGHT_FILENAME = f"sparsity{SPARSITY}_mapsize{SIZE}.pkl"
 
-ENVMAP_DIR      = f"./data/dataset/envmap/"
-VIS_DIR         = f"./data/dataset/vis/"
-SAVE_FILENAME   = f"size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}_sparsity{SPARSITY}_size{SIZE}_top{TOP_K_SAMPLES}.pkl"
+ENVMAP_DIR      = f"../data/dataset/envmap/"
+VIS_DIR         = f"../data/dataset/vis/"
+SAVE_FILENAME   = f"length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}_sparsity{SPARSITY}_mapsize{SIZE}_top{TOP_K_SAMPLES}.pkl"
 
 """ Load processed data """
 def load_processed_motions(split):
-    # skeleton
-    with open(os.path.join(MOTION_DIR, "skeleton.pkl"), "rb") as f:
-        skeleton = pickle.load(f)
-
-    # features
-    motion_path = os.path.join(MOTION_DIR, f"{split}_{MOTION_FILENAME}")
-    features = np.load(motion_path)
-
-    # make motion
-    local_R6, root_p = features[..., :-3], features[..., -3:]
-    local_R = npmotion.R6_to_R(local_R6.reshape(-1, 6)).reshape(-1, WINDOW_SIZE, skeleton.num_joints, 3, 3)
-    motions = [Motion.from_numpy(skeleton, R, p, fps=FPS) for R, p in zip(local_R, root_p)]
-
-    return motions
+    with open(os.path.join(MOTION_DIR, f"{split}_{MOTION_FILENAME}"), "rb") as f:
+        dict = pickle.load(f)
+    return dict["windows"], dict["features"]
 
 def load_processed_heightmaps():
-    heightmap_path = os.path.join(HEIGHTMAP_DIR, HEIGHT_FILENAME)
-    heightmaps = np.load(heightmap_path)
+    with open(os.path.join(HEIGHTMAP_DIR, HEIGHT_FILENAME), "rb") as f:
+        heightmaps = pickle.load(f)
     return heightmaps
 
 """ Data processing """
@@ -99,8 +84,8 @@ def sample_height(heightmap, x_, z_):
 
     return V_SCALE * ((s0 * (1 - a0) + s1 * a0) * (1 - a1) + (s2 * (1 - a0) + s3 * a0) * a1)
 
-def sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES):
-    motion, feet_p, contact = motion_contact
+def sample_top_patches(mfc, heightmaps):
+    motion, feet_p, contact = mfc
     
     # get contact info
     feet_up          = feet_p[contact == 0]
@@ -117,18 +102,23 @@ def sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES):
     # measure error
     err_down = 0.1 * np.sum(((terr_down_y - terr_down_y_mean) - (feet_down_y - feet_down_y_mean)) ** 2, axis=-1)
     err_up   = np.sum(np.maximum((terr_up_y - terr_down_y_mean) - (feet_up_y - feet_down_y_mean), 0) ** 2, axis=-1)
-    err      = err_down + err_up
+    if motion.type == "jumpy":
+        terr_over_minh = 0.3
+        err_jump = np.sum((np.maximum(((feet_up_y - feet_down_y_mean) - terr_over_minh) - (terr_up_y - terr_down_y_mean), 0.0) ** 2), axis=-1)
+    else:
+        err_jump = 0.0
+
+    err = err_down + err_up + err_jump
 
     # best fitting terrains
-    # terr_ids = np.argsort(err)[-num_samples:]
-    terr_ids = np.argsort(err)[:num_samples]
+    terr_ids = np.argsort(err)[:TOP_K_SAMPLES]
     terr_patches = heightmaps[terr_ids]
 
     # terrain fit editing
     terr_residuals = (feet_down_y - feet_down_y_mean) - (terr_down_y[terr_ids] - terr_down_y_mean[terr_ids])
-    terr_fine_func = [RBF(smooth=0.1, function="gaussian", eps=2e-3) for _ in range(num_samples)]
+    terr_fine_func = [RBF(smooth=0.1, function="gaussian", eps=2e-3) for _ in range(TOP_K_SAMPLES)]
     edits = []
-    for i in range(num_samples):
+    for i in range(TOP_K_SAMPLES):
         h, w = terr_patches[i].shape
         x, z = np.meshgrid(np.arange(w) - w / 2, np.arange(h) - h / 2)
         terr = sample_height(terr_patches[i:i+1], x * H_SCALE, z * H_SCALE).reshape(h, w)
@@ -154,35 +144,42 @@ def sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES):
     env_map = env_map.reshape(env_map.shape[0], -1, 3)
     
     env_y = []
-    for i in range(num_samples):
+    for i in range(TOP_K_SAMPLES):
         env_y.append(sample_height(terr_patches[i:i+1], env_map[..., 0], env_map[..., 2]))
 
-    env_map = np.repeat(env_map[None, ...], num_samples, axis=0)
+    env_map = np.repeat(env_map[None, ...], TOP_K_SAMPLES, axis=0)
     env_map[..., 1] = np.concatenate(env_y, axis=0)
 
     root_traj = np.concatenate([base, forward], axis=-1)
-    root_traj = np.repeat(root_traj[None, ...], num_samples, axis=0)
+    root_traj = np.repeat(root_traj[None, ...], TOP_K_SAMPLES, axis=0)
     
-    # return np.stack(edits, axis=0), env_map, root_traj
-    return terr_patches, env_map, root_traj
+    return {
+        "patches": terr_patches,
+        "edits": np.stack(edits, axis=0),
+        "env_map": env_map,
+        "root_traj": root_traj
+    }
 
 """ Main functions """
 def generate_dataset(split="train"):
     # load processed data
-    motions = load_processed_motions(split)
-    contact_info = [get_contact_info(motion) for motion in motions]
-    feet_p, contact = zip(*contact_info)
-
+    motions, features = load_processed_motions(split)
+    feet_p, contact = zip(*[get_contact_info(motion) for motion in motions])
     heightmaps = load_processed_heightmaps()
 
     # extract envmap dataset
     env_maps, vis_data = [], []
-    for motion_contact in tqdm(zip(motions[::2048], feet_p[::2048], contact[::2048]), total=len(motions), desc="Generating envmap dataset"):
+    for motion_contact in tqdm(zip(motions[::512], feet_p[::512], contact[::512]), total=len(motions), desc="Generating envmap dataset"):
     # for motion_contact in tqdm(zip(motions, feet_p, contact), total=len(motions), desc="Generating envmap dataset"):
-        patch, env_map, root_traj = sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES)
+        dict = sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES)
+        patch = dict["patches"]
+        edit = dict["edits"]
+        env_map = dict["env_map"]
+        root_traj = dict["root_traj"]
+
         env_data = np.concatenate([root_traj, env_map[..., 1]], axis=-1).astype(np.float32)
         env_maps.append(env_data)
-        vis_data.append([motion_contact[0], patch, env_map, motion_contact[2]])
+        vis_data.append([motion_contact[0], patch, edit, env_map, motion_contact[2]])
 
     env_maps = np.stack(env_maps, axis=0)
     print("Envmap dataset shape:", env_maps.shape)
@@ -205,7 +202,7 @@ def generate_dataset(split="train"):
 
 def main():
     generate_dataset("train")
-    # generate_dataset("test")
+    generate_dataset("test")
 
 if __name__ == "__main__":
     main()

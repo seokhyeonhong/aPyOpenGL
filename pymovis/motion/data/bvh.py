@@ -25,7 +25,7 @@ ordermap = {
     'z': 2,
 }
 
-def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()):
+def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD(), type="default"):
     if not filename.endswith(".bvh"):
         print(f"{filename} is not a bvh file.")
         return
@@ -130,7 +130,11 @@ def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=np
 
     poses = poses[1::sampling_step]
     name = os.path.splitext(os.path.basename(filename))[0]
-    return Motion(name=name, skeleton=skeleton, poses=poses, fps=target_fps)
+    return Motion(skeleton=skeleton, poses=poses, fps=target_fps, name=name, type=type)
+
+def load_with_type(file_and_type, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()):
+    file, type = file_and_type
+    return load(file, target_fps, to_meter, v_up, v_forward, type=type)
 
 def load_parallel(files, cpus=mp.cpu_count(), **kwargs):
     return util.run_parallel_sync(load, files, cpus, desc=f"Loading {len(files)} BVH files", **kwargs)

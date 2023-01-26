@@ -1,17 +1,14 @@
 import os
 import fbx
-import glm
-import numpy as np
+import pickle
 
 from pymovis.motion.data import fbx_mesh, fbx_texture, fbx_material, fbx_skeleton, fbx_parser, fbx_skin
 from pymovis.motion.core import Skeleton
-from pymovis.motion.ops import npmotion
 
 from pymovis.vis.core import MeshGL, VertexGL, VAO
 from pymovis.vis.material import Material
 from pymovis.vis.model import Model
 from pymovis.vis.texture import TextureType, TextureLoader
-from pymovis.vis.render import Render
 
 FBX_PROPERTY_NAMES = {
     "DiffuseColor":      TextureType.eDIFFUSE,
@@ -33,6 +30,12 @@ class Parser:
         self.init_mesh_data(scale)
 
     def init_character_data(self, scale):
+        save_path = os.path.join(os.path.dirname(self.path), "character_data.pkl")
+        if os.path.exists(save_path):
+            with open(save_path, "rb") as f:
+                self.char_data = pickle.load(f)
+            return
+
         self.char_data = fbx_parser.CharacterData()
         root = self.parser.scene.GetRootNode()
         is_root_found = False
@@ -47,8 +50,17 @@ class Parser:
         self.char_data.name = root.GetName()
         for i in range(root.GetChildCount()):
             fbx_skeleton.parse_nodes_by_type(root.GetChild(i), self.char_data.joint_data, -1, fbx.FbxNodeAttribute.eSkeleton, scale)
+        
+        with open(save_path, "wb") as f:
+            pickle.dump(self.char_data, f, pickle.HIGHEST_PROTOCOL)
 
     def init_mesh_data(self, scale):
+        save_path = os.path.join(os.path.dirname(self.path), "mesh_data.pkl")
+        if os.path.exists(save_path):
+            with open(save_path, "rb") as f:
+                self.mesh_data = pickle.load(f)
+            return
+
         mesh_nodes = []
 
         root = self.parser.scene.GetRootNode()
@@ -89,9 +101,9 @@ class Parser:
                 scale)
             
             self.mesh_data.append(mesh_data)
-                
-        # with open(os.path.join(os.path.dirname(self.path), "mesh_data.pkl"), "wb") as f:
-        #     pickle.dump(self.mesh_data, f, pickle.HIGHEST_PROTOCOL)
+            
+        with open(save_path, "wb") as f:
+            pickle.dump(self.mesh_data, f, pickle.HIGHEST_PROTOCOL)
     
     def __load_mesh_recursive(self, node, mesh_nodes):
         for i in range(node.GetNodeAttributeCount()):

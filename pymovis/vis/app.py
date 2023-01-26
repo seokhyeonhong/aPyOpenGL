@@ -16,6 +16,7 @@ from pymovis.vis.render import Render
 from pymovis.vis.model import Model
 from pymovis.vis.const import LAFAN_BVH_TO_FBX
 
+""" Base class for all applications """
 class App:
     def __init__(
         self,
@@ -131,7 +132,7 @@ class MotionApp(App):
         self.prev_frame = -1
         self.playing = True
         self.recording = False
-        self.captures = []
+        self.captures = {}
 
         self.grid = Render.plane().set_scale(50).set_uv_repeat(5).set_texture("grid.png")
         self.axis = Render.axis()
@@ -174,7 +175,7 @@ class MotionApp(App):
             elif key == glfw.KEY_F6:
                 if self.recording:
                     self.save_video(self.captures)
-                    self.captures = []
+                    self.captures = {}
                 self.recording = not self.recording
 
     def update(self):
@@ -191,10 +192,10 @@ class MotionApp(App):
             if self.prev_frame == self.frame and self.playing:
                 return
                 
-            self.captures.append(super().capture_screen())
+            self.captures[self.frame] = super().capture_screen()
             self.prev_frame = self.frame
         
-    def render(self, render_xray=False):
+    def render(self, render_xray=True):
         # time setting
         if self.playing:
             self.frame = min(int(glfw.get_time() * self.motion.fps), len(self.motion) - 1)
@@ -210,14 +211,16 @@ class MotionApp(App):
             self.model.set_pose_by_source(self.motion.poses[self.frame])
             Render.model(self.model).draw()
 
-        self.render_xray(self.motion.poses[self.frame])
+        # render the xray
+        if render_xray:
+            self.render_xray(self.motion.poses[self.frame])
 
-    def render_xray(self, pose):
+    def render_xray(self, pose, albedo=[0, 1, 1]):
         if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):
             self.joint_sphere = Render.sphere(0.03)
             self.joint_bone   = Render.cone(radius=0.03, height=1, sectors=4)
         
-        global_R, global_p = npmotion.R_fk(pose.local_R, pose.root_p, pose.skeleton)
+        _, global_p = npmotion.R_fk(pose.local_R, pose.root_p, pose.skeleton)
         # for i in range(pose.skeleton.num_joints):
         #     self.joint_sphere.set_position(global_p[i]).set_albedo([0, 1, 1]).draw()
 
@@ -233,7 +236,7 @@ class MotionApp(App):
             angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
             orientation = glm.rotate(glm.mat4(1.0), angle, axis)
             
-            self.joint_bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo([0, 1, 1]).set_color_mode(False).draw()
+            self.joint_bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo(albedo).set_color_mode(False).draw()
         glEnable(GL_DEPTH_TEST)
 
     """ Capture functions """
@@ -242,6 +245,7 @@ class MotionApp(App):
         if not os.path.exists(video_dir):
             os.makedirs(video_dir)
         
+        captures = list(captures.values())
         video_path = os.path.join(video_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".mp4")
         fps = self.motion.fps
         height, width, _ = captures[0].shape

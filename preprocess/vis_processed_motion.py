@@ -1,13 +1,6 @@
-import sys
-sys.path.append(".")
-
 import os
 import pickle
 
-import numpy as np
-
-from pymovis.motion.ops import npmotion
-from pymovis.motion.core import Motion
 from pymovis.motion.data.fbx import FBX
 
 from pymovis.vis.appmanager import AppManager
@@ -17,46 +10,37 @@ from pymovis.vis.app import MotionApp
 WINDOW_SIZE   = 50
 WINDOW_OFFSET = 20
 FPS           = 30
-MOTION_DIR    = "./data/animations"
-SAVE_DIR      = "./data/dataset/motion"
-SAVE_FILENAME = f"size{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.npy"
+SAVE_DIR      = "../data/dataset/motion"
+SAVE_FILENAME = f"motions_length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.pkl"
 
 """ Load from saved files """
 def load_processed_data():
-    # skeleton
-    with open(os.path.join(SAVE_DIR, "skeleton.pkl"), "rb") as f:
-        skeleton = pickle.load(f)
-
     # windows
-    train_windows = np.load(os.path.join(SAVE_DIR, f"train_{SAVE_FILENAME}"))
-    test_windows  = np.load(os.path.join(SAVE_DIR, f"test_{SAVE_FILENAME}"))
+    with open(os.path.join(SAVE_DIR, f"train_{SAVE_FILENAME}"), "rb") as f:
+        train_windows = pickle.load(f)
+    with open(os.path.join(SAVE_DIR, f"test_{SAVE_FILENAME}"), "rb") as f:
+        test_windows = pickle.load(f)
 
-    return skeleton, train_windows, test_windows
+    return train_windows, test_windows
 
 """ Main functions """
 def visualize(train=True, test=True):
-    skeleton, train_windows, test_windows = load_processed_data()
+    train_windows, test_windows = load_processed_data()
 
     if train:
         for window in train_windows:
-            local_R6, root_p = window[:, :-3], window[:, -3:]
-            local_R = npmotion.R6_to_R(local_R6.reshape(-1, 6)).reshape(WINDOW_SIZE, -1, 3, 3)
-            motion = Motion.from_numpy(skeleton, local_R, root_p, fps=FPS)
-
             app_manager = AppManager()
-            model = FBX("./data/models/model_skeleton.fbx").model()
-            app = MotionApp(motion, model)
+            model = FBX("../data/models/model_skeleton.fbx").model()
+            print(window.name, window.type)
+            app = MotionApp(window, model)
             app_manager.run(app)
     
     if test:
         for window in test_windows:
-            local_R6, root_p = window[:, :-3], window[:, -3:]
-            local_R = npmotion.R6_to_R(local_R6.reshape(-1, 6)).reshape(WINDOW_SIZE, -1, 3, 3)
-            motion = Motion.from_numpy(skeleton, local_R, root_p, fps=FPS)
-
             app_manager = AppManager()
-            model = FBX("./data/models/model_skeleton.fbx").model()
-            app = MotionApp(motion, model)
+            model = FBX("../data/models/model_skeleton.fbx").model()
+            # print(window.name, window.type)
+            app = MotionApp(window, model)
             app_manager.run(app)
 
 def main():
