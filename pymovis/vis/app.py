@@ -221,7 +221,7 @@ class MotionApp(App):
             self.joint_sphere = Render.sphere(0.03)
             self.joint_bone   = Render.cone(radius=0.03, height=1, sectors=4)
         
-        _, global_p = npmotion.R_fk(pose.local_R, pose.root_p, pose.skeleton)
+        global_p = pose.global_p
         # for i in range(pose.skeleton.num_joints):
         #     self.joint_sphere.set_position(global_p[i]).set_albedo([0, 1, 1]).draw()
 

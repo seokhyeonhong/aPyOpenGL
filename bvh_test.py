@@ -46,7 +46,7 @@ class MyApp(MotionApp):
         # self.cubemap = Render.cubemap("skybox")
 
         # velocity-based locomotion scaling
-        self.scale_motion()
+        # self.scale_motion()
     
     def scale_motion(self):
         self.dupl_motions = []
@@ -85,16 +85,16 @@ class MyApp(MotionApp):
         # for e in env_map:
         #     self.sphere.set_position(e).draw()
         
-        for i, motion in enumerate(self.motions):
-            self.model.set_pose_by_source(motion.poses[self.frame])
-            Render.model(self.model).draw()
-            if i == 0:
-                albedo = [1, 0.2, 0.2]
-            elif i == 1:
-                albedo = [0.2, 1, 0.2]
-            else:
-                albedo = [0.2, 0.2, 1]
-            self.render_xray(motion.poses[self.frame], albedo)
+        # for i, motion in enumerate(self.motions):
+        #     self.model.set_pose_by_source(motion.poses[self.frame])
+        #     Render.model(self.model).draw()
+        #     if i == 0:
+        #         albedo = [1, 0.2, 0.2]
+        #     elif i == 1:
+        #         albedo = [0.2, 1, 0.2]
+        #     else:
+        #         albedo = [0.2, 0.2, 1]
+        #     self.render_xray(motion.poses[self.frame], albedo)
 
 
 if __name__ == "__main__":

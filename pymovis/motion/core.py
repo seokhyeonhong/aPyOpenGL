@@ -269,7 +269,7 @@ class Motion:
         angle = np.arccos(np.dot(forward_from, forward_to))
         axis = np.cross(forward_from, forward_to)
         angle = angle * np.sign(axis[1])
-        R_delta = npmotion.E_to_R(angle, "y")
+        R_delta = npmotion.A_to_R(angle, np.array([0, 1, 0], dtype=np.float32))
         
         base = self.poses[frame].base
         for pose in self.poses:

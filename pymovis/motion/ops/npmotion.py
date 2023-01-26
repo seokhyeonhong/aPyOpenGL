@@ -22,10 +22,11 @@ def normalize_vector(x, axis=-1, eps=1e-8):
 """ FK """
 def R_fk(R, root_p, skeleton):
     """
-    :param R: (..., N, 3, 3)
-    :param root_p: (..., 3)
-    :param bone_offset: (N, 3)
-    :param parents: (N,)
+    Args:
+        R: (..., N, 3, 3)
+        root_p: (..., 3)
+        bone_offset: (N, 3)
+        parents: (N,)
     """
     bone_offsets, parents = skeleton.get_bone_offsets(), skeleton.parent_idx
 
@@ -38,186 +39,245 @@ def R_fk(R, root_p, skeleton):
     global_p = np.stack(global_p, axis=-2) # (..., N, 3)
     return global_R, global_p
 
-""" Conversion from R """
+""" Operations with R """
 def R_to_R6(R):
     """
-    Parameters
+    Args:
         R: (..., 3, 3)
     """
     if R.shape[-2:] != (3, 3):
-        raise ValueError(f"R.shape[-2:] = {R.shape[-2:]} != (3, 3)")
-    r0 = R[..., 0, :]
-    r1 = R[..., 1, :]
-    return np.concatenate([r0, r1], axis=-1) # (..., 6)
+        raise ValueError(f"Invalid rotation matrix shape {R.shape}")
+    batch_dim = R.shape[:-2]
+    return R[..., :2, :].copy().reshape(batch_dim + (6,))
 
-""" Conversion from E """
+def R_inv(R):
+    """
+    Args:
+        R: (..., N, 3, 3)
+    """
+    if R.shape[-2:] != (3, 3):
+        raise ValueError(f"Invalid rotation matrix shape {R.shape[-2:]}")
+
+    return np.transpose(R, axes=[*range(len(R.shape) - 2), -1, -2])
+
+""" Operations with E """
 def E_to_R(E, order, radians=True):
     """
-    Parameters
+    Args:
         E: (..., 3)
     """
+    if E.shape[-1] != 3:
+        raise ValueError(f"Invalid Euler angles shape {E.shape}")
+    if len(order) != 3:
+        raise ValueError(f"Order must have 3 characters, but got {order}")
+
     if not radians:
         E = np.deg2rad(E)
 
-    R_map = {
-        "x": lambda x: np.stack([np.ones_like(x), np.zeros_like(x), np.zeros_like(x),
-                                np.zeros_like(x), np.cos(x), -np.sin(x),
-                                np.zeros_like(x), np.sin(x), np.cos(x)], axis=-1).reshape(*x.shape, 3, 3),
-        "y": lambda x: np.stack([np.cos(x), np.zeros_like(x), np.sin(x),
-                                np.zeros_like(x), np.ones_like(x), np.zeros_like(x),
-                                -np.sin(x), np.zeros_like(x), np.cos(x)], axis=-1).reshape(*x.shape, 3, 3),
-        "z": lambda x: np.stack([np.cos(x), -np.sin(x), np.zeros_like(x),
-                                np.sin(x), np.cos(x), np.zeros_like(x),
-                                np.zeros_like(x), np.zeros_like(x), np.ones_like(x)], axis=-1).reshape(*x.shape, 3, 3),
-    }
+    def _euler_axis_to_R(angle, axis):
+        one  = np.ones_like(angle, dtype=np.float32)
+        zero = np.zeros_like(angle, dtype=np.float32)
+        cos  = np.cos(angle, dtype=np.float32)
+        sin  = np.sin(angle, dtype=np.float32)
 
-    if len(order) == 3:
-        R0 = R_map[order[0]](E[..., 0])
-        R1 = R_map[order[1]](E[..., 1])
-        R2 = R_map[order[2]](E[..., 2])
-        return R0 @ R1 @ R2
-    elif len(order) == 1:
-        return R_map[order](E)
-    else:
-        raise ValueError(f"Invalid order: {order}")
+        if axis == "x":
+            R_flat = (one, zero, zero, zero, cos, -sin, zero, sin, cos)
+        elif axis == "y":
+            R_flat = (cos, zero, sin, zero, one, zero, -sin, zero, cos)
+        elif axis == "z":
+            R_flat = (cos, -sin, zero, sin, cos, zero, zero, zero, one)
+        else:
+            raise ValueError(f"Invalid axis: {axis}")
+        return np.stack(R_flat, axis=-1).reshape(angle.shape + (3, 3))
 
-def E_to_Q(E, order):
-    axis = {
-        'x': np.asarray([1, 0, 0], dtype=np.float32),
-        'y': np.asarray([0, 1, 0], dtype=np.float32),
-        'z': np.asarray([0, 0, 1], dtype=np.float32)
-    }
+    R = [_euler_axis_to_R(E[..., i], order[i]) for i in range(3)]
+    return np.matmul(np.matmul(R[0], R[1]), R[2])
 
-    q0 = A_to_Q(E[..., 0], axis[order[0]])
-    q1 = A_to_Q(E[..., 1], axis[order[1]])
-    q2 = A_to_Q(E[..., 2], axis[order[2]])
+def E_to_Q(E, order, radians=True):
+    """
+    Args:
+        E: (..., 3)
+    """
+    if E.shape[-1] != 3:
+        raise ValueError(f"Invalid Euler angles shape {E.shape}")
+    if len(order) != 3:
+        raise ValueError(f"Order must have 3 characters, but got {order}")
 
-    return Q_mul(q0, Q_mul(q1, q2))
+    if not radians:
+        E = np.deg2rad(E)
+    
+    def _euler_axis_to_Q(angle, axis):
+        one  = np.ones_like(angle, dtype=np.float32)
+        zero = np.zeros_like(angle, dtype=np.float32)
+        cos  = np.cos(angle / 2, dtype=np.float32)
+        sin  = np.sin(angle / 2, dtype=np.float32)
 
-""" Conversion from A """
+        if axis == "x":
+            Q_flat = (cos, sin, zero, zero)
+        elif axis == "y":
+            Q_flat = (cos, zero, sin, zero)
+        elif axis == "z":
+            Q_flat = (cos, zero, zero, sin)
+        else:
+            raise ValueError(f"Invalid axis: {axis}")
+        return np.stack(Q_flat, axis=-1).reshape(angle.shape + (4,))
+
+    Q = [_euler_axis_to_Q(E[..., i], order[i]) for i in range(3)]
+    return Q_mul(Q_mul(Q[0], Q[1]), Q[2])
+
+""" Operations with A """
 def A_to_R(angle, axis):
     """
-    Parameters
-        angle: (..., N)
+    Args:
+        angle: (...)
         axis:  (..., 3)
+    Returns:
+        Rotation matrix (..., 3, 3)
     """
     if axis.shape[-1] != 3:
-        raise ValueError(f"axis.shape[-1] = {axis.shape[-1]} != 3")
-    
-    if angle.shape == axis.shape[:-1]:
-        angle = angle[..., np.newaxis]
+        raise ValueError(f"Invalid axis shape {axis.shape}")
+    if angle.shape != axis.shape[:-1]:
+        raise ValueError(f"Incompatible angle shape {angle.shape} and and axis shape {axis.shape}")
 
-    a0, a1, a2     = axis[..., 0], axis[..., 1], axis[..., 2]
-    zero           = np.zeros_like(a0)
-    skew_symmetric = np.stack([zero, -a2, a1,
-                                a2, zero, -a0,
-                                -a1, a0, zero], axis=-1).reshape(*angle.shape[:-1], 1, 3, 3) # (..., 1, 3, 3)
+    a0, a1, a2 = axis[..., 0], axis[..., 1], axis[..., 2]
+    zero       = np.zeros_like(a0)
 
-    I              = np.eye(3, dtype=np.float32)                                          # (3, 3)
-    I              = np.tile(I, reps=[*angle.shape[:-1], 1, 1])[..., np.newaxis, :, :]    # (..., 1, 3, 3)
-    sin            = np.sin(angle)[..., np.newaxis, np.newaxis]                           # (..., N, 1, 1)
-    cos            = np.cos(angle)[..., np.newaxis, np.newaxis]                           # (..., N, 1, 1)
+    # skew symmetric matrix
+    S   = np.stack([zero, -a2, a1, a2, zero, -a0, -a1, a0, zero], axis=-1)
+    S   = S.reshape(angle.shape + (3, 3))             # (..., 3, 3)
 
-    return I + skew_symmetric * sin + np.matmul(skew_symmetric, skew_symmetric) * (1 - cos) # (..., N, 3, 3)
+    # rotation matrix
+    I   = np.eye(3, dtype=np.float32)                 # (3, 3)
+    I   = np.tile(I, reps=(angle.shape + (1, 1)))     # (..., 3, 3)
+    sin = np.sin(angle)                               # (...,)
+    cos = np.cos(angle)                               # (...,)
+
+    return I + S * sin + np.matmul(S, S) * (1 - cos)  # (..., 3, 3)
 
 def A_to_Q(angle, axis):
     """
-    Parameters
-        angle: angles tensor (..., N)
+    Args:
+        angle: angles tensor (...)
         axis: axis tensor (..., 3)
+    Returns:
+        Quaternion tensor (..., 4)
     """
     if axis.shape[-1] != 3:
-        raise ValueError(f"axis.shape[-1] = {axis.shape[-1]} != 3")
+        raise ValueError(f"Invalid axis shape {axis.shape}")
+    if angle.shape != axis.shape[:-1]:
+        raise ValueError(f"Incompatible angle shape {angle.shape} and and axis shape {axis.shape}")
 
-    axis = normalize_vector(axis, axis=-1)
-    a0, a1, a2 = axis[..., 0], axis[..., 1], axis[..., 2]
-    cos = np.cos(angle / 2)[..., np.newaxis]
-    sin = np.sin(angle / 2)[..., np.newaxis]
+    cos = np.cos(angle / 2)
+    sin = np.sin(angle / 2)
+    axis_sin = axis * sin[..., None]
 
-    return np.concatenate([cos, a0 * sin, a1 * sin, a2 * sin], axis=-1) # (..., 4)
+    return np.concatenate([cos[..., None], axis_sin], axis=-1) # (..., 4)
 
 """ Operations for Q """
-def Q_to_R(q: np.ndarray) -> np.ndarray:
+def Q_to_A(Q, eps=1e-8):
     """
-    Parameters
-        q: (..., 4)
+    Args:
+        Q: quaternion tensor (..., 4)
+    Returns:
+        angle: angle tensor (...)
+        axis:  axis tensor (..., 3)
     """
-    if q.shape[-1] != 4:
-        raise ValueError(f"q.shape[-1] = {q.shape[-1]} != 4")
+    if Q.shape[-1] != 4:
+        raise ValueError(f"Invalid quaternion shape {Q.shape}")
+
+    axis, angle = np.empty_like(Q[..., 1:]), np.empty_like(Q[..., 0])
+
+    length = np.sqrt(np.sum(Q[..., 1:] * Q[..., 1:], axis=-1)) # (...,)
+    small_angles = length < eps
+
+    angle[small_angles] = 0.0
+    axis[small_angles]  = np.array([1.0, 0.0, 0.0], dtype=np.float32)
+
+    angle[~small_angles] = 2.0 * np.arctan2(length[~small_angles], Q[..., 0][~small_angles]) # (...,)
+    axis[~small_angles]  = Q[..., 1:][~small_angles] / length[~small_angles][..., None] # (..., 3)
+    return angle, axis
+
+def Q_to_R(Q):
+    """
+    Args:
+        Q: (..., 4)
+    Returns:
+        R: (..., 3, 3)
+    """
+    if Q.shape[-1] != 4:
+        raise ValueError(f"Invalid quaternion shape {Q.shape}")
     
-    q = normalize_vector(q, axis=-1)
-    w, x, y, z = np.split(q, 4, axis=-1)
-    row0 = np.stack([2*(w*w + x*x) - 1, 2*(x*y - w*z), 2*(x*z + w*y)], axis=-1)
-    row1 = np.stack([2*(w*z + x*y), 2*(w*w + y*y) - 1, 2*(y*z - w*x)], axis=-1)
-    row2 = np.stack([2*(x*z - w*y), 2*(w*x + y*z), 2*(w*w + z*z) - 1], axis=-1)
-    return np.stack([row0, row1, row2], axis=-2) # (..., 3, 3)
+    two_s = 2.0 / np.sum(Q * Q, axis=-1) # (...,)
+    r, i, j, k = Q[..., 0], Q[..., 1], Q[..., 2], Q[..., 3]
+
+    R = np.stack([
+        1.0 - two_s * (j*j + k*k),
+        two_s * (i*j - k*r),
+        two_s * (i*k + j*r),
+        two_s * (i*j + k*r),
+        1.0 - two_s * (i*i + k*k),
+        two_s * (j*k - i*r),
+        two_s * (i*k - j*r),
+        two_s * (j*k + i*r),
+        1.0 - two_s * (i*i + j*j)
+    ], axis=-1)
+    return R.reshape(Q.shape[:-1] + (3, 3)) # (..., 3, 3)
 
 def Q_to_R6(Q):
     """
-    Parameters
+    Args:
         Q: (..., 4)
     """
     if Q.shape[-1] != 4:
-        raise ValueError(f"Q.shape[-1] = {Q.shape[-1]} != 4")
+        raise ValueError(f"Invalid quaternion shape {Q.shape}")
     
-    Q = normalize_vector(Q, axis=-1)
-    q0, q1, q2, q3 = Q[..., 0], Q[..., 1], Q[..., 2], Q[..., 3]
+    R = Q_to_R(Q)
+    return np.concatenate([R[..., 0, :], R[..., 1, :]], axis=-1)
 
-    r0 = np.stack([2*(q0*q0 + q1*q1) - 1, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)], axis=-1)
-    r1 = np.stack([2*(q1*q2 + q0*q3), 2*(q0*q0 + q2*q2) - 1, 2*(q2*q3 - q0*q1)], axis=-1)
-    return np.concatenate([r0, r1], axis=-1) # (..., 6)
-
-def Q_mul(x, y):
+def Q_mul(Q0, Q1):
     """
-    Parameters
-        x: tensor of quaternions of shape (..., Nb of joints, 4)
-        y: tensor of quaternions of shape (..., Nb of joints, 4)
+    Args:
+        Q0: left-hand quaternion (..., 4)
+        Q1: right-hand quaternion (..., 4)
+    Returns:
+        Q: quaternion product Q0*Q1 (..., 4)
     """
-    if x.shape[-1] != 4 or y.shape[-1] != 4:
-        raise ValueError(f"x.shape[-1] = {x.shape[-1]} != 4 or y.shape[-1] = {y.shape[-1]} != 4")
-        
-    x0, x1, x2, x3 = x[..., 0:1], x[..., 1:2], x[..., 2:3], x[..., 3:4]
-    y0, y1, y2, y3 = y[..., 0:1], y[..., 1:2], y[..., 2:3], y[..., 3:4]
+    if Q0.shape[-1] != 4 or Q1.shape[-1] != 4:
+        raise ValueError(f"Incompatible shapes {Q0.shape} and {Q1.shape}")
+    
+    r0, i0, j0, k0 = np.split(Q0, 4, axis=-1)
+    r1, i1, j1, k1 = np.split(Q1, 4, axis=-1)
 
     res = np.concatenate([
-        y0 * x0 - y1 * x1 - y2 * x2 - y3 * x3,
-        y0 * x1 + y1 * x0 - y2 * x3 + y3 * x2,
-        y0 * x2 + y1 * x3 + y2 * x0 - y3 * x1,
-        y0 * x3 - y1 * x2 + y2 * x1 + y3 * x0], axis=-1)
+        r0*r1 - i0*i1 - j0*j1 - k0*k1,
+        r0*i1 + i0*r1 + j0*k1 - k0*j1,
+        r0*j1 - i0*k1 + j0*r1 + k0*i1,
+        r0*k1 + i0*j1 - j0*i1 + k0*r1
+    ], axis=-1)
 
     return res
 
 def Q_inv(Q):
     """
-    Parameters
+    Args:
         Q: (..., 4)
     """
     if Q.shape[-1] != 4:
-        raise ValueError(f"Q.shape[-1] = {Q.shape[-1]} != 4")
+        raise ValueError(f"Invalid quaternion shape {Q.shape}")
 
-    res = np.asarray([1, -1, -1, -1], dtype=np.float32) * Q
+    res = np.array([1, -1, -1, -1], dtype=np.float32) * Q
     return res
 
 """ Conversion from R6 """
-def R6_to_R(R6: np.ndarray) -> np.ndarray:
+def R6_to_R(R6):
     """
-    Parameters
+    Args:
         R6: (..., 6)
     """
     if R6.shape[-1] != 6:
-        raise ValueError(f"r6.shape[-1] = {R6.shape[-1]} != 6")
+        raise ValueError(f"Invalid R6 shape {R6.shape}")
     
     x = normalize_vector(R6[..., 0:3], axis=-1)
     y = normalize_vector(R6[..., 3:6] - np.sum(x * R6[..., 3:6], axis=-1, keepdims=True) * x, axis=-1)
     z = np.cross(x, y, axis=-1)
     return np.stack([x, y, z], axis=-2) # (..., 3, 3)
-
-""" Operations for R """
-def R_inv(R):
-    """
-    Parameters
-        R: (..., N, 3, 3)
-    """
-    if R.shape[-2:] != (3, 3):
-        raise ValueError(f"R.shape[-2:] = {R.shape[-2:]} != (3, 3)")
-    return np.transpose(R, axes=[*range(len(R.shape) - 2), -1, -2])
