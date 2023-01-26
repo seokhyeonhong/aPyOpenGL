@@ -22,7 +22,7 @@ def load_motions():
     files = []
     dirs = []
     for dir in sorted(os.listdir(MOTION_DIR)):
-        if dir not in ["jumpy"]:#["flat", "jumpy", "rocky"]:
+        if dir not in ["flat", "jumpy", "rocky"]:
             continue
         for file in sorted(os.listdir(os.path.join(MOTION_DIR, dir))):
             if file.endswith(".bvh"):

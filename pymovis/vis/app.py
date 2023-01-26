@@ -189,6 +189,7 @@ class MotionApp(App):
 
         # recording
         if self.recording:
+            print("Recording")
             if self.prev_frame == self.frame and self.playing:
                 return
                 

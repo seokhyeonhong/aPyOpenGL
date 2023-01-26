@@ -23,15 +23,17 @@ def find_texture_type(type_name):
     return find if find is not None else TextureType.eUNKNOWN
 
 class Parser:
-    def __init__(self, path, scale):
+    def __init__(self, path, scale, save):
         self.path = path
+        self.scale = scale
+        self.save = save
         self.parser = fbx_parser.FBXParser(path)
         self.init_character_data(scale)
         self.init_mesh_data(scale)
 
     def init_character_data(self, scale):
         save_path = os.path.join(os.path.dirname(self.path), "character_data.pkl")
-        if os.path.exists(save_path):
+        if os.path.exists(save_path) and self.save:
             with open(save_path, "rb") as f:
                 self.char_data = pickle.load(f)
             return
@@ -51,12 +53,13 @@ class Parser:
         for i in range(root.GetChildCount()):
             fbx_skeleton.parse_nodes_by_type(root.GetChild(i), self.char_data.joint_data, -1, fbx.FbxNodeAttribute.eSkeleton, scale)
         
-        with open(save_path, "wb") as f:
-            pickle.dump(self.char_data, f, pickle.HIGHEST_PROTOCOL)
+        if not os.path.exists(save_path) and self.save:
+            with open(save_path, "wb") as f:
+                pickle.dump(self.char_data, f, pickle.HIGHEST_PROTOCOL)
 
     def init_mesh_data(self, scale):
         save_path = os.path.join(os.path.dirname(self.path), "mesh_data.pkl")
-        if os.path.exists(save_path):
+        if os.path.exists(save_path) and self.save:
             with open(save_path, "rb") as f:
                 self.mesh_data = pickle.load(f)
             return
@@ -101,9 +104,10 @@ class Parser:
                 scale)
             
             self.mesh_data.append(mesh_data)
-            
-        with open(save_path, "wb") as f:
-            pickle.dump(self.mesh_data, f, pickle.HIGHEST_PROTOCOL)
+        
+        if not os.path.exists(save_path) and self.save:
+            with open(save_path, "wb") as f:
+                pickle.dump(self.mesh_data, f, pickle.HIGHEST_PROTOCOL)
     
     def __load_mesh_recursive(self, node, mesh_nodes):
         for i in range(node.GetNodeAttributeCount()):
@@ -115,8 +119,8 @@ class Parser:
             self.__load_mesh_recursive(node.GetChild(i), mesh_nodes)
 
 class FBX:
-    def __init__(self, filename, scale=0.01):
-        self.parser = Parser(filename, scale)
+    def __init__(self, filename, scale=0.01, save=True):
+        self.parser = Parser(filename, scale, save)
         self.scale = scale
 
     def meshes_and_materials(self):

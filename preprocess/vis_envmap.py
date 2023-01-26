@@ -37,12 +37,13 @@ def load_processed_envmap(split):
 
 """ Main functions """
 def visualize(train=True, test=True):
+    fbx = FBX("../data/models/model_skeleton.fbx")
     if train:
         train_data = load_processed_envmap("train")
-        for motion, patch, envmap, contact in train_data:
+        for motion, patch, edit, envmap, contact in train_data:
             for p, e in zip(patch, envmap):
                 app_manager = AppManager()
-                model = FBX("../data/models/model_skeleton.fbx").model()
+                model = fbx.model()
                 app = MyApp(motion, model, contact, p, e)
                 print(motion.name, motion.type)
                 app_manager.run(app)
@@ -52,7 +53,7 @@ def visualize(train=True, test=True):
         for motion, patch, envmap, contact in test_data:
             for p, e in zip(patch, envmap):
                 app_manager = AppManager()
-                model = FBX("../data/models/model_skeleton.fbx").model()
+                model = fbx.model()
                 app = MyApp(motion, model, contact, p, e)
                 app_manager.run(app)
 
@@ -63,6 +64,7 @@ class MyApp(MotionApp):
         self.sphere = Render.sphere().set_albedo([0, 1, 0])
         self.grid.set_visible(False)
         self.axis.set_visible(False)
+        self.text.set_visible(False)
         
         jid_left_foot  = self.motion.skeleton.idx_by_name["LeftFoot"]
         jid_left_toe   = self.motion.skeleton.idx_by_name["LeftToe"]

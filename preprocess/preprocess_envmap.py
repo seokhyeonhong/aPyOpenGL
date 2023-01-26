@@ -116,23 +116,26 @@ def sample_top_patches(mfc, heightmaps):
 
     # terrain fit editing
     terr_residuals = (feet_down_y - feet_down_y_mean) - (terr_down_y[terr_ids] - terr_down_y_mean[terr_ids])
-    terr_fine_func = [RBF(smooth=0.1, function="gaussian", eps=2e-3) for _ in range(TOP_K_SAMPLES)]
+    terr_fine_func = [RBF(smooth=0.01, function="linear", eps=5e-3) for _ in range(TOP_K_SAMPLES)]
     edits = []
     for i in range(TOP_K_SAMPLES):
-        h, w = terr_patches[i].shape
-        x, z = np.meshgrid(np.arange(w) - w / 2, np.arange(h) - h / 2)
-        terr = sample_height(terr_patches[i:i+1], x * H_SCALE, z * H_SCALE).reshape(h, w)
-
         terr_fine_func[i].fit(feet_down[..., (0, 2)], terr_residuals[i])
-        edit = terr_fine_func[i].forward(np.stack([x, z], axis=-1).reshape(-1, 2)).reshape(h, w)
+
+        h, w = terr_patches[i].shape
+        x, z = np.meshgrid(np.arange(w, dtype=np.float32) - w / 2, np.arange(h, dtype=np.float32) - h / 2)
+        x *= H_SCALE
+        z *= H_SCALE
+        
+        terr = sample_height(terr_patches[i:i+1], x, z).reshape(h, w)
+        edit = terr_fine_func[i].forward(np.stack([x, z], axis=-1).reshape(-1, 2)).reshape(h, w).astype(np.float32)
         
         terr_patches[i] = (terr - terr_down_y_mean[terr_ids[i]] + feet_down_y_mean + edit) / V_SCALE
         edits.append(edit / V_SCALE)
     
     # sample environment maps
     grid_x, grid_z = np.meshgrid(np.linspace(-1, 1, 11), np.linspace(-1, 1, 11))
-    grid_y = np.zeros_like(grid_x)
-    grid = np.stack([grid_x, grid_y, grid_z], axis=-1)
+    grid_y         = np.zeros_like(grid_x)
+    grid           = np.stack([grid_x, grid_y, grid_z], axis=-1)
     
     forward = np.stack([pose.forward for pose in motion.poses], axis=0)
     left    = np.stack([pose.left for pose in motion.poses], axis=0)
@@ -171,7 +174,7 @@ def generate_dataset(split="train"):
     env_maps, vis_data = [], []
     for motion_contact in tqdm(zip(motions[::512], feet_p[::512], contact[::512]), total=len(motions), desc="Generating envmap dataset"):
     # for motion_contact in tqdm(zip(motions, feet_p, contact), total=len(motions), desc="Generating envmap dataset"):
-        dict = sample_top_patches(motion_contact, heightmaps, num_samples=TOP_K_SAMPLES)
+        dict = sample_top_patches(motion_contact, heightmaps)
         patch = dict["patches"]
         edit = dict["edits"]
         env_map = dict["env_map"]
