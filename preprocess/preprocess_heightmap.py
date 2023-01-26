@@ -1,3 +1,7 @@
+import sys
+sys.path.append(".")
+sys.path.append("..")
+
 import os
 import pickle
 import time
@@ -9,8 +13,8 @@ from pymovis.utils import util
 """ Global variables """
 SPARSITY      = 15
 SIZE          = 140
-HEIGHTMAP_DIR = "../data/heightmaps"
-SAVE_DIR      = "../data/dataset/heightmap"
+HEIGHTMAP_DIR = "./data/heightmaps"
+SAVE_DIR      = "./data/dataset/heightmap"
 SAVE_FILENAME = f"sparsity{SPARSITY}_mapsize{SIZE}.pkl"
 
 """ Load from saved files """

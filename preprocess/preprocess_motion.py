@@ -1,3 +1,7 @@
+import sys
+sys.path.append(".")
+sys.path.append("..")
+
 import os
 import pickle
 
@@ -13,8 +17,8 @@ from pymovis.utils import util
 WINDOW_SIZE   = 50
 WINDOW_OFFSET = 20
 FPS           = 30
-MOTION_DIR    = "../data/animations"
-SAVE_DIR      = "../data/dataset/motion"
+MOTION_DIR    = "./data/animations"
+SAVE_DIR      = "./data/dataset/motion"
 SAVE_FILENAME = f"length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.pkl"
 
 """ Load from saved files """

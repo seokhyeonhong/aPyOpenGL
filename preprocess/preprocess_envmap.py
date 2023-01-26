@@ -1,3 +1,7 @@
+import sys
+sys.path.append(".")
+sys.path.append("..")
+
 import os
 import pickle
 
@@ -13,7 +17,7 @@ from pymovis.vis.const import INCH_TO_METER
 WINDOW_SIZE     = 50
 WINDOW_OFFSET   = 20
 FPS             = 30
-MOTION_DIR      = f"../data/dataset/motion"
+MOTION_DIR      = f"./data/dataset/motion"
 MOTION_FILENAME = f"length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.pkl"
 
 SPARSITY        = 15
@@ -21,11 +25,11 @@ SIZE            = 140
 TOP_K_SAMPLES   = 10
 H_SCALE         = 2 * INCH_TO_METER
 V_SCALE         = INCH_TO_METER
-HEIGHTMAP_DIR   = f"../data/dataset/heightmap"
+HEIGHTMAP_DIR   = f"./data/dataset/heightmap"
 HEIGHT_FILENAME = f"sparsity{SPARSITY}_mapsize{SIZE}.pkl"
 
-ENVMAP_DIR      = f"../data/dataset/envmap/"
-VIS_DIR         = f"../data/dataset/vis/"
+ENVMAP_DIR      = f"./data/dataset/envmap/"
+VIS_DIR         = f"./data/dataset/vis/"
 SAVE_FILENAME   = f"length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}_sparsity{SPARSITY}_mapsize{SIZE}_top{TOP_K_SAMPLES}.pkl"
 
 """ Load processed data """

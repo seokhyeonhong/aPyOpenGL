@@ -56,9 +56,9 @@ class WindowDataset(Dataset):
 class PairDataset(Dataset):
     def __init__(self, base_dir, train, X_name="motion", Y_name="envmap", window_size=50, window_offset=20, fps=30, sparsity=15, size=200, top_k_samples=10):
         self.base_dir = base_dir
-        self.train = train
-        self.X_name = X_name
-        self.Y_name = Y_name
+        self.train    = train
+        self.X_name   = X_name
+        self.Y_name   = Y_name
 
         self.window_size = window_size
         self.window_offset = window_offset
@@ -67,11 +67,15 @@ class PairDataset(Dataset):
         self.size = size
         self.top_k_samples = top_k_samples
 
-        self.X = np.load(os.path.join(base_dir, X_name, f"{'train' if train else 'test'}_size{window_size}_offset{window_offset}_fps{fps}.npy"))
-        self.Y = np.load(os.path.join(base_dir, Y_name, f"{'train' if train else 'test'}_size{window_size}_offset{window_offset}_sparsity{sparsity}_size{size}_top{top_k_samples}.npy"))
-        
+        with open(os.path.join(base_dir, X_name, f"{'train' if train else 'test'}_length{window_size}_offset{window_offset}_fps{fps}.pkl"), "rb") as f:
+            self.X = pickle.load(f)["features"]
+        with open(os.path.join(base_dir, Y_name, f"{'train' if train else 'test'}_length{window_size}_offset{window_offset}_fps{fps}_sparsity{sparsity}_mapsize{size}_top{top_k_samples}.pkl"), "rb") as f:
+            self.Y = pickle.load(f)
         with open(os.path.join(base_dir, X_name, "skeleton.pkl"), "rb") as f:
             self.skeleton = pickle.load(f)
+        
+        if self.X.shape[0] != self.Y.shape[0]:
+            raise ValueError("X and Y must have the same number of samples")
         
     def __len__(self):
         return len(self.X)

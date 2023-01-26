@@ -1,3 +1,7 @@
+import sys
+sys.path.append(".")
+sys.path.append("..")
+
 import os
 import pickle
 
@@ -10,7 +14,7 @@ from pymovis.vis.const import INCH_TO_METER
 """ Global variables """
 SPARSITY      = 15
 SIZE          = 140
-SAVE_DIR      = "../data/dataset/heightmap"
+SAVE_DIR      = "./data/dataset/heightmap"
 SAVE_FILENAME = f"sparsity{SPARSITY}_mapsize{SIZE}.pkl"
 
 """ Load from saved files """
