@@ -156,6 +156,7 @@ class FBX:
 
                     gl_texture = TextureLoader.load(texture_info.filename)
                     gl_texture_type = find_texture_type(texture_info.property)
+                    print(gl_texture_type)
                     gl_material.set_texture(gl_texture_type, gl_texture)
                 
                 gl_materials.append(gl_material)

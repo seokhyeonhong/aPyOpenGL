@@ -53,7 +53,7 @@ class DirectionalLight(Light):
         focus_position: glm.vec3 = glm.vec3(0),
         color: glm.vec3 = glm.vec3(1.0),
         intensity: float = 1.0,
-        L: float = 7.0,
+        L: float = 10.0,
         z_near: float = 1.0,
         z_far: float = 50.0
     ):

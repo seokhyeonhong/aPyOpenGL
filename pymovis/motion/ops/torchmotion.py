@@ -14,9 +14,6 @@ Glossary:
 - Q: Quaternion (order in (w, x, y, z), where w is real value)
 - v: Vector
 - p: Position
-
-To avoid confusion, we use __ to denote the function argument if it has the same name as a class.
-For example, to denote the rotation matrix, we use __R instead of R.
 """
 
 """ FK """
@@ -302,7 +299,7 @@ def R6_to_R(R6):
         raise ValueError(f"Invalid R6 shape {R6.shape}")
     
     x_, y_ = R6[..., :3], R6[..., 3:]
-    x = F.normalize(x, dim=-1)
+    x = F.normalize(x_, dim=-1)
     y = F.normalize(y_ - (x * y_).sum(dim=-1, keepdim=True) * x, dim=-1)
     z = torch.cross(x, y, dim=-1)
     return torch.stack([x, y, z], dim=-2) # (..., 3, 3)

@@ -252,6 +252,9 @@ class Motion:
         frame = int(time * self.fps)
         return self.poses[frame]
 
+    def copy(self):
+        return copy.deepcopy(self)
+
     """ Alignment functions """
     def align_to_origin_by_frame(self, frame):
         delta = -self.poses[frame].root_p * npconst.XZ()
@@ -280,3 +283,46 @@ class Motion:
     def align_by_frame(self, frame, forward=npconst.FORWARD()):
         self.align_to_origin_by_frame(frame)
         self.align_to_forward_by_frame(frame, forward)
+    
+    """ Velocity-weighted locomotion scaling """
+    def scaled_motion(self, scale_factor, left_leg_name="LeftUpLeg", left_foot_name="LeftFoot", right_leg_name="RightUpLeg", right_foot_name="RightFoot"):
+        copy_motion = self.copy()
+
+        # joint indices
+        left_leg_idx   = self.skeleton.idx_by_name[left_leg_name]
+        left_foot_idx  = self.skeleton.idx_by_name[left_foot_name]
+        right_leg_idx  = self.skeleton.idx_by_name[right_leg_name]
+        right_foot_idx = self.skeleton.idx_by_name[right_foot_name]
+
+        # chain lengths
+        left_mid_idx   = self.skeleton.parent_idx[left_foot_idx]
+        right_mid_idx  = self.skeleton.parent_idx[right_foot_idx]
+        left_chain_len = np.linalg.norm(self.skeleton.joints[left_mid_idx].offset, axis=-1) + np.linalg.norm(self.skeleton.joints[left_foot_idx].offset, axis=-1) + np.linalg.norm(self.skeleton.joints[left_leg_idx].offset, axis=-1)
+        right_chain_len = np.linalg.norm(self.skeleton.joints[right_mid_idx].offset, axis=-1) + np.linalg.norm(self.skeleton.joints[right_foot_idx].offset, axis=-1) + np.linalg.norm(self.skeleton.joints[right_leg_idx].offset, axis=-1)
+
+        # iterate over poses
+        for i, pose in enumerate(self.poses[1:], start=1):
+            # get the new root position
+            base_v = scale_factor * (self.poses[i].base - self.poses[i-1].base)
+            root_p = copy_motion.poses[i-1].root_p + base_v
+            root_p[1] = self.poses[i].root_p[1]
+            copy_motion.poses[i].set_root_p(root_p)
+
+            def root_to_foot(foot_idx):
+                res = pose.global_p[foot_idx] - pose.root_p
+                res = res * np.array([0, 1, 0]) + (res * np.array([1, 0, 1])) * scale_factor
+                return res
+            
+            root_to_left_foot  = root_to_foot(left_foot_idx)
+            root_to_right_foot = root_to_foot(right_foot_idx)
+
+            # discard if the target foot position is too far
+            if np.linalg.norm(root_to_left_foot) > left_chain_len or np.linalg.norm(root_to_right_foot) > right_chain_len:
+                print(f"Scale factor {scale_factor} is too large. (frame {i})")
+                return None
+
+            # apply two-bone IK
+            copy_motion.poses[i].two_bone_ik(left_leg_idx,  left_foot_idx,   root_to_left_foot + copy_motion.poses[i].root_p)
+            copy_motion.poses[i].two_bone_ik(right_leg_idx, right_foot_idx, root_to_right_foot + copy_motion.poses[i].root_p)
+
+        return copy_motion

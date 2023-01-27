@@ -13,10 +13,9 @@ class VAO:
 
     @classmethod
     def from_vertex_array(cls, vertex_array: list[VertexGL], indices) -> VAO:
-        id      = glGenVertexArrays(1)
-        vbos    = glGenBuffers(8)
-        ebo     = glGenBuffers(1)
-        indices = indices
+        id   = glGenVertexArrays(1)
+        vbos = glGenBuffers(8)
+        ebo  = glGenBuffers(1)
 
         glBindVertexArray(id)
         # glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
@@ -80,9 +79,9 @@ class VAO:
         glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
 
         # indices
-        indices = np.array(indices, dtype=np.uint32)
+        data = np.array(indices, dtype=np.uint32).flatten()
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL_STATIC_DRAW)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
 
         # unbind
         glBindBuffer(GL_ARRAY_BUFFER, 0)
@@ -110,10 +109,10 @@ class VAO:
 
 class VertexGL:
     def __init__(self, position=glm.vec3(0), normal=glm.vec3(0), uv=glm.vec2(0), material_id=0, skinning_indices1=glm.vec4(0), skinning_weights1=glm.vec4(0), skinning_indices2=glm.vec4(0), skinning_weights2=glm.vec4(0)):
-        self.position         = position
-        self.normal           = normal
-        self.uv               = uv
-        self.material_id      = material_id
+        self.position          = position
+        self.normal            = normal
+        self.uv                = uv
+        self.material_id       = material_id
         self.skinning_indices1 = skinning_indices1
         self.skinning_weights1 = skinning_weights1
         self.skinning_indices2 = skinning_indices2

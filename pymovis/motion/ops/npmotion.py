@@ -11,8 +11,6 @@ Glossary:
 - Q: Quaternion (order in (w, x, y, z), where w is real value)
 - v: Vector
 - p: Position
-
-TODO: Refactor code & Synchronize with torchmotion.py
 """
 
 def normalize_vector(x, axis=-1, eps=1e-8):
