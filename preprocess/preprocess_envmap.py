@@ -176,8 +176,8 @@ def generate_dataset(split="train"):
 
     # extract envmap dataset
     env_maps, vis_data = [], []
-    for motion_contact in tqdm(zip(motions[::512], feet_p[::512], contact[::512]), total=len(motions), desc="Generating envmap dataset"):
-    # for motion_contact in tqdm(zip(motions, feet_p, contact), total=len(motions), desc="Generating envmap dataset"):
+    # for motion_contact in tqdm(zip(motions[::512], feet_p[::512], contact[::512]), total=len(motions), desc="Generating envmap dataset"):
+    for motion_contact in tqdm(zip(motions, feet_p, contact), total=len(motions), desc="Generating envmap dataset"):
         dict = sample_top_patches(motion_contact, heightmaps)
         patch = dict["patches"]
         edit = dict["edits"]

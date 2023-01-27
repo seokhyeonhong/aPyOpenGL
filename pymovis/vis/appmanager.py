@@ -8,8 +8,8 @@ from pymovis.vis.const import SHADOW_MAP_SIZE
 class AppManager:
     def __init__(
         self,
-        width: int  = 1920,
-        height: int = 1080,
+        width: int  = 3840,
+        height: int = 2160,
     ):
         self.do_capture = False
         self.width      = width
@@ -24,7 +24,7 @@ class AppManager:
     def initialize(self):
         # initialize glfw
         glfw.init()
-        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 4)
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
 

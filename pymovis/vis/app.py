@@ -196,7 +196,7 @@ class MotionApp(App):
             self.captures[self.frame] = super().capture_screen()
             self.prev_frame = self.frame
         
-    def render(self, render_xray=True):
+    def render(self, render_model=True, render_xray=True):
         # time setting
         if self.playing:
             self.frame = min(int(glfw.get_time() * self.motion.fps), len(self.motion) - 1)
@@ -208,13 +208,14 @@ class MotionApp(App):
         self.axis.draw()
 
         # render the model
-        if self.model is not None:
-            self.model.set_pose_by_source(self.motion.poses[self.frame])
-            Render.model(self.model).draw()
+        if render_model is True:
+            if self.model is not None:
+                self.model.set_pose_by_source(self.motion.poses[self.frame])
+                Render.model(self.model).draw()
 
-        # render the xray
-        if render_xray:
-            self.render_xray(self.motion.poses[self.frame])
+            # render the xray
+            if render_xray:
+                self.render_xray(self.motion.poses[self.frame])
 
     def render_xray(self, pose, albedo=[0, 1, 1]):
         if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):
@@ -237,7 +238,7 @@ class MotionApp(App):
             angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
             orientation = glm.rotate(glm.mat4(1.0), angle, axis)
             
-            self.joint_bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo(albedo).set_color_mode(False).draw()
+            self.joint_bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo(albedo).set_color_mode(True).draw()
         glEnable(GL_DEPTH_TEST)
 
     """ Capture functions """

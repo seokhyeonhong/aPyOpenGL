@@ -18,6 +18,6 @@ uniform mat4 M;
 
 void main()
 {
-    gl_Position = PV * M * vec4(vPosition.xy, 0.0, 1.0);
+    gl_Position = PV * M * vec4(vPosition.xy, 0.0f, 1.0f);
     fTexCoord = vPosition.zw;
 }

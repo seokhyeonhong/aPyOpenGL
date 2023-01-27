@@ -19,7 +19,7 @@ from pymovis.vis.const import INCH_TO_METER
 WINDOW_SIZE     = 50
 WINDOW_OFFSET   = 20
 FPS             = 30
-MOTION_DIR      = f"../data/dataset/motion"
+MOTION_DIR      = f"./data/dataset/motion"
 MOTION_FILENAME = f"motions_length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.pkl"
 
 SPARSITY        = 15
@@ -27,10 +27,10 @@ SIZE            = 140
 TOP_K_SAMPLES   = 10
 H_SCALE         = 2 * INCH_TO_METER
 V_SCALE         = INCH_TO_METER
-HEIGHTMAP_DIR   = f"../data/dataset/heightmap"
+HEIGHTMAP_DIR   = f"./data/dataset/heightmap"
 HEIGHT_FILENAME = f"sparsity{SPARSITY}_size{SIZE}.pkl"
 
-VIS_DIR         = f"../data/dataset/vis/"
+VIS_DIR         = f"./data/dataset/vis/"
 SAVE_FILENAME   = f"length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}_sparsity{SPARSITY}_mapsize{SIZE}_top{TOP_K_SAMPLES}.pkl"
 
 """ Load processed data """
@@ -41,7 +41,7 @@ def load_processed_envmap(split):
 
 """ Main functions """
 def visualize(train=True, test=True):
-    fbx = FBX("../data/models/model_skeleton.fbx")
+    fbx = FBX("./data/models/model_skeleton.fbx")
     if train:
         train_data = load_processed_envmap("train")
         for motion, patch, edit, envmap, contact in train_data:

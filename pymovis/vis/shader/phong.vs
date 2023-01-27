@@ -31,10 +31,10 @@ uniform mat4 lightSpaceMatrix;
 
 void main()
 {
-    fPosition      = vec3(M * vec4(vPosition, 1.0));
+    fPosition      = vec3(M * vec4(vPosition, 1.0f));
     fNormal        = normalize(transpose(inverse(mat3(M))) * vNormal);
     fTexCoord      = vTexCoord;
-    fPosLightSpace = lightSpaceMatrix * vec4(fPosition, 1.0);
+    fPosLightSpace = lightSpaceMatrix * vec4(fPosition, 1.0f);
     fMaterialID    = vMaterialID;
-    gl_Position    = P * V * vec4(fPosition, 1.0);
+    gl_Position    = P * V * vec4(fPosition, 1.0f);
 }

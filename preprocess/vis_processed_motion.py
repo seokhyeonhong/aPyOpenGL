@@ -15,7 +15,7 @@ WINDOW_SIZE   = 50
 WINDOW_OFFSET = 20
 FPS           = 30
 SAVE_DIR      = "./data/dataset/motion"
-SAVE_FILENAME = f"motions_length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.pkl"
+SAVE_FILENAME = f"length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.pkl"
 
 """ Load from saved files """
 def load_processed_data():
@@ -25,16 +25,17 @@ def load_processed_data():
     with open(os.path.join(SAVE_DIR, f"test_{SAVE_FILENAME}"), "rb") as f:
         test_windows = pickle.load(f)
 
-    return train_windows, test_windows
+    return train_windows["windows"], test_windows["windows"]
 
 """ Main functions """
 def visualize(train=True, test=True):
     train_windows, test_windows = load_processed_data()
+    fbx = FBX("./data/models/model_skeleton.fbx")
 
     if train:
         for window in train_windows:
             app_manager = AppManager()
-            model = FBX("../data/models/model_skeleton.fbx").model()
+            model = fbx.model()
             print(window.name, window.type)
             app = MotionApp(window, model)
             app_manager.run(app)
@@ -42,7 +43,7 @@ def visualize(train=True, test=True):
     if test:
         for window in test_windows:
             app_manager = AppManager()
-            model = FBX("../data/models/model_skeleton.fbx").model()
+            model = fbx.model()
             # print(window.name, window.type)
             app = MotionApp(window, model)
             app_manager.run(app)

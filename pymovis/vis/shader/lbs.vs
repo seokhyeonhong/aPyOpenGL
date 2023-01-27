@@ -33,21 +33,12 @@ uniform mat4 lightSpaceMatrix;
 mat4 GetJointMatrix(ivec4 ids, vec4 weights)
 {
     mat4 m = mat4(0.0f);
-    if (0 <= ids.x && ids.x < MAX_JOINT_NUM)
+    for (int i = 0; i < 4; ++i)
     {
-        m += uLbsJoints[ids.x] * weights.x;
-    }
-    if (0 <= ids.y && ids.y < MAX_JOINT_NUM)
-    {
-        m += uLbsJoints[ids.y] * weights.y;
-    }
-    if (0 <= ids.z && ids.z < MAX_JOINT_NUM)
-    {
-        m += uLbsJoints[ids.z] * weights.z;
-    }
-    if (0 <= ids.w && ids.w < MAX_JOINT_NUM)
-    {
-        m += uLbsJoints[ids.w] * weights.w;
+        if (0 <= ids[i] && ids[i] < MAX_JOINT_NUM)
+        {
+            m += uLbsJoints[ids[i]] * weights[i];
+        }
     }
     return m;
 }
@@ -59,11 +50,11 @@ void main()
     mat4 lbsModel2 = GetJointMatrix(vLbsJointIDs2, vLbsWeights2);
     mat4 modelLBS  = lbsModel1 + lbsModel2;
 
-    fPosition      = vec3(modelLBS * vec4(vPosition, 1.0));
+    fPosition      = vec3(modelLBS * vec4(vPosition, 1.0f));
     fNormal        = normalize(transpose(inverse(mat3(modelLBS))) * vNormal);
     fTexCoord      = vTexCoord;
-    fPosLightSpace = lightSpaceMatrix * vec4(fPosition, 1.0);
+    fPosLightSpace = lightSpaceMatrix * vec4(fPosition, 1.0f);
     fMaterialID    = vMaterialID;
 
-    gl_Position    = P * V * vec4(fPosition, 1.0);
+    gl_Position    = P * V * vec4(fPosition, 1.0f);
 }

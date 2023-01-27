@@ -19,24 +19,23 @@ To avoid confusion, we use __ to denote the function argument if it has the same
 For example, to denote the rotation matrix, we use __R instead of R.
 """
 
-def normalize_vector(x, dim=-1, eps=1e-6):
-    return F.normalize(x, p=2, dim=dim, eps=eps)
-
 """ FK """
-def R_fk(R, root_p, skeleton):
+def R_fk(local_R, root_p, skeleton):
         """
-        Parameters
-            R: (..., N, 3, 3)
+        Args:
+            local_R: (..., N, 3, 3)
             root_p: (..., 3)
             bone_offset: (N, 3)
             parents: (N,)
+        Returns:
+            Global rotation matrix and position of each joint.
         """
         bone_offsets = torch.from_numpy(skeleton.get_bone_offsets()).to(R.device)
         parents = skeleton.parent_idx
 
-        global_R, global_p = [R[..., 0, :, :]], [root_p]
+        global_R, global_p = [local_R[..., 0, :, :]], [root_p]
         for i in range(1, len(parents)):
-            global_R.append(torch.matmul(global_R[parents[i]], R[..., i, :, :]))
+            global_R.append(torch.matmul(global_R[parents[i]], local_R[..., i, :, :]))
             global_p.append(torch.matmul(global_R[parents[i]], bone_offsets[i]) + global_p[parents[i]])
         
         global_R = torch.stack(global_R, dim=-3) # (..., N, 3, 3)
@@ -44,211 +43,266 @@ def R_fk(R, root_p, skeleton):
         return global_R, global_p
 
 
-def R6_fk(R6: torch.Tensor, root_p: torch.Tensor, skeleton: Skeleton):
+def R6_fk(local_R6, root_p, skeleton):
     """
-    Parameters
-        R6: (..., N, 6)
+    Args:
+        local_R6: (..., N, 6)
         root_p: (..., 3)
         bone_offset: (N, 3)
         parents: (N,)
     """
-    if R6.shape[-1] != 6:
-        raise ValueError(f"R6.shape[-1] = {R6.shape[-1]} != 6")
-    R = R6_to_R(R6)
-    R, p = R_fk(R, root_p, skeleton)
+    R, p = R_fk(R6_to_R(local_R6), root_p, skeleton)
     return R_to_R6(R), p
 
-""" Conversion from R """
-def R_to_R6(R: torch.Tensor) -> torch.Tensor:
+""" Operations with R """
+def R_to_R6(R):
     """
     Parameters
         R: (..., 3, 3)
     """
     if R.shape[-2:] != (3, 3):
-        raise ValueError(f"r.shape[-2:] = {R.shape[-2:]} != (3, 3)")
-    x = R[..., 0, :]
-    y = R[..., 1, :]
-    return torch.cat([x, y], dim=-1) # (..., 6)
+        raise ValueError(f"Invalid rotation matrix shape {R.shape}")
+    return R[..., :2, :].clone().reshape(R.shape[:-2] + (6,))
 
-""" Conversion from E """
-def E_to_R(E: torch.Tensor, order: str, radians: bool=True) -> torch.Tensor:
-    """
-    Parameters
-        E: (..., 3)
-    """
-    if not radians:
-        E = torch.deg2rad(E)
-
-    R_map = {
-        "x": lambda x: torch.stack([torch.ones_like(x), torch.zeros_like(x), torch.zeros_like(x),
-                                    torch.zeros_like(x), torch.cos(x), -torch.sin(x),
-                                    torch.zeros_like(x), torch.sin(x), torch.cos(x)], dim=-1).reshape(*x.shape, 3, 3),
-        "y": lambda y: torch.stack([torch.cos(y), torch.zeros_like(y), torch.sin(y),
-                                    torch.zeros_like(y), torch.ones_like(y), torch.zeros_like(y),
-                                    -torch.sin(y), torch.zeros_like(y), torch.cos(y)], dim=-1).reshape(*y.shape, 3, 3),
-        "z": lambda z: torch.stack([torch.cos(z), -torch.sin(z), torch.zeros_like(z),
-                                    torch.sin(z), torch.cos(z), torch.zeros_like(z),
-                                    torch.zeros_like(z), torch.zeros_like(z), torch.ones_like(z)], dim=-1).reshape(*z.shape, 3, 3)
-    }
-
-    if len(order) == 3:
-        R0 = R_map[order[0]](E[..., 0])
-        R1 = R_map[order[1]](E[..., 1])
-        R2 = R_map[order[2]](E[..., 2])
-        return torch.matmul(R0, torch.matmul(R1, R2))
-    elif len(order) == 1:
-        return R_map[order](E)
-    else:
-        raise ValueError(f"Invalid order: {order}")
-
-
-def E_to_Q(E: torch.Tensor, order: str) -> torch.Tensor:
-    axis = {
-        'x': torch.tensor([1, 0, 0], dtype=torch.float32, device=E.device),
-        'y': torch.tensor([0, 1, 0], dtype=torch.float32, device=E.device),
-        'z': torch.tensor([0, 0, 1], dtype=torch.float32, device=E.device)
-    }
-
-    q0 = A_to_Q(E[..., 0], axis[order[0]])
-    q1 = A_to_Q(E[..., 1], axis[order[1]])
-    q2 = A_to_Q(E[..., 2], axis[order[2]])
-
-    return Q_mul(q0, Q_mul(q1, q2))
-
-""" Conversion from A """
-def A_to_R(angle: torch.Tensor, axis: torch.Tensor) -> torch.Tensor:
-    """
-    Parameters
-        angle: (..., N)
-        axis:  (..., 3)
-    """
-    if axis.shape[-1] != 3:
-        raise ValueError(f"axis.shape[-1] = {axis.shape[-1]} != 3")
-    
-    if angle.shape == axis.shape[:-1]:
-        angle = angle[..., None] # (..., N, 1)
-
-    a0, a1, a2     = axis[..., 0], axis[..., 1], axis[..., 2]
-    zero           = torch.zeros_like(a0)
-    skew_symmetric = torch.stack([zero, -a2, a1,
-                                a2, zero, -a0,
-                                -a1, a0, zero], dim=-1).reshape(*angle.shape[:-1], 1, 3, 3) # (..., 1, 3, 3)
-    I              = torch.eye(3, dtype=torch.float32, device=angle.device)              # (3, 3)
-    I              = torch.tile(I, reps=[*angle.shape[:-1], 1, 1])[..., None, :, :]      # (..., 1, 3, 3)
-    sin            = torch.sin(angle)[..., None, None]                                   # (..., N, 1, 1)
-    cos            = torch.cos(angle)[..., None, None]                                   # (..., N, 1, 1)
-    return I + skew_symmetric * sin + torch.matmul(skew_symmetric, skew_symmetric) * (1 - cos) # (..., N, 3, 3)
-
-def A_to_Q(angle: torch.Tensor, axis: torch.Tensor) -> torch.Tensor:
-    """
-    Parameters
-        angle: angles tensor (..., N)
-        axis: axis tensor (..., 3)
-    """
-    if axis.shape[-1] != 3:
-        raise ValueError(f"axis.shape[-1] = {axis.shape[-1]} != 3")
-
-    axis = normalize_vector(axis, dim=-1)
-    a0, a1, a2 = axis[..., 0], axis[..., 1], axis[..., 2]
-    cos = torch.cos(angle / 2)[..., None]
-    sin = torch.sin(angle / 2)[..., None]
-
-    return torch.cat([cos, a0 * sin, a1 * sin, a2 * sin], dim=-1) # (..., 4)
-
-""" Conversion from Q """
-def Q_to_R(Q: torch.Tensor) -> torch.Tensor:
-    """
-    Parameters
-        Q: (..., 4)
-    """
-    if Q.shape[-1] != 4:
-        raise ValueError(f"q.shape[-1] = {Q.shape[-1]} != 4")
-    
-    Q = normalize_vector(Q, dim=-1)
-    w, x, y, z = torch.unbind(Q, dim=-1)
-
-    row0 = torch.stack([2*(w*w + x*x) - 1, 2*(x*y - w*z), 2*(x*z + w*y)], dim=-1) # (..., 3)
-    row1 = torch.stack([2*(w*z + x*y), 2*(w*w + y*y) - 1, 2*(y*z - w*x)], dim=-1) # (..., 3)
-    row2 = torch.stack([2*(x*z - w*y), 2*(w*x + y*z), 2*(w*w + z*z) - 1], dim=-1) # (..., 3)
-    return torch.stack([row0, row1, row2], dim=-2) # (..., 3, 3)
-
-def Q_to_R6(Q: torch.Tensor) -> torch.Tensor:
-    """
-    :param __Q: (..., 4)
-    """
-    if Q.shape[-1] != 4:
-        raise ValueError(f"q.shape[-1] = {Q.shape[-1]} != 4")
-    
-    Q = normalize_vector(Q, dim=-1)
-    w, x, y, z = torch.unbind(Q, dim=-1)
-
-    r0 = torch.stack([2*(w*w + x*x) - 1, 2*(x*y - w*z), 2*(x*z + w*y)], dim=-1)
-    r1 = torch.stack([2*(x*y + w*z), 2*(w*w + y*y) - 1, 2*(y*z - w*x)], dim=-1)
-    return torch.cat([r0, r1], dim=-1) # (..., 6)
-
-""" Conversion from R6 """
-def R6_to_R(R6: torch.Tensor) -> torch.Tensor:
-    """
-    Parameters
-        R6: (..., 6)
-    """
-    if R6.shape[-1] != 6:
-        raise ValueError(f"R6.shape[-1] = {R6.shape[-1]} != 6")
-    
-    x = normalize_vector(R6[..., 0:3]) # (..., 3)
-    y = normalize_vector(R6[..., 3:6] - torch.sum(x * R6[..., 3:6], dim=-1, keepdim=True) * x) # (..., 3)
-    z = torch.cross(x, y, dim=-1) # (..., 3)
-    return torch.stack([x, y, z], dim=-2) # (..., 3, 3)
-
-""" Operations for R """
-def R_inv(R: torch.Tensor) -> torch.Tensor:
+def R_inv(R):
         """
         Parameters
             R: (..., N, 3, 3)
         """
         if R.shape[-2:] != (3, 3):
-            raise ValueError(f"r.shape[-2:] = {R.shape[-2:]} != (3, 3)")
+            raise ValueError(f"Invalid rotation matrix shape {R.shape}")
         return R.transpose(-1, -2)
 
-def R_mul(R0: torch.Tensor, R1: torch.Tensor) -> torch.Tensor:
+def R_mul(R0, R1):
     """
     Parameters
         R0: (..., N, 3, 3)
         R1: (..., N, 3, 3)
     """
-    if R0.shape[-2:] != (3, 3):
-        raise ValueError(f"R0.shape[-2:] = {R0.shape[-2:]} != (3, 3)")
-    if R1.shape[-2:] != (3, 3):
-        raise ValueError(f"R1.shape[-2:] = {R1.shape[-2:]} != (3, 3)")
+    if R0.shape[-2:] != (3, 3) or R1.shape[-2:] != (3, 3):
+        raise ValueError(f"Invalid rotation matrix shape {R0.shape} or {R1.shape}")
     return torch.matmul(R0, R1)
 
-""" Operations for Q """
-def Q_mul(Q0: torch.Tensor, Q1: torch.Tensor) -> torch.Tensor:
+""" Conversion from E """
+def E_to_R(E, order, radians=True):
     """
-    :param q0: left-sided quaternion (..., 4)
-    :param q1: right-sided quaternion (..., 4)
-    :return: q0 * q1 (..., 4)
+    Parameters
+        E: (..., 3)
+    """
+    if E.shape[-1] != 3:
+        raise ValueError(f"Invalid Euler angles shape {E.shape}")
+    if len(order) != 3:
+        raise ValueError(f"Order must have 3 characters, but got {order}")
+
+    if not radians:
+        E = torch.deg2rad(E)
+
+    def _euler_axis_to_R(angle, axis):
+        one = torch.ones_like(angle)
+        zero = torch.zeros_like(angle)
+        cos = torch.cos(angle)
+        sin = torch.sin(angle)
+
+        if axis == "x":
+            R_flat = (one, zero, zero, zero, cos, -sin, zero, sin, cos)
+        elif axis == "y":
+            R_flat = (cos, zero, sin, zero, one, zero, -sin, zero, cos)
+        elif axis == "z":
+            R_flat = (cos, -sin, zero, sin, cos, zero, zero, zero, one)
+        else:
+            raise ValueError(f"Invalid axis: {axis}")
+
+        return torch.stack(R_flat, dim=-1).reshape(angle.shape + (3, 3))
+    
+    Rs = [_euler_axis_to_R(E[..., i], order[i]) for i in range(3)]
+    return torch.matmul(torch.matmul(Rs[0], Rs[1]), Rs[2])
+
+
+def E_to_Q(E, order, radians=True):
+    """
+    Args:
+        E: (..., 3)
+    """
+    if E.shape[-1] != 3:
+        raise ValueError(f"Invalid Euler angles shape {E.shape}")
+    if len(order) != 3:
+        raise ValueError(f"Order must have 3 characters, but got {order}")
+
+    if not radians:
+        E = torch.deg2rad(E)
+    
+    def _euler_axis_to_Q(angle, axis):
+        zero = torch.zeros_like(angle)
+        cos = torch.cos(angle / 2)
+        sin = torch.sin(angle / 2)
+
+        if axis == "x":
+            Q_flat = (cos, sin, zero, zero)
+        elif axis == "y":
+            Q_flat = (cos, zero, sin, zero)
+        elif axis == "z":
+            Q_flat = (cos, zero, zero, sin)
+        else:
+            raise ValueError(f"Invalid axis: {axis}")
+        return torch.stack(Q_flat, dim=-1).reshape(angle.shape + (4,))
+        
+    Qs = [_euler_axis_to_Q(E[..., i], order[i]) for i in range(3)]
+    return Q_mul(Q_mul(Qs[0], Qs[1]), Qs[2])
+
+""" Operations with A """
+def A_to_R(angle, axis):
+    """
+    Args:
+        angle: (...)
+        axis:  (..., 3)
+    Returns:
+        Rotation matrix (..., 3, 3)
+    """
+    if axis.shape[-1] != 3:
+        raise ValueError(f"Invalid axis shape {axis.shape}")
+    if angle.shape != axis.shape[:-1]:
+        raise ValueError(f"Incompatible angle shape {angle.shape} and and axis shape {axis.shape}")
+
+    a0, a1, a2 = axis[..., 0], axis[..., 1], axis[..., 2]
+    zero       = torch.zeros_like(a0)
+
+    # skew symmetric matrix
+    S   = torch.stack([zero, -a2, a1, a2, zero, -a0, -a1, a0, zero], dim=-1)
+    S   = S.reshape(angle.shape + (3, 3))             # (..., 3, 3)
+
+    # rotation matrix
+    I   = torch.eye(3, dtype=torch.float32)                # (3, 3)
+    I   = torch.tile(I, reps=(angle.shape + (1, 1)))     # (..., 3, 3)
+    sin = torch.sin(angle)                               # (...,)
+    cos = torch.cos(angle)                               # (...,)
+
+    return I + S * sin + torch.matmul(S, S) * (1 - cos)  # (..., 3, 3)
+
+def A_to_Q(angle, axis):
+    """
+    Args:
+        angle: angles tensor (...)
+        axis: axis tensor (..., 3)
+    Returns:
+        Quaternion tensor (..., 4)
+    """
+    if axis.shape[-1] != 3:
+        raise ValueError(f"Invalid axis shape {axis.shape}")
+    if angle.shape != axis.shape[:-1]:
+        raise ValueError(f"Incompatible angle shape {angle.shape} and and axis shape {axis.shape}")
+
+    cos = torch.cos(angle / 2)
+    sin = torch.sin(angle / 2)
+    axis_sin = axis * sin[..., None]
+
+    return torch.cat([cos[..., None], axis_sin], dim=-1) # (..., 4)
+
+""" Operations with Q """
+def Q_to_A(Q, eps=1e-8):
+    """
+    Args:
+        Q: quaternion tensor (..., 4)
+    Returns:
+        angle: angle tensor (...)
+        axis:  axis tensor (..., 3)
+    """
+    if Q.shape[-1] != 4:
+        raise ValueError(f"Invalid quaternion shape {Q.shape}")
+
+    axis, angle = torch.empty_like(Q[..., 1:]), torch.empty_like(Q[..., 0])
+
+    length = torch.sqrt(torch.sum(Q[..., 1:] * Q[..., 1:], dim=-1)) # (...,)
+    small_angles = length < eps
+
+    angle[small_angles] = 0.0
+    axis[small_angles]  = torch.tensor([1.0, 0.0, 0.0], dtype=torch.float32, device=Q.device) # (..., 3)
+
+    angle[~small_angles] = 2.0 * torch.atan2(length[~small_angles], Q[..., 0][~small_angles]) # (...,)
+    axis[~small_angles]  = Q[..., 1:][~small_angles] / length[~small_angles][..., None] # (..., 3)
+    return angle, axis
+
+def Q_to_R(Q):
+    """
+    Args:
+        Q: (..., 4)
+    Returns:
+        R: (..., 3, 3)
+    """
+    if Q.shape[-1] != 4:
+        raise ValueError(f"Invalid quaternion shape {Q.shape}")
+    
+    two_s = 2.0 / torch.sum(Q * Q, dim=-1) # (...,)
+    r, i, j, k = Q[..., 0], Q[..., 1], Q[..., 2], Q[..., 3]
+
+    R = torch.stack([
+        1.0 - two_s * (j*j + k*k),
+        two_s * (i*j - k*r),
+        two_s * (i*k + j*r),
+        two_s * (i*j + k*r),
+        1.0 - two_s * (i*i + k*k),
+        two_s * (j*k - i*r),
+        two_s * (i*k - j*r),
+        two_s * (j*k + i*r),
+        1.0 - two_s * (i*i + j*j)
+    ], dim=-1)
+    return R.reshape(Q.shape[:-1] + (3, 3)) # (..., 3, 3)
+
+def Q_to_R6(Q):
+    """
+    Args:
+        Q: (..., 4)
+    """
+    if Q.shape[-1] != 4:
+        raise ValueError(f"Invalid quaternion shape {Q.shape}")
+    
+    R = Q_to_R(Q)
+    return torch.cat([R[..., 0, :], R[..., 1, :]], dim=-1)
+
+def Q_mul(Q0, Q1):
+    """
+    Args:
+        Q0: left-hand quaternion (..., 4)
+        Q1: right-hand quaternion (..., 4)
+    Returns:
+        Q: quaternion product Q0 * Q1 (..., 4)
     """
     if Q0.shape[-1] != 4 or Q1.shape[-1] != 4:
-        raise ValueError(f"q0.shape[-1] = {Q0.shape[-1]} != 4 or q1.shape[-1] = {Q1.shape[-1]} != 4")
-    w0, x0, y0, z0 = torch.unbind(Q0[..., None, :], dim=-2)
-    w1, x1, y1, z1 = torch.unbind(Q1[..., None, :], dim=-2)
+        raise ValueError(f"Invalid quaternion shape {Q0.shape} or {Q1.shape}")
+
+    r0, i0, j0, k0 = torch.split(Q0, 1, dim=-1)
+    r1, i1, j1, k1 = torch.split(Q1, 1, dim=-1)
 
     res = torch.cat([
-        w1 * w0 - x1 * x0 - y1 * y0 - z1 * z0,
-        w1 * x0 + x1 * w0 - y1 * z0 + z1 * y0,
-        w1 * y0 + x1 * z0 + y1 * w0 - z1 * x0,
-        w1 * z0 - x1 * y0 + y1 * x0 + z1 * w0], dim=-1)
+        r0*r1 - i0*i1 - j0*j1 - k0*k1,
+        r0*i1 + i0*r1 + j0*k1 - k0*j1,
+        r0*j1 - i0*k1 + j0*r1 + k0*i1,
+        r0*k1 + i0*j1 - j0*i1 + k0*r1
+    ], dim=-1)
 
     return res
     
-def Q_inv(Q: torch.Tensor) -> torch.Tensor:
+def Q_inv(Q):
     """
-    :param q: quaternion tensor (..., 4)
-    :return: inverse quaternion tensor (..., 4)
+    Args:
+        Q: (..., 4)
     """
     if Q.shape[-1] != 4:
-        raise ValueError(f"q.shape[-1] = {Q.shape[-1]} != 4")
+        raise ValueError(f"Invalid quaternion shape {Q.shape}")
 
     res = torch.tensor([1, -1, -1, -1], dtype=torch.float32, device=Q.device) * Q
     return res
+
+""" Operations with R6 """
+def R6_to_R(R6):
+    """
+    Parameters
+        R6: (..., 6)
+    """
+    if R6.shape[-1] != 6:
+        raise ValueError(f"Invalid R6 shape {R6.shape}")
+    
+    x_, y_ = R6[..., :3], R6[..., 3:]
+    x = F.normalize(x, dim=-1)
+    y = F.normalize(y_ - (x * y_).sum(dim=-1, keepdim=True) * x, dim=-1)
+    z = torch.cross(x, y, dim=-1)
+    return torch.stack([x, y, z], dim=-2) # (..., 3, 3)

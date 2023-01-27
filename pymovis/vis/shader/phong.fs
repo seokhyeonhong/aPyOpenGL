@@ -3,11 +3,11 @@
 // --------------------------------------------
 // input vertex data
 // --------------------------------------------
-in vec3 fPosition;
-in vec3 fNormal;
-in vec2 fTexCoord;
-flat in int  fMaterialID;
-in vec4 fPosLightSpace;
+in vec3     fPosition;
+in vec3     fNormal;
+in vec2     fTexCoord;
+flat in int fMaterialID;
+in vec4     fPosLightSpace;
 
 // --------------------------------------------
 // output fragment color
@@ -17,8 +17,8 @@ out vec4 FragColor;
 // --------------------------------------------
 // uniform
 // --------------------------------------------
-uniform bool uColorMode;
-uniform vec2 uvScale;
+uniform bool      uColorMode;
+uniform vec2      uvScale;
 uniform sampler2D uShadowMap;
 
 // --------------------------------------------
@@ -26,11 +26,11 @@ uniform sampler2D uShadowMap;
 // --------------------------------------------
 #define MAX_MATERIAL_NUM 5
 struct Material {
-    ivec4     textureID; // albedo, normal, metalic, emissive
-    vec4      albedo;
-    vec3      diffuse;
-    vec3      specular;
-    float     shininess;
+    ivec4 textureID; // albedo, normal, metalic, emissive
+    vec4  albedo;
+    vec3  diffuse;
+    vec3  specular;
+    float shininess;
 };
 uniform Material uMaterial[MAX_MATERIAL_NUM];
 

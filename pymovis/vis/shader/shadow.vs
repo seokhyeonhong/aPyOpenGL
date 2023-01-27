@@ -40,10 +40,10 @@ void main()
         mat4 lbsModel2 = GetJointMatrix(vLbsJointIDs2, vLbsWeights2);
         mat4 modelLBS  = lbsModel1 + lbsModel2;
 
-        gl_Position = lightSpaceMatrix * modelLBS * vec4(vPosition, 1.0);
+        gl_Position = lightSpaceMatrix * modelLBS * vec4(vPosition, 1.0f);
     }
     else
     {
-        gl_Position = lightSpaceMatrix * M * vec4(vPosition, 1.0);
+        gl_Position = lightSpaceMatrix * M * vec4(vPosition, 1.0f);
     }
 }

@@ -20,19 +20,19 @@ def normalize_vector(x, axis=-1, eps=1e-8):
     return res
 
 """ FK """
-def R_fk(R, root_p, skeleton):
+def R_fk(local_R, root_p, skeleton):
     """
     Args:
-        R: (..., N, 3, 3)
+        local_R: (..., N, 3, 3)
         root_p: (..., 3)
         bone_offset: (N, 3)
         parents: (N,)
     """
     bone_offsets, parents = skeleton.get_bone_offsets(), skeleton.parent_idx
 
-    global_R, global_p = [R[..., 0, :, :]], [root_p]
+    global_R, global_p = [local_R[..., 0, :, :]], [root_p]
     for i in range(1, len(parents)):
-        global_R.append(np.matmul(global_R[parents[i]], R[..., i, :, :]))
+        global_R.append(np.matmul(global_R[parents[i]], local_R[..., i, :, :]))
         global_p.append(np.matmul(global_R[parents[i]], bone_offsets[i]) + global_p[parents[i]])
     
     global_R = np.stack(global_R, axis=-3) # (..., N, 3, 3)
@@ -47,8 +47,7 @@ def R_to_R6(R):
     """
     if R.shape[-2:] != (3, 3):
         raise ValueError(f"Invalid rotation matrix shape {R.shape}")
-    batch_dim = R.shape[:-2]
-    return R[..., :2, :].copy().reshape(batch_dim + (6,))
+    return R[..., :2, :].copy().reshape(R.shape[:-2] + (6,))
 
 def R_inv(R):
     """
@@ -56,7 +55,7 @@ def R_inv(R):
         R: (..., N, 3, 3)
     """
     if R.shape[-2:] != (3, 3):
-        raise ValueError(f"Invalid rotation matrix shape {R.shape[-2:]}")
+        raise ValueError(f"Invalid rotation matrix shape {R.shape}")
 
     return np.transpose(R, axes=[*range(len(R.shape) - 2), -1, -2])
 
@@ -107,7 +106,6 @@ def E_to_Q(E, order, radians=True):
         E = np.deg2rad(E)
     
     def _euler_axis_to_Q(angle, axis):
-        one  = np.ones_like(angle, dtype=np.float32)
         zero = np.zeros_like(angle, dtype=np.float32)
         cos  = np.cos(angle / 2, dtype=np.float32)
         sin  = np.sin(angle / 2, dtype=np.float32)
@@ -173,7 +171,7 @@ def A_to_Q(angle, axis):
 
     return np.concatenate([cos[..., None], axis_sin], axis=-1) # (..., 4)
 
-""" Operations for Q """
+""" Operations with Q """
 def Q_to_A(Q, eps=1e-8):
     """
     Args:
@@ -240,7 +238,7 @@ def Q_mul(Q0, Q1):
         Q0: left-hand quaternion (..., 4)
         Q1: right-hand quaternion (..., 4)
     Returns:
-        Q: quaternion product Q0*Q1 (..., 4)
+        Q: quaternion product Q0 * Q1 (..., 4)
     """
     if Q0.shape[-1] != 4 or Q1.shape[-1] != 4:
         raise ValueError(f"Incompatible shapes {Q0.shape} and {Q1.shape}")
@@ -268,7 +266,7 @@ def Q_inv(Q):
     res = np.array([1, -1, -1, -1], dtype=np.float32) * Q
     return res
 
-""" Conversion from R6 """
+""" Operations with R6 """
 def R6_to_R(R6):
     """
     Args:
