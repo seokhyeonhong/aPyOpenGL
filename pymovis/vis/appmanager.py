@@ -8,8 +8,8 @@ from pymovis.vis.const import SHADOW_MAP_SIZE
 class AppManager:
     def __init__(
         self,
-        width: int  = 1920,
-        height: int = 1080,
+        width: int  = 3960,
+        height: int = 2160,
     ):
         self.do_capture = False
         self.width      = width

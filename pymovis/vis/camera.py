@@ -31,6 +31,10 @@ class Camera:
     def position(self):
         return self.__position
 
+    @property
+    def focus_position(self):
+        return self.__focus_position
+        
     def update(self):
         z = glm.normalize(self.__focus_position - self.__position)
         x = glm.normalize(glm.cross(self.__up, z))
@@ -92,6 +96,10 @@ class Camera:
         self.update()
     
     """ Camera manipulation functions """
+    def set_position(self, position):
+        self.__position = glm.vec3(position)
+        self.update()
+        
     def set_focus_position(self, focus_position):
         self.__focus_position = glm.vec3(focus_position)
         self.update()

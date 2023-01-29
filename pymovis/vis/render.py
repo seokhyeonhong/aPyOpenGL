@@ -112,6 +112,10 @@ class Render:
         return RenderOptions(Plane(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
     
     @staticmethod
+    def grid(size_x=1.0, size_z=1.0):
+        return RenderOptions(Plane(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow).set_floor(True).set_grid(size_x, size_z)
+
+    @staticmethod
     def cylinder(radius=0.5, height=1, sectors=16):
         return RenderOptions(Cylinder(radius, height, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
 
@@ -268,6 +272,11 @@ class Render:
             shader.set_vec3(f"uMaterial[{i}].specular", option.materials[i].specular)
             shader.set_float(f"uMaterial[{i}].shininess", option.materials[i].shininess)
             shader.set_ivec4(f"uMaterial[{i}].textureID", texture_id[i])
+
+        shader.set_bool("uIsFloor", option.is_floor)
+        shader.set_vec2("uGridSize", option.grid_size)
+        for i in range(2):
+            shader.set_vec3(f"uGridColors[{i}]", option.grid_colors[i])
 
         shader.set_bool("uColorMode", option.color_mode)
         shader.set_vec2("uvScale",    option.uv_repeat)
@@ -463,11 +472,14 @@ class RenderOptions:
         self.use_skinning  = False
         self.buffer_transforms = []
 
-        # material  
+        # material
         self.materials     = [Material()]
         self.uv_repeat     = glm.vec2(1.0)
         self.text          = ""
         self.color_mode    = False
+        self.is_floor      = False
+        self.grid_size     = glm.vec2(1.0)
+        self.grid_colors   = [glm.vec3(0.0), glm.vec3(1.0)]
 
         # visibility
         self.visible       = True
@@ -528,7 +540,7 @@ class RenderOptions:
         return self
     
     def set_text_color(self, color):
-        self.material.set_albedo(glm.vec3(color))
+        self.materials[0].set_albedo(glm.vec3(color))
         return self
 
     def set_texture(self, filename, texture_type=TextureType.eALBEDO, material_id=0):
@@ -544,6 +556,18 @@ class RenderOptions:
     # def set_cubemap(self, dirname):
     #     self.material.set_texture(TextureLoader.load_cubemap(dirname), TextureType.eCUBEMAP)
     #     return self
+
+    def set_floor(self, is_floor):
+        self.is_floor = is_floor
+        return self
+    
+    def set_grid(self, size_x=1.0, size_z=1.0):
+        self.grid_size = glm.vec2(size_x, size_z)
+        return self
+    
+    def set_grid_color(self, color1=glm.vec3(0.0), color2=glm.vec3(1.0)):
+        self.grid_colors = [glm.vec3(color1), glm.vec3(color2)]
+        return self
 
     def set_skinning(self, use_skinning):
         self.use_skinning = use_skinning

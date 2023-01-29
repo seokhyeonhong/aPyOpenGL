@@ -213,9 +213,9 @@ class MotionApp(App):
                 self.model.set_pose_by_source(self.motion.poses[self.frame])
                 Render.model(self.model).draw()
 
-            # render the xray
-            if render_xray:
-                self.render_xray(self.motion.poses[self.frame])
+        # render the xray
+        if render_xray:
+            self.render_xray(self.motion.poses[self.frame])
 
     def render_xray(self, pose, albedo=[0, 1, 1]):
         if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):

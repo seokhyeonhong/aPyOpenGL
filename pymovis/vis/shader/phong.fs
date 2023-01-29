@@ -20,6 +20,9 @@ out vec4 FragColor;
 uniform bool      uColorMode;
 uniform vec2      uvScale;
 uniform sampler2D uShadowMap;
+uniform bool      uIsFloor;
+uniform vec2      uGridSize;
+uniform vec3      uGridColors[2];
 
 // --------------------------------------------
 // material structure
@@ -122,6 +125,30 @@ vec3 GammaCorrection(vec3 color, float gamma)
 }
 
 // --------------------------------------------
+// Reference: https://iquilezles.org/articles/checkerfiltering/
+vec3 Grid(vec2 p)
+{
+    vec2 q = sign(fract(p / uGridSize * 0.5) - 0.5f);
+    float t = 0.5f * (1.0f - q.x * q.y);
+    return t * uGridColors[1] + (1.0f - t) * uGridColors[0];
+}
+
+vec2 Triangular(vec2 p)
+{
+    vec2 q = fract(p * 0.5f) - 0.5f;
+    return 1.0f - 2.0 * abs(q);
+}
+
+vec3 FilterGrid(vec2 p)
+{
+    vec2 q = p / uGridSize;
+    vec2 w = max(abs(dFdx(q)), abs(dFdy(q))) + 0.001f;
+    vec2 i = (Triangular(q + 0.5f * w) - Triangular(q - 0.5f * w)) / w;
+    float t = 0.5f * (1.0f - i.x * i.y);
+    return t * uGridColors[1] + (1.0f - t) * uGridColors[0];
+}
+
+// --------------------------------------------
 // main function
 // --------------------------------------------
 void main()
@@ -152,7 +179,13 @@ void main()
 
     // --------------------------------------------
     // rendering
-    if (uColorMode)
+    if (uIsFloor)
+    {
+        FragColor.rgb = pow(FilterGrid(fPosition.xz), vec3(0.8f));
+        FragColor.a = 1.0f;
+        return;
+    }
+    else if (uColorMode)
     {
         FragColor = vec4(albedo, 1.0f);
         return;

@@ -6,15 +6,16 @@ from OpenGL.GL import *
 import glm
 
 class MyApp(App):
-    def __init__(self, model):
+    def __init__(self):
         super().__init__()
-        self.model = Render.model(model)
+        self.grid = Render.grid().set_grid_color(0.3, 0.7).set_scale(100)
+        self.sphere = Render.sphere()
 
     def render(self):
-        self.model.draw()
+        self.grid.draw()
+        self.sphere.draw()
 
 if __name__ == "__main__":
     app_manager = AppManager()
-    model = FBX("./data/test.fbx", scale=1).model()
-    app = MyApp(model)
+    app = MyApp()
     app_manager.run(app)
