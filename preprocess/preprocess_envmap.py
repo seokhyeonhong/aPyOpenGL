@@ -11,7 +11,7 @@ import numpy as np
 from pymovis.motion.core import Motion
 from pymovis.learning.rbf import RBF
 from pymovis.vis.const import INCH_TO_METER
-from pymovis.utils import util
+from pymovis.utils.config import DatasetConfig
 
 """ Load processed data """
 def load_processed_motions(split, dir, filename):
@@ -176,17 +176,17 @@ def sample_top_patches(mfc, heightmaps, top_k, h_scale, v_scale):
     }
 
 """ Main functions """
-def generate_dataset(split, motion_config, hmap_config):
+def generate_dataset(split, config):
     # load processed data
-    motions, features = load_processed_motions(split, motion_config["save_dir"], motion_config["save_filename"])
+    motions, features = load_processed_motions(split, config.dataset_dir, config.motion_pklname)
     feet_p, contact = zip(*[get_contact_info(motion) for motion in motions])
-    heightmaps = load_processed_heightmaps(hmap_config["save_dir"], hmap_config["save_filename"])
+    heightmaps = load_processed_heightmaps(config.dataset_dir, config.heightmap_pklname)
 
     # extract envmap dataset
     env_maps, vis_data = [], []
-    # for motion_contact in tqdm(zip(motions[::32], feet_p[::32], contact[::32]), total=len(motions), desc="Generating envmap dataset"):
+    # for motion_contact in tqdm(zip(motions[::2048], feet_p[::2048], contact[::2048]), total=len(motions), desc="Generating envmap dataset"):
     for motion_contact in tqdm(zip(motions, feet_p, contact), total=len(motions), desc="Generating envmap dataset"):
-        dict = sample_top_patches(motion_contact, heightmaps, hmap_config["top_k"], hmap_config["h_scale"] * INCH_TO_METER, hmap_config["v_scale"] * INCH_TO_METER)
+        dict = sample_top_patches(motion_contact, heightmaps, config.top_k, config.h_scale, config.v_scale)
         patch = dict["patches"]
         edit = dict["edits"]
         env_map = dict["env_map"]
@@ -201,33 +201,24 @@ def generate_dataset(split, motion_config, hmap_config):
     env_maps = np.stack(env_maps, axis=0)
     print("Envmap dataset shape:", env_maps.shape)
 
-    # create directory
-    envmap_dir = "./data/dataset/envmap/"
-    vis_dir = "./data/dataset/vis/"
-    save_filename = f"length{motion_config['window_length']}_offset{motion_config['window_offset']}_fps{motion_config['fps']}_sparsity{hmap_config['sparsity']}_mapsize{hmap_config['mapsize']}_topk{hmap_config['top_k']}.pkl"
-    if not os.path.exists(envmap_dir):
-        os.makedirs(envmap_dir)
-    if not os.path.exists(vis_dir):
-        os.makedirs(vis_dir)
-
     # save
     print("Saving envmap dataset")
-    envmap_path = os.path.join(envmap_dir, f"{split}_{save_filename}")
+    envmap_path = os.path.join(config.dataset_dir, f"{split}_{config.envmap_pklname}")
     with open(envmap_path, "wb") as f:
         pickle.dump(env_maps, f)
     
     # NOTE: don't have to save this data, just for visualization
-    vis_path = os.path.join(vis_dir, f"{split}_{save_filename}")
+    vis_path = os.path.join(config.dataset_dir, f"{split}_{config.vis_pklname}")
     with open(vis_path, "wb") as f:
         pickle.dump(vis_data, f)
 
 def main():
     # config
-    motion_config, hmap_config = util.config_parser()
+    config = DatasetConfig.load("configs/config.json")
 
     # generate dataset
-    generate_dataset("train", motion_config, hmap_config)
-    generate_dataset("test", motion_config, hmap_config)
+    generate_dataset("train", config)
+    generate_dataset("test", config)
 
 if __name__ == "__main__":
     main()

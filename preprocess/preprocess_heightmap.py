@@ -9,6 +9,7 @@ import numpy as np
 import scipy.ndimage as ndimage
 
 from pymovis.utils import util
+from pymovis.utils.config import DatasetConfig
 
 """ Load from saved files """
 def load_all_heightmaps(load_dir):
@@ -68,18 +69,15 @@ def sample_patch(xyd_fx_fy, heightmap, mapsize):
 """ Main function """
 def main():
     # config
-    _, hmap_config = util.config_parser()
+    config = DatasetConfig.load("configs/config.json")
     
     # preprocess
     util.seed()
-    hmap_files = load_all_heightmaps(hmap_config["load_dir"])
-    patches = sample_all_patches(hmap_files, hmap_config["sparsity"], hmap_config["mapsize"])
+    heightmaps = load_all_heightmaps(config.heightmap_dir)
+    patches    = sample_all_patches(heightmaps, config.sparsity, config.mapsize)
 
     # save
-    if not os.path.exists(hmap_config["save_dir"]):
-        os.makedirs(hmap_config["save_dir"])
-    
-    with open(os.path.join(hmap_config["save_dir"], hmap_config["save_filename"]), "wb") as f:
+    with open(os.path.join(config.dataset_dir, config.heightmap_pklname), "wb") as f:
         pickle.dump(patches, f)
         
     print(f"Saved patches: {patches.shape}")

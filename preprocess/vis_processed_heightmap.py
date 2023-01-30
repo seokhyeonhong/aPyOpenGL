@@ -10,10 +10,10 @@ from pymovis.vis.app import App
 from pymovis.vis.appmanager import AppManager
 from pymovis.vis.render import Render
 from pymovis.vis.const import INCH_TO_METER
-from pymovis.utils import util
+from pymovis.utils.config import DatasetConfig
 
 """ Load from saved files """
-def load_all_patches(save_dir, save_filename):
+def load_patches(save_dir, save_filename):
     with open(os.path.join(save_dir, save_filename), "rb") as f:
         data = pickle.load(f)
     print(f"Loaded patches: {data.shape}")
@@ -33,15 +33,15 @@ class MyApp(App):
 
 def main():
     # config
-    _, hmap_config = util.config_parser()
+    config = DatasetConfig.load("configs/config.json")
 
     # load data
-    X = load_all_patches(hmap_config["save_dir"], hmap_config["save_filename"])
+    patches = load_patches(config.dataset_dir, config.heightmap_pklname)
 
     # visualize
-    for x in X:
+    for patch in patches:
         app_manager = AppManager()
-        heightmap = Heightmap(x, h_scale=INCH_TO_METER * 2, v_scale=INCH_TO_METER)
+        heightmap = Heightmap(patch, h_scale=config.h_scale, v_scale=config.v_scale)
         app = MyApp(heightmap)
         app_manager.run(app)
 

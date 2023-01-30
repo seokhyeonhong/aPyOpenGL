@@ -14,7 +14,7 @@ from pymovis.vis.app import MotionApp
 from pymovis.vis.render import Render
 from pymovis.vis.heightmap import Heightmap
 from pymovis.vis.const import INCH_TO_METER
-from pymovis.utils import util
+from pymovis.utils.config import DatasetConfig
 
 """ Load processed data """
 def load_processed_envmap(split, dir, filename):
@@ -59,13 +59,11 @@ class MyApp(MotionApp):
 
 def main():
     # config
-    motion_config, hmap_config = util.config_parser()
-    vis_dir = "./data/dataset/vis/"
-    save_filename = f"length{motion_config['window_length']}_offset{motion_config['window_offset']}_fps{motion_config['fps']}_sparsity{hmap_config['sparsity']}_mapsize{hmap_config['mapsize']}_topk{hmap_config['top_k']}.pkl"
+    config = DatasetConfig.load("configs/config.json")
     
     # load data
-    train_data = load_processed_envmap("train", vis_dir, save_filename)
-    test_data = load_processed_envmap("test", vis_dir, save_filename)
+    train_data = load_processed_envmap("train", config.dataset_dir, config.vis_pklname)
+    test_data = load_processed_envmap("test", config.dataset_dir, config.vis_pklname)
     fbx = FBX("./data/models/model_skeleton.fbx")
 
     # visualize
@@ -73,7 +71,7 @@ def main():
         for p, e in zip(patch, envmap):
             app_manager = AppManager()
             model = fbx.model()
-            app = MyApp(motion, model, contact, p, e, h_scale=hmap_config["h_scale"] * INCH_TO_METER, v_scale=hmap_config["v_scale"] * INCH_TO_METER)
+            app = MyApp(motion, model, contact, p, e, h_scale=config.h_scale, v_scale=config.v_scale)
             # print(motion.name, motion.type)
             app_manager.run(app)
         
@@ -81,7 +79,7 @@ def main():
         for p, e in zip(patch, envmap):
             app_manager = AppManager()
             model = fbx.model()
-            app = MyApp(motion, model, contact, p, e, h_scale=hmap_config["h_scale"] * INCH_TO_METER, v_scale=hmap_config["v_scale"] * INCH_TO_METER)
+            app = MyApp(motion, model, contact, p, e, h_scale=config.h_scale, v_scale=config.v_scale)
             app_manager.run(app)
     
 

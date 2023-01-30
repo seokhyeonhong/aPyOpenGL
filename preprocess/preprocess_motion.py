@@ -9,6 +9,7 @@ import numpy as np
 from pymovis.motion.data import bvh
 from pymovis.motion.ops import npmotion
 from pymovis.utils import util
+from pymovis.utils.config import DatasetConfig
 
 """ Load from saved files """
 def load_motions(load_dir):
@@ -90,15 +91,15 @@ def windows_and_features(motion, window_length, window_offset):
 
 def main():
     # config
-    motion_config, _ = util.config_parser()
+    config = DatasetConfig.load("configs/config.json")
 
     # load
     util.seed()
-    motions = load_motions(motion_config["load_dir"])
+    motions = load_motions(config.motion_dir)
 
     # save
-    save_skeleton(motions[0].skeleton, motion_config["save_dir"])
-    save_windows(motions, motion_config["window_length"], motion_config["window_offset"], motion_config["save_dir"], motion_config["save_filename"])
+    save_skeleton(motions[0].skeleton, config.dataset_dir)
+    save_windows(motions, config.window_length, config.window_offset, config.dataset_dir, config.motion_pklname)
 
 if __name__ == "__main__":
     main()
