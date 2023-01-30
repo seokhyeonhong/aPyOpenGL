@@ -14,55 +14,17 @@ from pymovis.vis.app import MotionApp
 from pymovis.vis.render import Render
 from pymovis.vis.heightmap import Heightmap
 from pymovis.vis.const import INCH_TO_METER
-
-""" Global variables for the dataset """
-WINDOW_SIZE     = 50
-WINDOW_OFFSET   = 20
-FPS             = 30
-MOTION_DIR      = f"./data/dataset/motion"
-MOTION_FILENAME = f"motions_length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.pkl"
-
-SPARSITY        = 15
-SIZE            = 140
-TOP_K_SAMPLES   = 10
-H_SCALE         = 2 * INCH_TO_METER
-V_SCALE         = INCH_TO_METER
-HEIGHTMAP_DIR   = f"./data/dataset/heightmap"
-HEIGHT_FILENAME = f"sparsity{SPARSITY}_size{SIZE}.pkl"
-
-VIS_DIR         = f"./data/dataset/vis/"
-SAVE_FILENAME   = f"length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}_sparsity{SPARSITY}_mapsize{SIZE}_top{TOP_K_SAMPLES}.pkl"
+from pymovis.utils import util
 
 """ Load processed data """
-def load_processed_envmap(split):
-    with open(os.path.join(VIS_DIR, f"{split}_{SAVE_FILENAME}"), "rb") as f:
+def load_processed_envmap(split, dir, filename):
+    with open(os.path.join(dir, f"{split}_{filename}"), "rb") as f:
         vis_data = pickle.load(f)
     return vis_data
 
-""" Main functions """
-def visualize(train=True, test=True):
-    fbx = FBX("./data/models/model_skeleton.fbx")
-    if train:
-        train_data = load_processed_envmap("train")
-        for motion, patch, edit, envmap, contact in train_data:
-            for p, e in zip(patch, envmap):
-                app_manager = AppManager()
-                model = fbx.model()
-                app = MyApp(motion, model, contact, p, e)
-                print(motion.name, motion.type)
-                app_manager.run(app)
-    
-    if test:
-        test_data = load_processed_envmap("test")
-        for motion, patch, envmap, contact in test_data:
-            for p, e in zip(patch, envmap):
-                app_manager = AppManager()
-                model = fbx.model()
-                app = MyApp(motion, model, contact, p, e)
-                app_manager.run(app)
-
+""" Visualize """
 class MyApp(MotionApp):
-    def __init__(self, motion, model, contact, heightmap, envmap):
+    def __init__(self, motion, model, contact, heightmap, envmap, h_scale, v_scale):
         super().__init__(motion, model)
         self.contact = contact
         self.sphere = Render.sphere().set_albedo([0, 1, 0])
@@ -76,7 +38,7 @@ class MyApp(MotionApp):
         jid_right_toe  = self.motion.skeleton.idx_by_name["RightToe"]
         self.jid       = [jid_left_foot, jid_left_toe, jid_right_foot, jid_right_toe]
 
-        self.heightmap_mesh = Render.vao(Heightmap(heightmap, h_scale=H_SCALE, v_scale=V_SCALE, offset=0).vao).set_texture("grid.png").set_uv_repeat(0.1)
+        self.heightmap_mesh = Render.vao(Heightmap(heightmap, h_scale=h_scale, v_scale=v_scale, offset=0).vao).set_texture("grid.png").set_uv_repeat(0.1)
 
         self.envmap = envmap
     
@@ -96,7 +58,32 @@ class MyApp(MotionApp):
             self.sphere.set_position(p).set_scale(0.1).set_albedo([0, 1, 0]).draw()
 
 def main():
-    visualize(test=False)
+    # config
+    motion_config, hmap_config = util.config_parser()
+    vis_dir = "./data/dataset/vis/"
+    save_filename = f"length{motion_config['window_length']}_offset{motion_config['window_offset']}_fps{motion_config['fps']}_sparsity{hmap_config['sparsity']}_mapsize{hmap_config['mapsize']}_topk{hmap_config['top_k']}.pkl"
+    
+    # load data
+    train_data = load_processed_envmap("train", vis_dir, save_filename)
+    test_data = load_processed_envmap("test", vis_dir, save_filename)
+    fbx = FBX("./data/models/model_skeleton.fbx")
+
+    # visualize
+    for motion, patch, edit, envmap, contact in train_data:
+        for p, e in zip(patch, envmap):
+            app_manager = AppManager()
+            model = fbx.model()
+            app = MyApp(motion, model, contact, p, e, h_scale=hmap_config["h_scale"] * INCH_TO_METER, v_scale=hmap_config["v_scale"] * INCH_TO_METER)
+            # print(motion.name, motion.type)
+            app_manager.run(app)
+        
+    for motion, patch, edit, envmap, contact in test_data:
+        for p, e in zip(patch, envmap):
+            app_manager = AppManager()
+            model = fbx.model()
+            app = MyApp(motion, model, contact, p, e, h_scale=hmap_config["h_scale"] * INCH_TO_METER, v_scale=hmap_config["v_scale"] * INCH_TO_METER)
+            app_manager.run(app)
+    
 
 if __name__ == "__main__":
     main()

@@ -6,50 +6,44 @@ import os
 import pickle
 
 from pymovis.motion.data.fbx import FBX
-
 from pymovis.vis.appmanager import AppManager
 from pymovis.vis.app import MotionApp
-
-""" Global variables for the dataset """
-WINDOW_SIZE   = 50
-WINDOW_OFFSET = 20
-FPS           = 30
-SAVE_DIR      = "./data/dataset/motion"
-SAVE_FILENAME = f"length{WINDOW_SIZE}_offset{WINDOW_OFFSET}_fps{FPS}.pkl"
+from pymovis.utils import util
 
 """ Load from saved files """
-def load_processed_data():
+def load_processed_data(save_dir, save_filename):
     # windows
-    with open(os.path.join(SAVE_DIR, f"train_{SAVE_FILENAME}"), "rb") as f:
+    with open(os.path.join(save_dir, f"train_{save_filename}"), "rb") as f:
         train_windows = pickle.load(f)
-    with open(os.path.join(SAVE_DIR, f"test_{SAVE_FILENAME}"), "rb") as f:
+    with open(os.path.join(save_dir, f"test_{save_filename}"), "rb") as f:
         test_windows = pickle.load(f)
 
     return train_windows["windows"], test_windows["windows"]
 
 """ Main functions """
-def visualize(train=True, test=True):
-    train_windows, test_windows = load_processed_data()
+def main():
+    # config
+    motion_config, _ = util.config_parser()
+
+    # load data
+    train_windows, test_windows = load_processed_data(motion_config["save_dir"], motion_config["save_filename"])
     fbx = FBX("./data/models/model_skeleton.fbx")
 
-    if train:
-        for window in train_windows:
-            app_manager = AppManager()
-            model = fbx.model()
-            print(window.name, window.type)
-            app = MotionApp(window, model)
-            app_manager.run(app)
+    # visualize train data
+    for window in train_windows:
+        app_manager = AppManager()
+        model = fbx.model()
+        # print(window.name, window.type)
+        app = MotionApp(window, model)
+        app_manager.run(app)
     
-    if test:
-        for window in test_windows:
-            app_manager = AppManager()
-            model = fbx.model()
-            # print(window.name, window.type)
-            app = MotionApp(window, model)
-            app_manager.run(app)
-
-def main():
-    visualize()
+    # visualize test data
+    for window in test_windows:
+        app_manager = AppManager()
+        model = fbx.model()
+        # print(window.name, window.type)
+        app = MotionApp(window, model)
+        app_manager.run(app)
 
 if __name__ == "__main__":
     main()

@@ -10,45 +10,38 @@ import scipy.ndimage as ndimage
 
 from pymovis.utils import util
 
-""" Global variables """
-SPARSITY      = 15
-SIZE          = 140
-HEIGHTMAP_DIR = "./data/heightmaps"
-SAVE_DIR      = "./data/dataset/heightmap"
-SAVE_FILENAME = f"sparsity{SPARSITY}_mapsize{SIZE}.pkl"
-
 """ Load from saved files """
-def load_all_heightmaps():
+def load_all_heightmaps(load_dir):
     files = []
-    for f in sorted(os.listdir(HEIGHTMAP_DIR)):
+    for f in sorted(os.listdir(load_dir)):
         if f.endswith(".txt"):
-            files.append(os.path.join(HEIGHTMAP_DIR, f))
+            files.append(os.path.join(load_dir, f))
     return files
 
-""" Sample patches """
-def sample_all_patches(files):
+""" Preprocessing functions """
+def sample_all_patches(files, sparsity, mapsize):
     X = []
     start = time.perf_counter()
     sum_samples = 0
     for idx, f in enumerate(files):
         # load heightmap
         H = np.loadtxt(f)
-        num_samples = (H.shape[0] * H.shape[1]) // (SPARSITY * SPARSITY)
+        num_samples = (H.shape[0] * H.shape[1]) // (sparsity * sparsity)
 
         # skip if terrain is too small to sample (SIZE x SIZE) patches
-        if SIZE//2+SIZE >= H.shape[0] or SIZE//2+SIZE >= H.shape[1]:
+        if mapsize//2 + mapsize >= H.shape[0] or mapsize//2 + mapsize >= H.shape[1]:
             print(f"Skipping {f} due to small size")
             continue
 
         # random location / rotation
-        x = np.random.randint(-SIZE, H.shape[0] - SIZE, size=num_samples)
-        y = np.random.randint(-SIZE, H.shape[1] - SIZE, size=num_samples)
+        x = np.random.randint(-mapsize, H.shape[0] - mapsize, size=num_samples)
+        y = np.random.randint(-mapsize, H.shape[1] - mapsize, size=num_samples)
         d = np.degrees(np.random.uniform(-np.pi / 2, np.pi / 2, size=num_samples))
         flip_x = np.random.uniform(size=num_samples)
         flip_y = np.random.uniform(size=num_samples)
         
         # sample patches in parallel
-        patches = util.run_parallel_sync(sample_patch, zip(x, y, d, flip_x, flip_y), heightmap=H, desc=f"Sampling {num_samples} patches [Size: {SIZE} x {SIZE}] [Terrain: {H.shape[0]} x {H.shape[1]}] [Progress: {idx + 1} / {len(files)}]")
+        patches = util.run_parallel_sync(sample_patch, zip(x, y, d, flip_x, flip_y), heightmap=H, mapsize=mapsize, desc=f"Sampling {num_samples} patches [Size: {mapsize} x {mapsize}] [Terrain: {H.shape[0]} x {H.shape[1]}] [Progress: {idx + 1} / {len(files)}]")
         patches = [p for p in patches if p is not None]
 
         X.extend(patches)
@@ -59,30 +52,34 @@ def sample_all_patches(files):
     
     return X
 
-def sample_patch(xyd_fx_fy, heightmap):
+def sample_patch(xyd_fx_fy, heightmap, mapsize):
     x, y, d, flip_x, flip_y = xyd_fx_fy
 
-    S = ndimage.interpolation.shift(heightmap, (x, y), mode="reflect")[:SIZE*2, :SIZE*2]
+    S = ndimage.interpolation.shift(heightmap, (x, y), mode="reflect")[:mapsize*2, :mapsize*2]
     S = S[::-1, :] if flip_x > 0.5 else S
     S = S[:, ::-1] if flip_y > 0.5 else S
     S = ndimage.interpolation.rotate(S, d, reshape=False, mode="reflect")
 
-    P = S[SIZE//2:SIZE//2+SIZE, SIZE//2:SIZE//2+SIZE]
+    P = S[mapsize//2:mapsize//2+mapsize, mapsize//2:mapsize//2+mapsize]
     P -= P.mean()
 
     return None if np.any(np.abs(P) > 50) else P
 
 """ Main function """
 def main():
+    # config
+    _, hmap_config = util.config_parser()
+    
+    # preprocess
     util.seed()
-    
-    heightmap_files = load_all_heightmaps()
-    patches = sample_all_patches(heightmap_files)
+    hmap_files = load_all_heightmaps(hmap_config["load_dir"])
+    patches = sample_all_patches(hmap_files, hmap_config["sparsity"], hmap_config["mapsize"])
 
-    if not os.path.exists(SAVE_DIR):
-        os.makedirs(SAVE_DIR)
+    # save
+    if not os.path.exists(hmap_config["save_dir"]):
+        os.makedirs(hmap_config["save_dir"])
     
-    with open(os.path.join(SAVE_DIR, SAVE_FILENAME), "wb") as f:
+    with open(os.path.join(hmap_config["save_dir"], hmap_config["save_filename"]), "wb") as f:
         pickle.dump(patches, f)
         
     print(f"Saved patches: {patches.shape}")

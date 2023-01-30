@@ -10,16 +10,11 @@ from pymovis.vis.app import App
 from pymovis.vis.appmanager import AppManager
 from pymovis.vis.render import Render
 from pymovis.vis.const import INCH_TO_METER
-
-""" Global variables """
-SPARSITY      = 15
-SIZE          = 140
-SAVE_DIR      = "./data/dataset/heightmap"
-SAVE_FILENAME = f"sparsity{SPARSITY}_mapsize{SIZE}.pkl"
+from pymovis.utils import util
 
 """ Load from saved files """
-def load_all_patches():
-    with open(os.path.join(SAVE_DIR, SAVE_FILENAME), "rb") as f:
+def load_all_patches(save_dir, save_filename):
+    with open(os.path.join(save_dir, save_filename), "rb") as f:
         data = pickle.load(f)
     print(f"Loaded patches: {data.shape}")
     return data
@@ -37,7 +32,13 @@ class MyApp(App):
         self.axis.draw()
 
 def main():
-    X = load_all_patches()
+    # config
+    _, hmap_config = util.config_parser()
+
+    # load data
+    X = load_all_patches(hmap_config["save_dir"], hmap_config["save_filename"])
+
+    # visualize
     for x in X:
         app_manager = AppManager()
         heightmap = Heightmap(x, h_scale=INCH_TO_METER * 2, v_scale=INCH_TO_METER)
