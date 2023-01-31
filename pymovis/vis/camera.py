@@ -4,15 +4,15 @@ from pymovis.vis.const import CAM_DOLLY_SENSITIVITY, CAM_TUMBLE_SENSITIVITY, CAM
 class Camera:
     def __init__(
         self,
-        position      =glm.vec3(0, 3, 5),
-        orientation   =glm.mat3(1.0),
-        focus_position=glm.vec3(0, 0, 0),
-        fov_y         =glm.radians(45),
-        is_perspective=True,
-        ortho_zoom    =100.0,
-        z_near        =0.1,
-        z_far         =1000.0,
-        zoom_factor   =1.0,
+        position       = glm.vec3(0, 3, 5),
+        orientation    = glm.mat3(1.0),
+        focus_position = glm.vec3(0, 0, 0),
+        fov_y          = glm.radians(45),
+        is_perspective = True,
+        ortho_zoom     = 100.0,
+        z_near         = 0.1,
+        z_far          = 1000.0,
+        zoom_factor    = 1.0,
     ):
         self.__position       = position
         self.__orientation    = orientation

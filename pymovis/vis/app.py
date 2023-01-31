@@ -8,7 +8,6 @@ import numpy as np
 import glm
 
 from pymovis.motion.core import Motion
-from pymovis.motion.ops import npmotion
 
 from pymovis.vis.camera import Camera
 from pymovis.vis.light import Light, DirectionalLight, PointLight
@@ -20,8 +19,8 @@ from pymovis.vis.const import LAFAN_BVH_TO_FBX
 class App:
     def __init__(
         self,
-        camera: Camera = Camera(),
-        light: Light = DirectionalLight(),
+        camera = Camera(),
+        light  = DirectionalLight(),
     ):
         self.camera = camera
         self.light = light

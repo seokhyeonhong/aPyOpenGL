@@ -3,12 +3,12 @@ import glm
 class Light:
     def __init__(
         self,
-        focus_position: glm.vec3 = glm.vec3(0),
-        color: glm.vec3 =glm.vec3(1.0),
-        intensity: float = 1.0,
-        L: float = 5.0,
-        z_near: float = 0.1,
-        z_far: float = 100.0
+        focus_position = glm.vec3(0),
+        color          = glm.vec3(1.0),
+        intensity      = 1.0,
+        L              = 5.0,
+        z_near         = 0.1,
+        z_far          = 100.0
     ):
         self.__focus_position = focus_position
         self.__color = color
@@ -49,13 +49,13 @@ class Light:
 class DirectionalLight(Light):
     def __init__(
         self,
-        direction: glm.vec3 = glm.vec3(-1, -2, -1),
-        focus_position: glm.vec3 = glm.vec3(0),
-        color: glm.vec3 = glm.vec3(1.0),
-        intensity: float = 1.0,
-        L: float = 10.0,
-        z_near: float = 1.0,
-        z_far: float = 50.0
+        direction      = glm.vec3(-1, -2, -1),
+        focus_position = glm.vec3(0),
+        color          = glm.vec3(1.0),
+        intensity      = 1.0,
+        L              = 10.0,
+        z_near         = 1.0,
+        z_far          = 50.0
     ):
         self.__direction   = direction
         super().__init__(focus_position, color, intensity, L, z_near, z_far)
@@ -77,14 +77,14 @@ class DirectionalLight(Light):
 class PointLight(Light):
     def __init__(
         self,
-        position: glm.vec3 = glm.vec3(5),
-        focus_position: glm.vec3 = glm.vec3(0),
-        color: glm.vec3 = glm.vec3(1.0),
-        intensity: float = 1.0,
-        attenuation: glm.vec3 = glm.vec3(0.1, 0.01, 0.0),
-        L: float = 5.0,
-        z_near: float = 1.0,
-        z_far: float = 40.0
+        position       = glm.vec3(5),
+        focus_position = glm.vec3(0),
+        color          = glm.vec3(1.0),
+        intensity      = 1.0,
+        attenuation    = glm.vec3(0.1, 0.01, 0.0),
+        L              = 5.0,
+        z_near         = 1.0,
+        z_far          = 40.0
     ):
         self.__position    = position
         self.__attenuation = attenuation

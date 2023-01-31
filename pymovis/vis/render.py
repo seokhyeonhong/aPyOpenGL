@@ -3,7 +3,6 @@ from enum import Enum
 import functools
 
 from OpenGL.GL import *
-import glfw
 import glm
 
 from pymovis.vis.primitives import *
@@ -14,7 +13,7 @@ from pymovis.vis.texture import Texture, TextureType, TextureLoader
 from pymovis.vis.text import FontTexture
 from pymovis.vis.mesh import Mesh
 from pymovis.vis.model import Model
-from pymovis.vis.const import SHADOW_MAP_SIZE, TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES
+from pymovis.vis.const import SHADOW_MAP_SIZE, TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES, MAX_JOINT_NUM
 
 class RenderMode(Enum):
     ePHONG  = 0
@@ -81,7 +80,7 @@ class Render:
         return Render.render_info.sky_color
     
     @staticmethod
-    def set_render_mode(mode, width, height):
+    def set_render_mode(mode):
         if mode == RenderMode.eSHADOW:
             glBindFramebuffer(GL_FRAMEBUFFER, Render.depth_map_fbo)
         else:
@@ -113,7 +112,7 @@ class Render:
     
     @staticmethod
     def grid(size_x=1.0, size_z=1.0):
-        return RenderOptions(Plane(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow).set_floor(True).set_grid(size_x, size_z)
+        return RenderOptions(Plane(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow).set_floor(True).set_grid_size(size_x, size_z)
 
     @staticmethod
     def cylinder(radius=0.5, height=1, sectors=16):
@@ -178,11 +177,11 @@ class Render:
         res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=True))
         return res.set_text(str(t)).set_albedo(glm.vec3(0))
 
-    @staticmethod
-    def cubemap(dirname, scale=100):
-        ro = RenderOptions(Cubemap(scale=scale), Render.cubemap_shader, Render.draw_cubemap)
-        ro.set_cubemap(dirname)
-        return ro
+    # @staticmethod
+    # def cubemap(dirname, scale=100):
+    #     ro = RenderOptions(Cubemap(scale=scale), Render.cubemap_shader, Render.draw_cubemap)
+    #     ro.set_cubemap(dirname)
+    #     return ro
 
     @staticmethod
     def draw_phong(option: RenderOptions, shader: Shader):
@@ -195,17 +194,20 @@ class Render:
         
         # update view
         if shader.is_view_updated is False:
-            shader.set_mat4("P",                  Render.render_info.cam_projection)
-            shader.set_mat4("V",                  Render.render_info.cam_view)
-            shader.set_vec3("viewPosition",       Render.render_info.cam_position)
+            shader.set_mat4("uPV",                Render.render_info.cam_projection * Render.render_info.cam_view)
+            shader.set_vec3("uViewPosition",      Render.render_info.cam_position)
             shader.set_vec4("uLight.vector",      Render.render_info.light_vector)
             shader.set_vec3("uLight.color",       Render.render_info.light_color)
             shader.set_vec3("uLight.attenuation", Render.render_info.light_attenuation)
-            shader.set_mat4("lightSpaceMatrix",   Render.render_info.light_matrix)
+            shader.set_mat4("uLightSpaceMatrix",  Render.render_info.light_matrix)
             shader.is_view_updated = True
 
         # update model
         if option.use_skinning:
+            if len(option.buffer_transforms) > MAX_JOINT_NUM:
+                print(f"Joint number exceeds the limit: {len(option.buffer_transforms)} > {MAX_JOINT_NUM}")
+                option.buffer_transforms = option.buffer_transforms[:MAX_JOINT_NUM]
+                
             for idx, buffer in enumerate(option.buffer_transforms):
                 shader.set_mat4(f"uLbsJoints[{idx}]", buffer)
         else:
@@ -339,19 +341,14 @@ class Render:
         if on_screen:
             PV = glm.ortho(0, Render.render_info.width, 0, Render.render_info.height)
             M  = glm.mat4(1.0)
-            shader.set_mat4("PV", PV)
-            shader.set_mat4("M", M)
         else:
-            P = Render.render_info.cam_projection
-            V = Render.render_info.cam_view
-            shader.set_mat4("PV", P * V)
-
+            PV = Render.render_info.cam_projection * Render.render_info.cam_view
             M = glm.translate(glm.mat4(1.0), option.position)\
                 * glm.mat4(option.orientation)\
                 * glm.scale(glm.mat4(1.0), option.scale) # translation * rotation * scale
-            shader.set_mat4("M", M)
 
-        shader.set_int("uText", 0)
+        shader.set_mat4("uPVM", PV * M)
+        shader.set_int("uFontTexture", 0)
         shader.set_vec3("uTextColor", option.materials[0].albedo.xyz)
 
         glActiveTexture(GL_TEXTURE0)
@@ -392,37 +389,37 @@ class Render:
         glBindVertexArray(0)
         glBindTexture(GL_TEXTURE_2D, 0)
 
-    @staticmethod
-    def draw_cubemap(option: RenderOptions, shader: Shader):
-        if option is None or shader is None:
-            return
-        if Render.render_mode == RenderMode.eSHADOW:
-            return
+    # @staticmethod
+    # def draw_cubemap(option: RenderOptions, shader: Shader):
+    #     if option is None or shader is None:
+    #         return
+    #     if Render.render_mode == RenderMode.eSHADOW:
+    #         return
         
-        # adjust depth settings for optimized rendering
-        glDepthFunc(GL_LEQUAL)
+    #     # adjust depth settings for optimized rendering
+    #     glDepthFunc(GL_LEQUAL)
 
-        shader.use()
+    #     shader.use()
 
-        # update view
-        P = Render.render_info.cam_projection
-        V = glm.mat4(glm.mat3(Render.render_info.cam_view))
-        shader.set_mat4("PV", P * V)
+    #     # update view
+    #     P = Render.render_info.cam_projection
+    #     V = glm.mat4(glm.mat3(Render.render_info.cam_view))
+    #     shader.set_mat4("PV", P * V)
 
-        # set textures
-        shader.set_int("uSkybox", 0)
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, option.cubemap_id)
+    #     # set textures
+    #     shader.set_int("uSkybox", 0)
+    #     glActiveTexture(GL_TEXTURE0)
+    #     glBindTexture(GL_TEXTURE_CUBE_MAP, option.cubemap_id)
 
-        # final rendering
-        glBindVertexArray(option.vao.id)
-        glDrawArrays(GL_TRIANGLES, 0, 36)
+    #     # final rendering
+    #     glBindVertexArray(option.vao.id)
+    #     glDrawArrays(GL_TRIANGLES, 0, 36)
 
-        # restore depth settings
-        glDepthFunc(GL_LESS)
+    #     # restore depth settings
+    #     glDepthFunc(GL_LESS)
 
-        # unbind vao
-        glBindVertexArray(0)
+    #     # unbind vao
+    #     glBindVertexArray(0)
 
 
     @staticmethod
@@ -561,7 +558,7 @@ class RenderOptions:
         self.is_floor = is_floor
         return self
     
-    def set_grid(self, size_x=1.0, size_z=1.0):
+    def set_grid_size(self, size_x=1.0, size_z=1.0):
         self.grid_size = glm.vec2(size_x, size_z)
         return self
     

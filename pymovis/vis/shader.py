@@ -1,8 +1,5 @@
 import os
 import glm
-import numpy as np
-import ctypes
-import itertools
 from OpenGL.GL import *
 
 def check_shader_compile_error(handle):

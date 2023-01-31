@@ -13,11 +13,10 @@ out vec2 fTexCoord;
 // --------------------------------------------
 // uniform data
 // --------------------------------------------
-uniform mat4 PV;
-uniform mat4 M;
+uniform mat4 uPVM;
 
 void main()
 {
-    gl_Position = PV * M * vec4(vPosition.xy, 0.0f, 1.0f);
+    gl_Position = uPVM * vec4(vPosition.xy, 0.0f, 1.0f);
     fTexCoord = vPosition.zw;
 }

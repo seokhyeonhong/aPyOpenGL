@@ -26,9 +26,8 @@ out vec4 fPosLightSpace;
 // --------------------------------------------
 // uniform data
 // --------------------------------------------
-uniform mat4 P;
-uniform mat4 V;
-uniform mat4 lightSpaceMatrix;
+uniform mat4 uPV;
+uniform mat4 uLightSpaceMatrix;
 
 mat4 GetJointMatrix(ivec4 ids, vec4 weights)
 {
@@ -39,6 +38,10 @@ mat4 GetJointMatrix(ivec4 ids, vec4 weights)
         {
             m += uLbsJoints[ids[i]] * weights[i];
         }
+        else
+        {
+            break;
+        }
     }
     return m;
 }
@@ -46,15 +49,13 @@ mat4 GetJointMatrix(ivec4 ids, vec4 weights)
 void main()
 {
     // LBS
-    mat4 lbsModel1 = GetJointMatrix(vLbsJointIDs1, vLbsWeights1);
-    mat4 lbsModel2 = GetJointMatrix(vLbsJointIDs2, vLbsWeights2);
-    mat4 modelLBS  = lbsModel1 + lbsModel2;
+    mat4 lbsModel  = GetJointMatrix(vLbsJointIDs1, vLbsWeights1) + GetJointMatrix(vLbsJointIDs2, vLbsWeights2);
 
-    fPosition      = vec3(modelLBS * vec4(vPosition, 1.0f));
-    fNormal        = normalize(transpose(inverse(mat3(modelLBS))) * vNormal);
+    fPosition      = vec3(lbsModel * vec4(vPosition, 1.0f));
+    fNormal        = normalize(transpose(inverse(mat3(lbsModel))) * vNormal);
     fTexCoord      = vTexCoord;
-    fPosLightSpace = lightSpaceMatrix * vec4(fPosition, 1.0f);
+    fPosLightSpace = uLightSpaceMatrix * vec4(fPosition, 1.0f);
     fMaterialID    = vMaterialID;
 
-    gl_Position    = P * V * vec4(fPosition, 1.0f);
+    gl_Position    = uPV * vec4(fPosition, 1.0f);
 }

@@ -4,10 +4,10 @@ from pymovis.vis.texture import Texture, TextureType
 
 class Material:
     def __init__(self,
-        albedo:    glm.vec3 = glm.vec3(0.5),
-        diffuse:   glm.vec3 = glm.vec3(1.0),
-        specular:  glm.vec3 = glm.vec3(0.1),
-        shininess: float = 10.0
+        albedo    = glm.vec3(0.5),
+        diffuse   = glm.vec3(1.0),
+        specular  = glm.vec3(0.1),
+        shininess = 10.0
     ):
         self.albedo     = glm.vec3(albedo)
         self.diffuse    = glm.vec3(diffuse)

@@ -1,3 +1,4 @@
+""" Shadow constants """
 SHADOW_MAP_SIZE = 2048
 
 """ Camera constants """
@@ -17,6 +18,7 @@ MAX_MATERIAL_NUM = 5
 MAX_MATERIAL_TEXTURES = 25
 
 """ Skeleton constants """
+MAX_JOINT_NUM = 100
 LAFAN_BVH_TO_FBX = {
     "Hips":          "Model:Hips",
     "LeftUpLeg":     "Model:LeftUpLeg",

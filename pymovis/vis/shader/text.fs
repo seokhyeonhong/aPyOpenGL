@@ -13,7 +13,7 @@ out vec4 FragColor;
 // --------------------------------------------
 // uniform
 // --------------------------------------------
-uniform sampler2D uText;
+uniform sampler2D uFontTexture;
 uniform vec3 uTextColor;
 
 // --------------------------------------------
@@ -21,6 +21,6 @@ uniform vec3 uTextColor;
 // --------------------------------------------
 void main()
 {
-    vec4 sampled = vec4(1.0f, 1.0f, 1.0f, texture(uText, fTexCoord).r);
+    vec4 sampled = vec4(1.0f, 1.0f, 1.0f, texture(uFontTexture, fTexCoord).r);
     FragColor = vec4(uTextColor, 1.0f) * sampled;
 }

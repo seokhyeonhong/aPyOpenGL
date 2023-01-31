@@ -2,16 +2,16 @@ from OpenGL.GL import *
 import glm
 import numpy as np
 
-# from pymovis.motion.core import Pose
+from pymovis.motion.core import Pose
 from pymovis.vis.core import MeshGL
 
 class Mesh:
     def __init__(
         self,
-        mesh_gl: MeshGL,
-        materials=None,
-        use_skinning=False,
-        skeleton=None
+        mesh_gl      : MeshGL,
+        materials    = None,
+        use_skinning = False,
+        skeleton     = None
     ):
         self.mesh_gl      = mesh_gl
         self.materials    = materials
@@ -22,7 +22,7 @@ class Mesh:
     def set_materials(self, materials):
         self.materials = materials
     
-    def set_pose_by_source(self, pose):
+    def set_pose_by_source(self, pose: Pose):
         if self.skeleton is None:
             return
         

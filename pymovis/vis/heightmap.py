@@ -1,6 +1,6 @@
 import numpy as np
 
-from pymovis.vis.core import VertexGL, VAO, MeshGL
+from pymovis.vis.core import VertexGL, VAO
 from pymovis.vis.const import INCH_TO_METER
 
 class Heightmap:

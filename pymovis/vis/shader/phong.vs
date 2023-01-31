@@ -24,17 +24,16 @@ out vec4     fPosLightSpace;
 // --------------------------------------------
 // uniform data
 // --------------------------------------------
-uniform mat4 P;
-uniform mat4 V;
+uniform mat4 uPV;
 uniform mat4 M;
-uniform mat4 lightSpaceMatrix;
+uniform mat4 uLightSpaceMatrix;
 
 void main()
 {
     fPosition      = vec3(M * vec4(vPosition, 1.0f));
     fNormal        = normalize(transpose(inverse(mat3(M))) * vNormal);
     fTexCoord      = vTexCoord;
-    fPosLightSpace = lightSpaceMatrix * vec4(fPosition, 1.0f);
+    fPosLightSpace = uLightSpaceMatrix * vec4(fPosition, 1.0f);
     fMaterialID    = vMaterialID;
-    gl_Position    = P * V * vec4(fPosition, 1.0f);
+    gl_Position    = uPV * vec4(fPosition, 1.0f);
 }

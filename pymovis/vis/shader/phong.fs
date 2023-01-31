@@ -56,10 +56,11 @@ uniform Light uLight;
 // --------------------------------------------
 // camera position
 // --------------------------------------------
-uniform vec3 viewPosition;
+uniform vec3 uViewPosition;
 
 // --------------------------------------------
-float Shadow(vec4 fragPosLightSpace, vec3 lightDir)
+// TODO: replace uShadowMap with shadowMap in the parameter list
+float Shadow(vec4 fragPosLightSpace, vec3 lightDir) // , sampler2D shadowMap)
 {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5f + 0.5f;
@@ -92,7 +93,8 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir)
 }
 
 // --------------------------------------------
-vec4 BlinnPhong(vec3 albedo, vec3 N, vec3 V)
+// TODO: replace uLight and uMaterial with light and mateiral in the parameter list
+vec4 BlinnPhong(vec3 albedo, vec3 N, vec3 V) // , Light light, Material material)
 {
     // vec3 ambient = albedo;
     vec3 ambient = uLight.color * 0.1f;
@@ -126,6 +128,7 @@ vec3 GammaCorrection(vec3 color, float gamma)
 
 // --------------------------------------------
 // Reference: https://iquilezles.org/articles/checkerfiltering/
+// Shadertoy: https://www.shadertoy.com/view/ss3yzr
 vec3 Grid(vec2 p)
 {
     vec2 q = sign(fract(p / uGridSize * 0.5) - 0.5f);
@@ -165,7 +168,7 @@ void main()
 
     // set normal
     vec3 N = normalize(fNormal);
-    vec3 V = normalize(viewPosition - fPosition);
+    vec3 V = normalize(uViewPosition - fPosition);
 
     // materials
     vec3 albedo = materialColor;
@@ -181,7 +184,7 @@ void main()
     // rendering
     if (uIsFloor)
     {
-        FragColor.rgb = pow(FilterGrid(fPosition.xz), vec3(0.8f));
+        FragColor.rgb = FilterGrid(fPosition.xz);
         FragColor.a = 1.0f;
         return;
     }
@@ -197,14 +200,14 @@ void main()
     }
 
     // Fog
-    // float D = length(viewPosition - fPosition);
+    // float D = length(uViewPosition - fPosition);
     // vec3 fog_color = vec3(0.5);
     // float fog_amount = 1.0f - min(exp(-D * 0.1 + 1.5), 1.0);
     // vec3 color = FragColor.rgb;
     // color = mix(color, fog_color, fog_amount);
     // FragColor.rgb = color;
     // vec3 fogColor = vec3(0.5);
-    // float d = length(fPosition - viewPosition);
+    // float d = length(fPosition - uViewPosition);
     // float fogFactor = clamp((d - 10.0) / 10.0, 0.0, 1.0);
     // fogColor = fogColor * fogFactor;
     // FragColor.rgb = GammaCorrection(FragColor.rgb, 1.0 / 2.2);// + fogColor;

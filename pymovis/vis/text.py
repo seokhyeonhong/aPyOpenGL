@@ -1,13 +1,13 @@
-import os, sys
-import freetype as ft
-
-from OpenGL.GL import *
+import os
 import glm
+
+import freetype as ft
+from OpenGL.GL import *
 
 from pymovis.vis.const import TEXT_RESOLUTION
 
 class Character:
-    def __init__(self, texture_id: int, size: glm.ivec2, bearing: glm.ivec2, advance: int):
+    def __init__(self, texture_id, size, bearing, advance):
         self.texture_id = texture_id
         self.size = size
         self.bearing = bearing
@@ -15,9 +15,9 @@ class Character:
 
 class FontTexture:
     def __init__(self, font_filename="consola.ttf"):
-
         self.character_map = {}
 
+        # initialize and load the FreeType library
         face = ft.Face(self.get_font_path(font_filename))
         face.set_pixel_sizes(0, TEXT_RESOLUTION)
 
@@ -65,7 +65,8 @@ class FontTexture:
         self.vbo = glGenBuffers(1)
         glBindVertexArray(self.vao)
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferData(GL_ARRAY_BUFFER, sys.getsizeof(float) * 6 * 4, None, GL_DYNAMIC_DRAW)
+        
+        glBufferData(GL_ARRAY_BUFFER, glm.sizeof(glm.vec4) * 6, None, GL_DYNAMIC_DRAW)
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
         glBindBuffer(GL_ARRAY_BUFFER, 0)
