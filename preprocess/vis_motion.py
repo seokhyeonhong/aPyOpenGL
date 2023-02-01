@@ -12,7 +12,6 @@ from pymovis.utils.config import DatasetConfig
 
 """ Load from saved files """
 def load_windows(save_dir, save_filename):
-    # windows
     with open(os.path.join(save_dir, f"train_{save_filename}"), "rb") as f:
         train_windows = pickle.load(f)
     with open(os.path.join(save_dir, f"test_{save_filename}"), "rb") as f:
@@ -33,7 +32,7 @@ def main():
     for window in train_windows:
         app_manager = AppManager()
         model = fbx.model()
-        # print(window.name, window.type)
+        print(window.name, window.type)
         app = MotionApp(window, model)
         app_manager.run(app)
     
