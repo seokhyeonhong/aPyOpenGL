@@ -11,5 +11,18 @@
     "mapsize": 140,
     "top_k": 10,
     "h_scale": 2,
-    "v_scale": 1
+    "v_scale": 1,
+
+    "vae_epochs": 50,
+    "vae_batch_size": 256,
+    "vae_learning_rate": 1e-4,
+    "vae_latent_dim": 32,
+    "vae_embedding_dim": 32,
+
+    "mib_epochs": 100,
+    "mib_batch_size": 64,
+    "mib_learning_rate": 1e-4,
+    
+    "context_frames": 10,
+    "sensor_size": 11
 }
