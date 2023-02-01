@@ -18,26 +18,26 @@ Glossary:
 
 """ FK """
 def R_fk(local_R, root_p, skeleton):
-        """
-        Args:
-            local_R: (..., N, 3, 3)
-            root_p: (..., 3)
-            bone_offset: (N, 3)
-            parents: (N,)
-        Returns:
-            Global rotation matrix and position of each joint.
-        """
-        bone_offsets = torch.from_numpy(skeleton.get_bone_offsets()).to(R.device)
-        parents = skeleton.parent_idx
+    """
+    Args:
+        local_R: (..., N, 3, 3)
+        root_p: (..., 3)
+        bone_offset: (N, 3)
+        parents: (N,)
+    Returns:
+        Global rotation matrix and position of each joint.
+    """
+    bone_offsets = torch.from_numpy(skeleton.get_bone_offsets()).to(local_R.device)
+    parents = skeleton.parent_idx
 
-        global_R, global_p = [local_R[..., 0, :, :]], [root_p]
-        for i in range(1, len(parents)):
-            global_R.append(torch.matmul(global_R[parents[i]], local_R[..., i, :, :]))
-            global_p.append(torch.matmul(global_R[parents[i]], bone_offsets[i]) + global_p[parents[i]])
-        
-        global_R = torch.stack(global_R, dim=-3) # (..., N, 3, 3)
-        global_p = torch.stack(global_p, dim=-2) # (..., N, 3)
-        return global_R, global_p
+    global_R, global_p = [local_R[..., 0, :, :]], [root_p]
+    for i in range(1, len(parents)):
+        global_R.append(torch.matmul(global_R[parents[i]], local_R[..., i, :, :]))
+        global_p.append(torch.matmul(global_R[parents[i]], bone_offsets[i]) + global_p[parents[i]])
+    
+    global_R = torch.stack(global_R, dim=-3) # (..., N, 3, 3)
+    global_p = torch.stack(global_p, dim=-2) # (..., N, 3)
+    return global_R, global_p
 
 
 def R6_fk(local_R6, root_p, skeleton):

@@ -32,7 +32,8 @@ class Parser:
         self.init_mesh_data(scale)
 
     def init_character_data(self, scale):
-        save_path = os.path.join(os.path.dirname(self.path), "character_data.pkl")
+        filename = os.path.splitext(os.path.basename(self.path))[0]
+        save_path = os.path.join(os.path.dirname(self.path), f"{filename}_character_data.pkl")
         if os.path.exists(save_path) and self.save:
             with open(save_path, "rb") as f:
                 self.char_data = pickle.load(f)
@@ -58,7 +59,8 @@ class Parser:
                 pickle.dump(self.char_data, f, pickle.HIGHEST_PROTOCOL)
 
     def init_mesh_data(self, scale):
-        save_path = os.path.join(os.path.dirname(self.path), "mesh_data.pkl")
+        filename = os.path.splitext(os.path.basename(self.path))[0]
+        save_path = os.path.join(os.path.dirname(self.path), f"{filename}_mesh_data.pkl")
         if os.path.exists(save_path) and self.save:
             with open(save_path, "rb") as f:
                 self.mesh_data = pickle.load(f)
@@ -156,7 +158,6 @@ class FBX:
 
                     gl_texture = TextureLoader.load(texture_info.filename)
                     gl_texture_type = find_texture_type(texture_info.property)
-                    print(gl_texture_type)
                     gl_material.set_texture(gl_texture_type, gl_texture)
                 
                 gl_materials.append(gl_material)

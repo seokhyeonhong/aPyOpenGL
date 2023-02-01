@@ -66,7 +66,7 @@ class MyApp(MotionApp):
         r = np.stack([self.motion.poses[self.frame].left, self.motion.poses[self.frame].up, self.motion.poses[self.frame].forward], axis=-1)
         env_map = np.einsum("ij,abj->abi", r, self.env_map) + self.motion.poses[self.frame].base
         env_map = np.reshape(env_map, [-1, 3])
-        env_map[..., 1] = self.heightmap.sample_height(env_map[..., 0], env_map[..., 2])
+        env_map[..., 1] = self.heightmap.sample_height(self.heightmap.data, env_map[..., 0], env_map[..., 2], self.heightmap.h_scale, self.heightmap.v_scale)
         for e in env_map:
             self.sphere.set_position(e).draw()
             
