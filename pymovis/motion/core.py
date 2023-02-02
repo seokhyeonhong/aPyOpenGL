@@ -4,7 +4,7 @@ import numpy as np
 import copy
 
 from pymovis.utils import npconst
-from pymovis.motion.ops import npmotion
+from pymovis.ops import mathops, motionops, rotation
 
 class Joint:
     """
@@ -45,13 +45,13 @@ class Skeleton:
 
         self.joints = joints
 
-        self.v_up = v_up
-        self.v_forward = v_forward
-        self.pre_Rs = []
+        self.v_up         = np.array(v_up, dtype=np.float32)
+        self.v_forward    = np.array(v_forward, dtype=np.float32)
+        self.pre_Rs       = []
         
-        self.parent_idx = []
+        self.parent_idx   = []
         self.children_idx = []
-        self.idx_by_name = {}
+        self.idx_by_name  = {}
     
     @property
     def num_joints(self):
@@ -108,11 +108,11 @@ class Pose:
         self.skeleton = skeleton
         self.local_R = local_R
         self.root_p = root_p
-        self.global_R, self.global_p = npmotion.R_fk(self.local_R, self.root_p, self.skeleton)
+        self.global_R, self.global_p = motionops.R_fk(self.local_R, self.root_p, self.skeleton)
     
     @classmethod
     def from_bvh(cls, skeleton, local_E, order, root_p):
-        local_R = npmotion.E_to_R(local_E, order, radians=False)
+        local_R = rotation.E_to_R(local_E, order, radians=False)
         return cls(skeleton, local_R, root_p)
     
     @classmethod
@@ -130,7 +130,7 @@ class Pose:
     
     @property
     def forward(self):
-        return npmotion.normalize_vector((self.local_R[0] @ self.skeleton.v_forward) * npconst.XZ()).astype(np.float32)
+        return mathops.normalize((self.local_R[0] @ self.skeleton.v_forward) * npconst.XZ())
     
     @property
     def up(self):
@@ -138,7 +138,7 @@ class Pose:
     
     @property
     def left(self):
-        return npmotion.normalize_vector(np.cross(self.up, self.forward)).astype(np.float32)
+        return mathops.normalize(np.cross(self.up, self.forward))
 
     """ Manipulation functions """
     def set_root_p(self, root_p):
@@ -151,11 +151,11 @@ class Pose:
     
     def rotate_root(self, delta):
         self.local_R[0] = np.matmul(delta, self.local_R[0])
-        self.global_R, self.global_p = npmotion.R_fk(self.local_R, self.root_p, self.skeleton)
+        self.global_R, self.global_p = motionops.R_fk(self.local_R, self.root_p, self.skeleton)
     
     def update(self):
         """ Called whenever the pose is modified """
-        self.global_R, self.global_p = npmotion.R_fk(self.local_R, self.root_p, self.skeleton)
+        self.global_R, self.global_p = motionops.R_fk(self.local_R, self.root_p, self.skeleton)
 
     """ IK functions """
     def two_bone_ik(self, base_idx, effector_idx, target_p, eps=1e-8, facing="forward"):
@@ -174,19 +174,19 @@ class Pose:
         lcb = np.linalg.norm(b - c)
         lat = np.clip(np.linalg.norm(target_p - a), eps, lab + lcb - eps)
 
-        ac_ab_0 = np.arccos(np.clip(np.dot(npmotion.normalize_vector(c - a), npmotion.normalize_vector(b - a)), -1, 1))
-        ba_bc_0 = np.arccos(np.clip(np.dot(npmotion.normalize_vector(a - b), npmotion.normalize_vector(c - b)), -1, 1))
-        ac_at_0 = np.arccos(np.clip(np.dot(npmotion.normalize_vector(c - a), npmotion.normalize_vector(target_p - a)), -1, 1))
+        ac_ab_0 = np.arccos(np.clip(np.dot(mathops.normalize(c - a), mathops.normalize(b - a)), -1, 1))
+        ba_bc_0 = np.arccos(np.clip(np.dot(mathops.normalize(a - b), mathops.normalize(c - b)), -1, 1))
+        ac_at_0 = np.arccos(np.clip(np.dot(mathops.normalize(c - a), mathops.normalize(target_p - a)), -1, 1))
 
         ac_ab_1 = np.arccos(np.clip((lcb*lcb - lab*lab - lat*lat) / (-2*lab*lat), -1, 1))
         ba_bc_1 = np.arccos(np.clip((lat*lat - lab*lab - lcb*lcb) / (-2*lab*lcb), -1, 1))
 
-        axis_0 = npmotion.normalize_vector(np.cross(c - a, self.forward if facing == "forward" else -self.forward))
-        axis_1 = npmotion.normalize_vector(np.cross(c - a, target_p - a))
+        axis_0 = mathops.normalize(np.cross(c - a, self.forward if facing == "forward" else -self.forward))
+        axis_1 = mathops.normalize(np.cross(c - a, target_p - a))
 
-        r0 = npmotion.A_to_R(ac_ab_1 - ac_ab_0, npmotion.R_inv(global_a_R) @ axis_0)
-        r1 = npmotion.A_to_R(ba_bc_1 - ba_bc_0, npmotion.R_inv(global_b_R) @ axis_0)
-        r2 = npmotion.A_to_R(ac_at_0, npmotion.R_inv(global_a_R) @ axis_1)
+        r0 = rotation.A_to_R(ac_ab_1 - ac_ab_0, rotation.R_inv(global_a_R) @ axis_0)
+        r1 = rotation.A_to_R(ba_bc_1 - ba_bc_0, rotation.R_inv(global_b_R) @ axis_0)
+        r2 = rotation.A_to_R(ac_at_0, rotation.R_inv(global_a_R) @ axis_1)
 
         self.local_R[base_idx] = self.local_R[base_idx] @ r0 @ r2
         self.local_R[mid_idx] = self.local_R[mid_idx] @ r1
@@ -261,16 +261,12 @@ class Motion:
     
     def align_to_forward_by_frame(self, frame, forward=npconst.FORWARD()):
         forward_from = self.poses[frame].forward
-        forward_to   = npmotion.normalize_vector(forward * npconst.XZ())
+        forward_to   = mathops.normalize(forward * npconst.XZ())
 
-        # if forward_from and forward_to are (nearly) parallel, do nothing
-        if np.dot(forward_from, forward_to) > 0.999999:
-            return
-        
-        angle = np.arccos(np.dot(forward_from, forward_to))
-        axis = np.cross(forward_from, forward_to)
-        angle = angle * np.sign(axis[1])
-        R_delta = npmotion.A_to_R(angle, np.array([0, 1, 0], dtype=np.float32))
+        angle = mathops.signed_angle(forward_from, forward_to)
+        axis = np.array([0, 1, 0], dtype=np.float32)
+        R_delta = rotation.A_to_R(angle, axis)
+        breakpoint()
         
         base = self.poses[frame].base
         for pose in self.poses:

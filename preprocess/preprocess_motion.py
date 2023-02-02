@@ -7,7 +7,7 @@ import pickle
 import numpy as np
 
 from pymovis.motion.data import bvh
-from pymovis.motion.ops import npmotion
+from pymovis.ops import rotation
 from pymovis.utils import util
 from pymovis.utils.config import DatasetConfig
 
@@ -76,7 +76,7 @@ def windows_and_features(motion, window_length, window_offset):
         local_R = np.stack([pose.local_R for pose in window.poses], axis=0)
         root_p  = np.stack([pose.root_p for pose in window.poses], axis=0)
 
-        local_R6 = npmotion.R_to_R6(local_R).reshape(window_length, -1)
+        local_R6 = rotation.R_to_R6(local_R).reshape(window_length, -1)
         root_p   = root_p.reshape(window_length, -1)
 
         local_R6s.append(local_R6)

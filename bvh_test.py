@@ -35,7 +35,7 @@ class MyApp(MotionApp):
             #     pose.translate_root_p(np.array([idx - 2, 0, 0]))
 
         # heightmap
-        self.heightmap = Heightmap.load_from_file("./data/heightmaps/hmap_010_smooth.txt")
+        self.heightmap = Heightmap.load_from_file("./data/heightmaps/hmap_001_smooth.txt")
         self.heightmap_mesh = Render.vao(self.heightmap.vao).set_texture("grid.png").set_uv_repeat(0.1)
 
         # grid for environment map
@@ -63,6 +63,7 @@ class MyApp(MotionApp):
         super().render()
         self.text_on_screen.draw()
         self.heightmap_mesh.draw()
+        print(self.motion.poses[self.frame].left.dtype)
         r = np.stack([self.motion.poses[self.frame].left, self.motion.poses[self.frame].up, self.motion.poses[self.frame].forward], axis=-1)
         env_map = np.einsum("ij,abj->abi", r, self.env_map) + self.motion.poses[self.frame].base
         env_map = np.reshape(env_map, [-1, 3])
@@ -88,7 +89,7 @@ if __name__ == "__main__":
 
     motion = bvh.load("D:/data/LaFAN1/walk1_subject5.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
     model = fbx.FBX("./data/models/model_skeleton.fbx").model()
-    # motion.align_by_frame(0)
-    motion = motion.make_window(560, 1000)
+    motion.align_by_frame(0)
+    motion = motion.make_window(0, 1000)
     app = MyApp(motion, model, [0.8, 0.9, 1.0, 1.1, 1.2])
     app_manager.run(app)

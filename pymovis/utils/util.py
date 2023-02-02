@@ -35,6 +35,3 @@ def run_parallel_async(func, iterable, num_cpus=mp.cpu_count(), desc=None, **kwa
         res = list(tqdm(pool.imap(func_with_kwargs, iterable) if iterable is not None else pool.imap(func_with_kwargs), total=len(iterable)))
 
     return res
-
-def clamp(x, min_val, max_val):
-    return max(min_val, min(x, max_val))
