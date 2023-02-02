@@ -336,48 +336,48 @@ class Motion:
         # 1. scale the root-relative joint position (e_i - p_i) by scale_factor
         
         # scaling joint positions
-        global_ps = np.stack([pose.global_p for pose in self.poses])
-        def root_to_joint(joint_idx, scale_y=False):
-            res = global_ps[:, joint_idx] - global_ps[:, 0]
-            if scale_y:
-                return res * scale_factor
-            else:
-                return res * npconst.Y() + (res * npconst.XZ()) * scale_factor
+        # global_ps = np.stack([pose.global_p for pose in self.poses])
+        # def root_to_joint(joint_idx, scale_y=False):
+        #     res = global_ps[:, joint_idx] - global_ps[:, 0]
+        #     if scale_y:
+        #         return res * scale_factor
+        #     else:
+        #         return res * npconst.Y() + (res * npconst.XZ()) * scale_factor
 
-        copy_global_ps = np.stack([pose.global_p for pose in copy_motion.poses])
-        scaled_left_foot  = copy_global_ps[:, 0] + root_to_joint(left_foot_idx)
-        scaled_right_foot = copy_global_ps[:, 0] + root_to_joint(right_foot_idx)
-        scaled_left_hand  = copy_global_ps[:, 0] + root_to_joint(left_hand_idx)
-        scaled_right_hand = copy_global_ps[:, 0] + root_to_joint(right_hand_idx)
+        # copy_global_ps = np.stack([pose.global_p for pose in copy_motion.poses])
+        # scaled_left_foot  = copy_global_ps[:, 0] + root_to_joint(left_foot_idx)
+        # scaled_right_foot = copy_global_ps[:, 0] + root_to_joint(right_foot_idx)
+        # scaled_left_hand  = copy_global_ps[:, 0] + root_to_joint(left_hand_idx)
+        # scaled_right_hand = copy_global_ps[:, 0] + root_to_joint(right_hand_idx)
 
-        # discard if the target foot position is too far
-        # def too_far(effector_p, base_idx, tolerance=0.05):
-        #     return np.any(np.linalg.norm(effector_p - copy_global_ps[:, base_idx], axis=-1) > left_lower_chain_len + tolerance)
-        # if too_far(scaled_left_foot, left_leg_idx) or too_far(scaled_right_foot, right_leg_idx) or too_far(scaled_left_hand, left_arm_idx) or too_far(scaled_right_hand, right_arm_idx):
-        #     print(f"Scale factor {scale_factor} is too large.")
-        #     return None
+        # # discard if the target foot position is too far
+        # # def too_far(effector_p, base_idx, tolerance=0.05):
+        # #     return np.any(np.linalg.norm(effector_p - copy_global_ps[:, base_idx], axis=-1) > left_lower_chain_len + tolerance)
+        # # if too_far(scaled_left_foot, left_leg_idx) or too_far(scaled_right_foot, right_leg_idx) or too_far(scaled_left_hand, left_arm_idx) or too_far(scaled_right_hand, right_arm_idx):
+        # #     print(f"Scale factor {scale_factor} is too large.")
+        # #     return None
 
-        # apply two-bone IK
-        for i in range(len(copy_motion)):
-            copy_motion.poses[i].two_bone_ik(left_leg_idx,  left_foot_idx,  scaled_left_foot[i])
-            copy_motion.poses[i].two_bone_ik(right_leg_idx, right_foot_idx, scaled_right_foot[i])
-            copy_motion.poses[i].two_bone_ik(left_arm_idx,  left_hand_idx,  scaled_left_hand[i], facing="backward")
-            copy_motion.poses[i].two_bone_ik(right_arm_idx, right_hand_idx, scaled_right_hand[i], facing="backward")
-            copy_motion.poses[i].update()
+        # # apply two-bone IK
+        # for i in range(len(copy_motion)):
+        #     copy_motion.poses[i].two_bone_ik(left_leg_idx,  left_foot_idx,  scaled_left_foot[i])
+        #     copy_motion.poses[i].two_bone_ik(right_leg_idx, right_foot_idx, scaled_right_foot[i])
+        #     # copy_motion.poses[i].two_bone_ik(left_arm_idx,  left_hand_idx,  scaled_left_hand[i], facing="backward")
+        #     # copy_motion.poses[i].two_bone_ik(right_arm_idx, right_hand_idx, scaled_right_hand[i], facing="backward")
+        #     copy_motion.poses[i].update()
 
         """ Version 2. Scale the joint velocities by the same factor as the root velocity.
             1. (e_i - p_i) - (e_{i-1} - p_{i-1}) = u_i
             2. e_i = u_i + p_i + e_{i-1} - p_{i-1}
             3. e_i' = w * u_i + p_i + e_{i-1} - p_{i-1} (scale the velocity u_i by w) """
         # scaling joint velocities
-        # rel_ps = np.stack([pose.global_p - pose.root_p for pose in self.poses])
-        # rel_vs = (rel_ps[1:] - rel_ps[:-1]) * npconst.Y() + (rel_ps[1:] - rel_ps[:-1]) * npconst.XZ() * scale_factor
-        # for i in range(1, len(copy_motion)):
-        #     left_foot_p  = rel_vs[i-1, left_foot_idx] + copy_motion.poses[i].root_p + copy_motion.poses[i-1].global_p[left_foot_idx] - copy_motion.poses[i-1].root_p
-        #     right_foot_p = rel_vs[i-1, right_foot_idx] + copy_motion.poses[i].root_p + copy_motion.poses[i-1].global_p[right_foot_idx] - copy_motion.poses[i-1].root_p
-        #     left_foot_p[1] = copy_motion.poses[i].global_p[left_foot_idx][1]
-        #     right_foot_p[1] = copy_motion.poses[i].global_p[right_foot_idx][1]
-        #     copy_motion.poses[i].two_bone_ik(left_leg_idx,  left_foot_idx,  left_foot_p)
-        #     copy_motion.poses[i].two_bone_ik(right_leg_idx, right_foot_idx, right_foot_p)
-        #     copy_motion.poses[i].update()
+        rel_ps = np.stack([pose.global_p - pose.root_p for pose in self.poses])
+        rel_vs = (rel_ps[1:] - rel_ps[:-1]) * npconst.Y() + (rel_ps[1:] - rel_ps[:-1]) * npconst.XZ() * scale_factor
+        for i in range(1, len(copy_motion)):
+            left_foot_p  = rel_vs[i-1, left_foot_idx] + copy_motion.poses[i].root_p + copy_motion.poses[i-1].global_p[left_foot_idx] - copy_motion.poses[i-1].root_p
+            right_foot_p = rel_vs[i-1, right_foot_idx] + copy_motion.poses[i].root_p + copy_motion.poses[i-1].global_p[right_foot_idx] - copy_motion.poses[i-1].root_p
+            left_foot_p[1] = copy_motion.poses[i].global_p[left_foot_idx][1]
+            right_foot_p[1] = copy_motion.poses[i].global_p[right_foot_idx][1]
+            copy_motion.poses[i].two_bone_ik(left_leg_idx,  left_foot_idx,  left_foot_p)
+            copy_motion.poses[i].two_bone_ik(right_leg_idx, right_foot_idx, right_foot_p)
+            copy_motion.poses[i].update()
         return copy_motion

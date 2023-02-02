@@ -223,9 +223,9 @@ def A_to_R(angle, axis):
     if angle.shape != axis.shape[:-1]:
         raise ValueError(f"angle.shape must be axis.shape[:-1], but got {angle.shape} and {axis.shape}")
 
-    if isinstance(angle, torch.Tensor):
+    if isinstance(axis, torch.Tensor):
         return A_to_R_torch(angle, axis)
-    elif isinstance(angle, np.ndarray):
+    elif isinstance(axis, np.ndarray):
         return A_to_R_numpy(angle, axis)
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(angle)}")

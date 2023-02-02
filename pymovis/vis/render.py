@@ -299,7 +299,7 @@ class Render:
         
         shader.use()
 
-        shader.set_mat4("lightSpaceMatrix", Render.render_info.light_matrix)
+        shader.set_mat4("uLightSpaceMatrix", Render.render_info.light_matrix)
 
         if option.use_skinning:
             shader.set_bool(f"uIsSkinned", True)
