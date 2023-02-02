@@ -14,8 +14,8 @@
     "v_scale": 1,
 
     "vae_epochs": 50,
-    "vae_batch_size": 256,
-    "vae_learning_rate": 1e-4,
+    "vae_batch_size": 128,
+    "vae_learning_rate": 1e-5,
     "vae_latent_dim": 32,
     "vae_embedding_dim": 32,
 
@@ -24,5 +24,6 @@
     "mib_learning_rate": 1e-4,
     
     "context_frames": 10,
-    "sensor_size": 11
+    "sensor_size": 11,
+    "sensor_radius": 1
 }

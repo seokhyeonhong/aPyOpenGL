@@ -266,7 +266,6 @@ class Motion:
         angle = mathops.signed_angle(forward_from, forward_to)
         axis = np.array([0, 1, 0], dtype=np.float32)
         R_delta = rotation.A_to_R(angle, axis)
-        breakpoint()
         
         base = self.poses[frame].base
         for pose in self.poses:

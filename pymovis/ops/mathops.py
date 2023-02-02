@@ -11,6 +11,14 @@ def normalize_numpy(x, axis=-1):
     return x / (np.linalg.norm(x, axis=axis, keepdims=True) + 1e-8)
 
 def normalize(x, dim=-1):
+    """
+    Normalize a tensor or numpy array along a given dimension
+    Args:
+        x: torch.Tensor or numpy.ndarray
+        dim: dimension to normalize along
+    Returns:
+        normalized tensor or array
+    """
     if isinstance(x, torch.Tensor):
         return normalize_torch(x, dim)
     elif isinstance(x, np.ndarray):
@@ -20,7 +28,7 @@ def normalize(x, dim=-1):
 
 ####################################################################################
 
-def signed_angle_torch(v1, v2, vn=torch.tensor([0, 1, 0], dtype=torch.float32), dim=-1):
+def signed_angle_torch(v1, v2, vn, dim=-1):
     v1_unit = F.normalize(v1, dim=dim)
     v2_unit = F.normalize(v2, dim=dim)
 
@@ -34,7 +42,7 @@ def signed_angle_torch(v1, v2, vn=torch.tensor([0, 1, 0], dtype=torch.float32), 
 
     return angle
 
-def signed_angle_numpy(v1, v2, vn=np.array([0, 1, 0], dtype=np.float32), dim=-1):
+def signed_angle_numpy(v1, v2, vn, dim=-1):
     v1_unit = v1 / (np.linalg.norm(v1, axis=dim, keepdims=True) + 1e-8)
     v2_unit = v2 / (np.linalg.norm(v2, axis=dim, keepdims=True) + 1e-8)
 
@@ -49,9 +57,18 @@ def signed_angle_numpy(v1, v2, vn=np.array([0, 1, 0], dtype=np.float32), dim=-1)
     return angle
 
 def signed_angle(v1, v2, vn=[0, 1, 0], dim=-1):
-    """ Signed angle from v1 to v2 around vn """
+    """
+    Signed angle from v1 to v2 around vn
+    Args:
+        v1: vector to rotate from (..., 3)
+        v2: vector to rotate to (..., 3)
+        vn: normal vector to rotate around (..., 3)
+        dim: dimension to normalize along
+    Returns:
+        Signed angle from v1 to v2 around vn (...,)
+    """
     if isinstance(v1, torch.Tensor):
-        return signed_angle_torch(v1, v2, torch.tensor(vn, dtype=torch.float32), dim)
+        return signed_angle_torch(v1, v2, torch.tensor(vn, dtype=torch.float32, device=v1.device), dim)
     elif isinstance(v1, np.ndarray):
         return signed_angle_numpy(v1, v2, np.array(vn, dtype=np.float32), dim)
     else:

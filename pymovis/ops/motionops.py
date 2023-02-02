@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 
+from pymovis.ops import rotation
+
 def R_fk_torch(local_R, root_p, skeleton):
     bone_offsets = torch.from_numpy(skeleton.get_bone_offsets()).to(local_R.device)
     parents = skeleton.parent_idx
@@ -29,10 +31,10 @@ def R_fk_numpy(local_R, root_p, skeleton):
 def R_fk(local_R, root_p, skeleton):
     """
     Args:
-        local_R: (..., N, 3, 3)
+        local_R: (..., J, 3, 3)
         root_p: (..., 3)
-        bone_offset: (N, 3)
-        parents: (N,)
+        bone_offset: (J, 3)
+        parents: (J,)
     Returns:
         Global rotation matrix and position of each joint.
     """
@@ -43,3 +45,30 @@ def R_fk(local_R, root_p, skeleton):
         return R_fk_torch(local_R, root_p, skeleton)
     else:
         raise ValueError(f"Invalid type {type(local_R)}")
+
+####################################################################################
+
+def R6_fk_torch(local_R6, root_p, skeleton):
+    local_R = rotation.R6_to_R(local_R6)
+    return R_fk_torch(local_R, root_p, skeleton)
+
+def R6_fk_numpy(local_R6, root_p, skeleton):
+    local_R = rotation.R6_to_R(local_R6)
+    return R_fk_numpy(local_R, root_p, skeleton)
+
+def R6_fk(local_R6, root_p, skeleton):
+    """
+    Args:
+        local_R6: (..., J, 6)
+        root_p: (..., 3)
+        bone_offset: (J, 3)
+        parents: (J,)
+    Returns:
+        Global rotation matrix and position of each joint.
+    """
+    if isinstance(local_R6, np.ndarray):
+        return R6_fk_numpy(local_R6, root_p, skeleton)
+    elif isinstance(local_R6, torch.Tensor):
+        return R6_fk_torch(local_R6, root_p, skeleton)
+    else:
+        raise ValueError(f"Invalid type {type(local_R6)}")

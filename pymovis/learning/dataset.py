@@ -1,9 +1,9 @@
 import os
 import pickle
-
 import torch
 from torch.utils.data import Dataset
 
+from ops import mathops
 
 class MotionDataset(Dataset):
     def __init__(self, train, config):
@@ -106,8 +106,38 @@ class EnvironmentDataset(Dataset):
         std  = torch.std(envs, dim=dim) + 1e-8
 
         # save mean and std
-        # torch.save(mean, mean_path)
-        # torch.save(std, std_path)
+        torch.save(mean, mean_path)
+        torch.save(std, std_path)
+
+        return mean, std
+    
+    def disp_statistics(self, dim):
+        # load and return mean and std if they exist
+        mean_path = os.path.join(self.config.dataset_dir, f"disp_mean_{os.path.splitext(self.config.env_pklname)[0]}.pt")
+        std_path  = os.path.join(self.config.dataset_dir, f"disp_std_{os.path.splitext(self.config.env_pklname)[0]}.pt")
+
+        if os.path.exists(mean_path) and os.path.exists(std_path):
+            mean = torch.load(mean_path)
+            std  = torch.load(std_path)
+            return mean, std
+        
+        if not self.train:
+            raise ValueError("Mean and std must be calculated and saved on training set first")
+
+        # load displacement features
+        envs = [self[i][1] for i in range(len(self))]
+        envs = torch.stack(envs, dim=0)
+        
+        disp_xz = envs[:, 1:, (0, 2)] - envs[:, :-1, (0, 2)]
+        disp_forward = mathops.signed_angle(envs[:, :-1, 3:6], envs[:, 1:, 3:6], dim=-1).unsqueeze(-1)
+        disp = torch.cat([disp_xz, disp_forward], dim=-1)
+
+        mean = torch.mean(disp, dim=dim)
+        std  = torch.std(disp, dim=dim) + 1e-8
+
+        # save mean and std
+        torch.save(mean, mean_path)
+        torch.save(std, std_path)
 
         return mean, std
 
@@ -140,12 +170,18 @@ class PairDataset(Dataset):
     
     def env_statistics(self, dim):
         return self.env_dset.env_statistics(dim)
+    
+    def disp_statistics(self, dim):
+        return self.env_dset.disp_statistics(dim)
 
+    @property
     def motion_shape(self):
         return self.motion_dset.shape
 
+    @property
     def env_shape(self):
         return self.env_dset.env_shape
 
+    @property
     def patch_shape(self):
         return self.env_dset.patch_shape

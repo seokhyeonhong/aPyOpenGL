@@ -186,15 +186,15 @@ def A_to_R_torch(angle, axis):
 
     # skew symmetric matrix
     S   = torch.stack([zero, -a2, a1, a2, zero, -a0, -a1, a0, zero], dim=-1)
-    S   = S.reshape(angle.shape + (3, 3))             # (..., 3, 3)
+    S   = S.reshape(angle.shape + (3, 3)) # (..., 3, 3)
 
     # rotation matrix
-    I   = torch.eye(3, dtype=torch.float32)                # (3, 3)
-    I   = torch.tile(I, reps=(angle.shape + (1, 1)))     # (..., 3, 3)
-    sin = torch.sin(angle)                               # (...,)
-    cos = torch.cos(angle)                               # (...,)
-
-    return I + S * sin + torch.matmul(S, S) * (1 - cos)  # (..., 3, 3)
+    I   = torch.eye(3, dtype=torch.float32, device=angle.device) # (3, 3)
+    I   = I.reshape(1, 3, 3).expand(angle.shape + (3, 3))        # (..., 3, 3)
+    sin = torch.sin(angle)                                       # (...,)
+    cos = torch.cos(angle)                                       # (...,)
+    
+    return I + S * sin[..., None, None] + torch.matmul(S, S) * (1 - cos[..., None, None]) # (..., 3, 3)
 
 def A_to_R_numpy(angle, axis):
     a0, a1, a2 = axis[..., 0], axis[..., 1], axis[..., 2]
