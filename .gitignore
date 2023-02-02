@@ -13,5 +13,5 @@ test_*
 *.npy
 _*.py
 
-# incomplete codes
-# *fbx*
+# No more update
+examples/*
