@@ -2,7 +2,7 @@ import fbx
 import glm
 import numpy as np
 
-from motion.data.fbx_parser import JointData
+from pymovis.motion.data.fbx_parser import JointData
 
 def to_quat(x, order):
     rx = glm.angleAxis(np.deg2rad(x[0], dtype=np.float32), glm.vec3(1, 0, 0))

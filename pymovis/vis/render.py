@@ -496,7 +496,7 @@ class RenderOptions:
     def set_position(self, x, y=None, z=None):
         if y is None and z is None:
             self.position = glm.vec3(x)
-        elif y != None and z != None:
+        elif y is not None and z is not None:
             self.position = glm.vec3(x, y, z)
         return self
 

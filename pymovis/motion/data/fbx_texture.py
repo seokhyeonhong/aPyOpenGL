@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import fbx
-from motion.data.fbx_parser import TextureInfo
+from pymovis.motion.data.fbx_parser import TextureInfo
 
 def get_textures(geometry) -> list[TextureInfo]:
     if geometry.GetNode() is None:

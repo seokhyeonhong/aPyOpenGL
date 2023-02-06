@@ -1,8 +1,10 @@
 # directories
 __pycache__
+.vscode/
 log/*
 save/*
 capture/*
+data/*
 train*
 test_*
 
@@ -12,6 +14,3 @@ test_*
 *.pkl
 *.npy
 _*.py
-
-# No more update
-examples/*
