@@ -32,7 +32,7 @@ def R_to_R6(R):
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(R)}")
 
-####################################################################################
+# -----------------------------------------------------------------------------------
 
 def R_inv_torch(R):
     return R.transpose(-1, -2)
@@ -50,6 +50,37 @@ def R_inv(R):
         return R_inv_numpy(R)
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(R)}")
+
+# -----------------------------------------------------------------------------------
+
+def R_between_vectors_torch(v1, v2):
+    v1_ = F.normalize(v1, dim=-1)
+    v2_ = F.normalize(v2, dim=-1)
+    angle = torch.acos(torch.clamp(torch.sum(v1_ * v2_, dim=-1), -1, 1))
+    axis = F.normalize(torch.cross(v1_, v2_), dim=-1)
+    return A_to_R_torch(angle, axis)
+
+def R_between_vectors_numpy(v1, v2):
+    v1_ = mathops.normalize_numpy(v1, axis=-1)
+    v2_ = mathops.normalize_numpy(v2, axis=-1)
+    angle = np.arccos(np.clip(np.sum(v1_ * v2_, axis=-1), -1, 1))
+    axis = mathops.normalize_numpy(np.cross(v1_, v2_), axis=-1)
+    return A_to_R_numpy(angle, axis)
+
+def R_between_vectors(v1, v2):
+    """
+    Args:
+        v1: (..., 3) to rotate from
+        v2: (..., 3) to rotate to
+    Returns:
+        R: (..., 3, 3) rotation matrix between v1 and v2
+    """
+    if isinstance(v1, torch.Tensor):
+        return R_between_vectors_torch(v1, v2)
+    elif isinstance(v1, np.ndarray):
+        return R_between_vectors_numpy(v1, v2)
+    else:
+        raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(v1)}")
 
 """ Operations with E """
 def E_to_R_torch(E, order, radians=True):
@@ -116,7 +147,7 @@ def E_to_R(E, order, radians=True):
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(E)}")
 
-####################################################################################
+# -----------------------------------------------------------------------------------
 
 def E_to_Q_torch(E, order, radians=True):
     if not radians:
@@ -215,7 +246,7 @@ def A_to_R_numpy(angle, axis):
 def A_to_R(angle, axis):
     """
     Args:
-        angle: (...)
+        angle: (...) in radians
         axis:  (..., 3)
     Returns:
         Rotation matrix (..., 3, 3)
@@ -229,7 +260,8 @@ def A_to_R(angle, axis):
         return A_to_R_numpy(angle, axis)
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(angle)}")
-####################################################################################
+
+# -----------------------------------------------------------------------------------
 
 def A_to_Q_torch(angle, axis):
     cos = torch.cos(angle / 2)
@@ -310,7 +342,7 @@ def Q_to_A(Q, eps=1e-8):
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(Q)}")
 
-####################################################################################
+# -----------------------------------------------------------------------------------
 
 def Q_to_R_torch(Q):
     two_s = 2.0 / torch.sum(Q * Q, dim=-1) # (...,)
@@ -363,7 +395,7 @@ def Q_to_R(Q):
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(Q)}")
     
-####################################################################################
+# -----------------------------------------------------------------------------------
 
 def Q_to_R6_torch(Q):
     R = Q_to_R_torch(Q)
@@ -390,7 +422,7 @@ def Q_to_R6(Q):
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(Q)}")
 
-####################################################################################
+# -----------------------------------------------------------------------------------
 
 def Q_mul_torch(Q0, Q1):
     r0, i0, j0, k0 = torch.split(Q0, 1, dim=-1)
@@ -436,7 +468,7 @@ def Q_mul(Q0, Q1):
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(Q0)}")
 
-####################################################################################
+# -----------------------------------------------------------------------------------
 
 def Q_inv_torch(Q):
     res = torch.tensor([1, -1, -1, -1], dtype=torch.float32, device=Q.device) * Q

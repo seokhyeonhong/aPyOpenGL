@@ -13,11 +13,14 @@
     "h_scale": 2,
     "v_scale": 1,
 
-    "vae_epochs": 50,
-    "vae_batch_size": 128,
-    "vae_learning_rate": 1e-5,
-    "vae_latent_dim": 32,
+    "vae_epochs": 100,
+    "vae_batch_size": 256,
+    "vae_learning_rate": 1e-3,
+    "vae_latent_dim": 32, 
     "vae_embedding_dim": 32,
+    "vae_weight_decay": 1e-5,
+    "vae_weight_recon": 1,
+    "vae_weight_kl": 0.2,
 
     "mib_epochs": 100,
     "mib_batch_size": 64,

@@ -11,7 +11,7 @@ import numpy as np
 from pymovis.motion.core import Motion
 from pymovis.learning.rbf import RBF
 from pymovis.utils.config import DatasetConfig
-from pymovis.vis.heightmap import Heightmap
+from pymovis.vis.heightmap import sample_height
 
 """ Load data """
 def load_windows(split, dir, filename):
@@ -52,8 +52,8 @@ def sample_top_patches(mfc, heightmaps, top_k, h_scale, v_scale, sensor_size):
     feet_down_y_mean = np.mean(feet_down_y, axis=0, keepdims=True)
 
     # get terrain heights at feet positions
-    terr_up_y        = Heightmap.sample_height(heightmaps, feet_up[..., 0], feet_up[..., 2], h_scale, v_scale)
-    terr_down_y      = Heightmap.sample_height(heightmaps, feet_down[..., 0], feet_down[..., 2], h_scale, v_scale)
+    terr_up_y        = sample_height(heightmaps, feet_up[..., 0], feet_up[..., 2], h_scale, v_scale)
+    terr_down_y      = sample_height(heightmaps, feet_down[..., 0], feet_down[..., 2], h_scale, v_scale)
     terr_down_y_mean = np.mean(terr_down_y, axis=1, keepdims=True)
 
     # measure error
@@ -71,7 +71,7 @@ def sample_top_patches(mfc, heightmaps, top_k, h_scale, v_scale, sensor_size):
 
         base    = np.stack([pose.base for pose in motion.poses], axis=0)
         base_xz = base[:, (0, 2)]
-        base_y  = Heightmap.sample_height(heightmaps, base_xz[:, 0], base_xz[:, 1], h_scale, v_scale)
+        base_y  = sample_height(heightmaps, base_xz[:, 0], base_xz[:, 1], h_scale, v_scale)
 
         base_v = base[1:] - base[:-1]
         base_v = np.concatenate([base_v[:1], base_v], axis=0)
@@ -89,7 +89,7 @@ def sample_top_patches(mfc, heightmaps, top_k, h_scale, v_scale, sensor_size):
         perpend = perpend[far_enough]
 
         disp_xz = base_xz + perpend[:, (0, 2)] * disp
-        disp_y  = Heightmap.sample_height(heightmaps, disp_xz[:, 0], disp_xz[:, 1], h_scale, v_scale)
+        disp_y  = sample_height(heightmaps, disp_xz[:, 0], disp_xz[:, 1], h_scale, v_scale)
 
         err_beam = 0.001 * np.sum((np.maximum(disp_y - (base_y - beam_min_height), 0.0)) ** 2, axis=-1)
     else:
@@ -108,7 +108,7 @@ def sample_top_patches(mfc, heightmaps, top_k, h_scale, v_scale, sensor_size):
     h, w = terr_patches[0].shape
     x, z = np.meshgrid(np.arange(w, dtype=np.float32) - w / 2, np.arange(h, dtype=np.float32) - h / 2)
     xz = np.stack([x * h_scale, z * h_scale], axis=-1).reshape(-1, 2)
-    terr = Heightmap.sample_height(terr_patches, xz[..., 0], xz[..., 1], h_scale, v_scale).reshape(top_k, h, w)
+    terr = sample_height(terr_patches, xz[..., 0], xz[..., 1], h_scale, v_scale).reshape(top_k, h, w)
     for i in range(top_k):
         terr_fine_func[i].fit(feet_down[..., (0, 2)], terr_residuals[i])
         edit = terr_fine_func[i].forward(xz).reshape(h, w).astype(np.float32)
@@ -116,26 +116,26 @@ def sample_top_patches(mfc, heightmaps, top_k, h_scale, v_scale, sensor_size):
 
     # environment state (T: number of frames)
     base    = np.stack([pose.base for pose in motion.poses], axis=0) # (T, 3)
-    left    = np.stack([pose.left for pose in motion.poses], axis=0)
     up      = np.stack([pose.up for pose in motion.poses], axis=0)
     forward = np.stack([pose.forward for pose in motion.poses], axis=0)
-    R       = np.stack([left, up, forward], axis=-2) # (T, 3, 3)
+    left    = np.cross(up, forward, axis=-1)
+    R       = np.stack([left, up, forward], axis=-1) # (T, 3, 3)
     
     sensor_x, sensor_z = np.linspace(-1, 1, sensor_size, dtype=np.float32), np.linspace(-1, 1, sensor_size, dtype=np.float32)
     sensor_x, sensor_z = np.meshgrid(sensor_x, sensor_z)
     sensor_y = np.zeros_like(sensor_x)
-    sensor = np.stack([sensor_x, sensor_y, sensor_z], axis=-1).reshape(-1, 3) # (sensor_size*sensor_size, 3)
-    sensor = np.einsum("aij,bj->abi", R, sensor) + base[:, None, :] # (T, sensor_size*sensor_size, 3)
+    sensor = np.stack([sensor_x, sensor_y, sensor_z], axis=-1).reshape(-1, 3) # (S*S, 3)
+    sensor = np.einsum("Tij,Sj->TSi", R, sensor) + base[:, None, :] # (T, S*S, 3)
 
-    sensor_y = Heightmap.sample_height(terr_patches, sensor[..., 0], sensor[..., 2], h_scale, v_scale) # (top_k, T, sensor_size*sensor_size)
-    base_y   = Heightmap.sample_height(terr_patches, base[:, 0], base[:, 2], h_scale, v_scale) # (top_k, T)
+    sensor_y = sample_height(terr_patches, sensor[..., 0], sensor[..., 2], h_scale, v_scale) # (K, T, S*S)
+    base_y   = sample_height(terr_patches, base[:, 0], base[:, 2], h_scale, v_scale) # (K, T)
 
     env_state = np.concatenate([base, forward], axis=-1) # (T, 6)
-    env_state = np.repeat(env_state[None], top_k, axis=0) # (top_k, T, 6)
+    env_state = np.repeat(env_state[None], top_k, axis=0) # (K, T, 6)
     env_state[..., 1] = base_y
-    env_state = np.concatenate([env_state, sensor_y], axis=-1) # (top_k, T, 6 + sensor_size*sensor_size)
+    env_state = np.concatenate([env_state, sensor_y], axis=-1) # (K, T, 6 + S*S)
 
-    return terr_patches, env_state # (top_k, mapsize, mapsize), (top_k, T, 6 + sensor_size*sensor_size)
+    return terr_patches, env_state # (K, mapsize, mapsize), (K, T, 6 + S*S)
 
 """ Main functions """
 def generate_dataset(split, config):

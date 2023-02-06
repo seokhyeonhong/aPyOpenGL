@@ -3,7 +3,7 @@ import pickle
 import torch
 from torch.utils.data import Dataset
 
-from ops import mathops
+from pymovis.ops import mathops
 
 class MotionDataset(Dataset):
     def __init__(self, train, config):
@@ -62,8 +62,8 @@ class EnvironmentDataset(Dataset):
             data = pickle.load(f)
         
         # N: number of samples, T: number of frames, D: dimension of feature
-        self.patch     = data["patches"] # (N * top_K, mapsize, mapsize)
-        self.env_state = data["env"]     # (N * top_K, T, D)
+        self.patch = data["patches"] # (N * top_K, mapsize, mapsize)
+        self.env_state = data["env"] # (N * top_K, T, D)
 
         if len(self.patch) != len(self.env_state):
             raise ValueError(f"Number of patches ({len(self.patch)}) and number of environment states ({len(self.env_state)}) do not match")
