@@ -3,3 +3,4 @@ PyOpenGL_accelerate==3.1.6
 PyGLM==2.5.7
 glfw==2.5.3
 tqdm==4.62.3
+freetype_py==2.3.0

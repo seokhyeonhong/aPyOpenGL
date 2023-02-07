@@ -73,3 +73,16 @@ def signed_angle(v1, v2, vn=[0, 1, 0], dim=-1):
         return signed_angle_numpy(v1, v2, np.array(vn, dtype=np.float32), dim)
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(v1)}")
+
+####################################################################################
+
+def lerp(x, y, t):
+    """
+    Args:
+        x: start value (..., D)
+        y: end value (..., D)
+        t: interpolation value (...,) or float
+    Returns:
+        interpolated value (..., D)
+    """
+    return x + t * (y - x)

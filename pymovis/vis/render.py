@@ -631,6 +631,11 @@ class RenderOptionsVec:
         for option in self.options:
             option.set_albedo(albedo, material_id)
         return self
+    
+    def set_alpha(self, alpha, material_id=0):
+        for option in self.options:
+            option.set_alpha(alpha, material_id)
+        return self
 
     def set_visible(self, visible):
         for option in self.options:

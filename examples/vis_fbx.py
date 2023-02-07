@@ -18,7 +18,7 @@ if __name__ == "__main__":
     app_manager = AppManager()
 
     # load data
-    fbx = FBX("data/models/model_skeleton.fbx")
+    fbx = FBX("data/character.fbx")
 
     # create app
     app = MyApp(fbx.model())

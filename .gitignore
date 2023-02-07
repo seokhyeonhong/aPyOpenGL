@@ -1,16 +1,4 @@
-# directories
 __pycache__
-.vscode/
-log/*
-save/*
-capture/*
-data/*
-train*
-test_*
+.vscode
 
-# file formats
-*.pt
-*.pth
 *.pkl
-*.npy
-_*.py

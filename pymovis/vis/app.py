@@ -2,6 +2,7 @@ from OpenGL.GL import *
 
 import glfw
 import os
+import time
 import datetime
 import cv2
 import numpy as np
@@ -128,10 +129,11 @@ class MotionApp(App):
             self.model.set_source_skeleton(self.motion.skeleton, skeleton_dict)
 
         self.frame = 0
-        self.prev_frame = -1
         self.playing = True
         self.recording = False
-        self.captures = {}
+        self.record_start_time = 0
+        self.record_end_time = 0
+        self.captures = []
 
         self.grid = Render.plane().set_scale(50).set_uv_repeat(5).set_texture("grid.png")
         self.axis = Render.axis()
@@ -173,8 +175,11 @@ class MotionApp(App):
                 self.text.switch_visible()
             elif key == glfw.KEY_F6:
                 if self.recording:
-                    self.save_video(self.captures)
-                    self.captures = {}
+                    self.record_end_time = time.perf_counter()
+                    self.save_video()
+                    self.captures = []
+                else:
+                    self.record_start_time = time.perf_counter()
                 self.recording = not self.recording
 
     def update(self):
@@ -188,12 +193,7 @@ class MotionApp(App):
 
         # recording
         if self.recording:
-            print("Recording")
-            if self.prev_frame == self.frame and self.playing:
-                return
-                
-            self.captures[self.frame] = super().capture_screen()
-            self.prev_frame = self.frame
+            self.captures.append(super().capture_screen())
         
     def render(self, render_model=True, render_xray=True):
         # time setting
@@ -241,18 +241,17 @@ class MotionApp(App):
         glEnable(GL_DEPTH_TEST)
 
     """ Capture functions """
-    def save_video(self, captures):
+    def save_video(self):
         video_dir = os.path.join(self.capture_path, "videos")
         if not os.path.exists(video_dir):
             os.makedirs(video_dir)
         
-        captures = list(captures.values())
         video_path = os.path.join(video_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".mp4")
-        fps = self.motion.fps
-        height, width, _ = captures[0].shape
+        fps = len(self.captures) / (self.record_end_time - self.record_start_time)
+        height, width, _ = self.captures[0].shape
         
         video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
-        for image in captures:
+        for image in self.captures:
             video.write(image)
         video.release()
 

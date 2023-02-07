@@ -4,6 +4,8 @@ import torch.nn as nn
 class PositionalEmbedding(nn.Module):
     def __init__(self, dim, max_len):
         super(PositionalEmbedding, self).__init__()
+        self.dim = dim
+        self.max_len = max_len
 
         if dim % 2 != 0:
             raise ValueError(f"PositionalEmbedding: dim must be even, but got {dim}")
@@ -17,4 +19,5 @@ class PositionalEmbedding(nn.Module):
         self.embedding = nn.Parameter(embedding, requires_grad=False)
         
     def forward(self, position):
-        return self.embedding[min(position, self.embedding.shape[0] - 1)]
+        position = torch.clamp(position, 0, self.max_len - 1).long()
+        return self.embedding[position] # (B, T, dim)
