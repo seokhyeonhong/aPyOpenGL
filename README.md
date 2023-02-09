@@ -31,6 +31,10 @@ pip install -r requirements.txt
 * F2: Render the scene in GL_LINE mode.
 * F5: Capture the screen in image and save in ```captures/yyyy-mm-dd/images```.
 * F6: Capture the screen in video if entered once, and save in ```captures/yyyy-mm-dd/videos``` if entered again.
+* Alt + Left Mouse: Tumble tool for the camera.
+* Alt + Middle Mouse: Track tool for the camera.
+* Alt + Mouse Scroll: Dolly tool for the camera.
+* Mouse Scroll: Zoom tool for the camera.
 
 ### Special Commands for MotionApp
 ```MotionApp``` is a class that inherits ```App``` and specialized to visualize motion data.

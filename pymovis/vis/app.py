@@ -195,7 +195,7 @@ class MotionApp(App):
         if self.recording:
             self.captures.append(super().capture_screen())
         
-    def render(self, render_model=True, render_xray=True):
+    def render(self, render_model=True, render_xray=False):
         # time setting
         if self.playing:
             self.frame = min(int(glfw.get_time() * self.motion.fps), len(self.motion) - 1)
