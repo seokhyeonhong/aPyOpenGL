@@ -335,7 +335,7 @@ class Motion:
         """ Version 1. Scale the root-relative joint position """
         # 1. scale the root-relative joint position (e_i - p_i) by scale_factor
         
-        # scaling joint positions
+        # # scaling joint positions
         # global_ps = np.stack([pose.global_p for pose in self.poses])
         # def root_to_joint(joint_idx, scale_y=False):
         #     res = global_ps[:, joint_idx] - global_ps[:, 0]

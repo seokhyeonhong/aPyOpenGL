@@ -30,12 +30,12 @@ if __name__ == "__main__":
     app_manager = AppManager()
 
     # load data
-    motion = bvh.load("data/animations/beam/PFNN_WalkingUpSteps06_000.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
-    model = fbx.FBX("./data/models/model_skeleton.fbx").model()
+    motion = bvh.load("data/motion2.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
+    model = fbx.FBX("data/character.fbx").model()
 
     # align and split
-    motion.align_by_frame(0)
-    motion = motion.make_window(0, 1000)
+    motion.align_by_frame(100)
+    motion = motion.make_window(100, 1000)
 
     # create app for scaled motion
     app = MyApp(motion, model, [0.8, 0.9, 1.0, 1.1, 1.2])

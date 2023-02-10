@@ -24,19 +24,18 @@ class Solve:
     def fit(self, X, Y):
         """
         Args:
-            X: (N, N) or (B, N, N)
-            Y: (N, K) or (B, N, K)
+            X: (..., N, N)
+            Y: (..., N, K)
         """
-        LU, piv = torch.linalg.lu_factor(X.transpose(-1, -2) + torch.eye(X.shape[-2]) * self.l)
+        LU, piv = torch.linalg.lu_factor(X.transpose(-1, -2) + torch.eye(X.shape[-2], device=X.device) * self.l)
         self.M = torch.lu_solve(Y, LU, piv).transpose(-1, -2)
-        return LU, piv
         
     def forward(self, Xp):
         """
         Args:
-            Xp: (M, N) or (B, M, N)
+            Xp: (..., M, N)
         Returns:
-            (M, K) or (B, M, K)
+            (..., M, K)
         """
         return self.M.matmul(Xp.transpose(-1, -2)).transpose(-1, -2)
 
@@ -51,20 +50,20 @@ class RBF:
     def fit(self, X, Y):
         """
         Args:
-            X: (B, N, D) or (N, D)
-            Y: (B, N, K) or (N, K)
+            X: (..., N, D)
+            Y: (..., N, K)
         """
         self.X = X
         dist = torch.cdist(self.X, self.X) # (B, N, N) or (N, N)
-        self.eps = torch.ones(len(dist)) / dist.mean() if self.eps is None else self.eps
-        return self.solver.fit(self.kernel(self.eps * dist), Y)
+        self.eps = torch.ones(len(dist), device=X.device) / dist.mean() if self.eps is None else self.eps
+        self.solver.fit(self.kernel(self.eps * dist), Y)
         
     def forward(self, Xp):
         """
         Args:
-            Xp: (B, M, D) or (M, D)
+            Xp: (..., M, D)
         Returns:
-            (B, M, K) or (M, K)
+            (..., M, K)
         """
         D = torch.cdist(Xp, self.X)
         return self.solver.forward(self.kernel(self.eps * D))
