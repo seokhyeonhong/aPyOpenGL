@@ -4,12 +4,13 @@ from pymovis.motion.data import bvh, fbx
 from pymovis.vis.render import Render
 from pymovis.vis.app import MotionApp
 from pymovis.vis.appmanager import AppManager
+from pymovis.ops import motionops
 
 class MyApp(MotionApp):
     def __init__(self, motion, model, vel_factor):
         super().__init__(motion, model)
         self.vel_factor = vel_factor
-        self.scaled = [self.motion.scaled_motion(v) for v in self.vel_factor]
+        self.scaled = [motionops.scaled_motion(motion, v) for v in self.vel_factor]
         self.copy_model = copy.deepcopy(self.model)
 
         for idx, scaled in enumerate(self.scaled):

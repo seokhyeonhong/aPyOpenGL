@@ -254,8 +254,15 @@ class Motion:
         return copy.deepcopy(self)
 
     """ Alignment functions """
-    def align_to_origin_by_frame(self, frame):
-        delta = -self.poses[frame].root_p * npconst.XZ()
+    def align_to_origin_by_frame(self, frame, axes="xyz"):
+        delta = -self.poses[frame].root_p
+        if "x" not in axes:
+            delta[0] = 0
+        if "y" not in axes:
+            delta[1] = 0
+        if "z" not in axes:
+            delta[2] = 0
+            
         for pose in self.poses:
             pose.translate_root_p(delta)
     
@@ -276,108 +283,3 @@ class Motion:
     def align_by_frame(self, frame, forward=npconst.FORWARD()):
         self.align_to_origin_by_frame(frame)
         self.align_to_forward_by_frame(frame, forward)
-    
-    """ Velocity-weighted locomotion scaling """
-    def scaled_motion(
-        self,
-        scale_factor,
-        left_leg_name="LeftUpLeg",
-        left_foot_name="LeftFoot",
-        left_arm_name="LeftArm",
-        left_hand_name="LeftHand",
-        right_leg_name="RightUpLeg",
-        right_foot_name="RightFoot",
-        right_arm_name="RightArm",
-        right_hand_name="RightHand"
-    ):
-        copy_motion = self.copy()
-        if scale_factor == 1.0:
-            return copy_motion
-
-        # joint indices
-        left_leg_idx   = self.skeleton.idx_by_name[left_leg_name]
-        left_foot_idx  = self.skeleton.idx_by_name[left_foot_name]
-        left_arm_idx   = self.skeleton.idx_by_name[left_arm_name]
-        left_hand_idx  = self.skeleton.idx_by_name[left_hand_name]
-        right_leg_idx  = self.skeleton.idx_by_name[right_leg_name]
-        right_foot_idx = self.skeleton.idx_by_name[right_foot_name]
-        right_arm_idx  = self.skeleton.idx_by_name[right_arm_name]
-        right_hand_idx = self.skeleton.idx_by_name[right_hand_name]
-
-        # lower-body chain lengths
-        left_knee_idx   = self.skeleton.parent_idx[left_foot_idx]
-        right_knee_idx  = self.skeleton.parent_idx[right_foot_idx]
-        left_elbow_idx  = self.skeleton.parent_idx[left_hand_idx]
-        right_elbow_idx = self.skeleton.parent_idx[right_hand_idx]
-
-        def chain_len(indices):
-            return np.sum([np.linalg.norm(self.skeleton.joints[idx].offset, axis=-1) for idx in indices])
-        
-        left_lower_chain_len  = chain_len([left_knee_idx, left_foot_idx])
-        right_lower_chain_len = chain_len([right_knee_idx, right_foot_idx])
-        left_upper_chain_len  = chain_len([left_elbow_idx, left_hand_idx])
-        right_upper_chain_len = chain_len([right_elbow_idx, right_hand_idx])
-
-        """ Version 1. Scale the root position """
-        # root_p = np.stack([pose.root_p for pose in self.poses], axis=0)
-        # root_p = root_p * np.array([scale_factor, 1.0, scale_factor], dtype=np.float32)
-        # for i in range(len(copy_motion)):
-        #     copy_motion.poses[i].set_root_p(root_p[i])
-
-        """ Version 2. Scale the root velocity"""
-        root_v = np.stack([(self.poses[i+1].root_p - self.poses[i].root_p) * scale_factor for i in range(len(self.poses) - 1)], axis=0)
-        root_v = root_v * np.array([1.0, 0.0, 1.0], dtype=np.float32)
-        for i in range(1, len(copy_motion)):
-            root_p = copy_motion.poses[i-1].root_p + root_v[i-1]
-            root_p[1] = copy_motion.poses[i].root_p[1]
-            copy_motion.poses[i].set_root_p(root_p)
-        
-        """ Version 1. Scale the root-relative joint position """
-        # 1. scale the root-relative joint position (e_i - p_i) by scale_factor
-        
-        # # scaling joint positions
-        # global_ps = np.stack([pose.global_p for pose in self.poses])
-        # def root_to_joint(joint_idx, scale_y=False):
-        #     res = global_ps[:, joint_idx] - global_ps[:, 0]
-        #     if scale_y:
-        #         return res * scale_factor
-        #     else:
-        #         return res * npconst.Y() + (res * npconst.XZ()) * scale_factor
-
-        # copy_global_ps = np.stack([pose.global_p for pose in copy_motion.poses])
-        # scaled_left_foot  = copy_global_ps[:, 0] + root_to_joint(left_foot_idx)
-        # scaled_right_foot = copy_global_ps[:, 0] + root_to_joint(right_foot_idx)
-        # scaled_left_hand  = copy_global_ps[:, 0] + root_to_joint(left_hand_idx)
-        # scaled_right_hand = copy_global_ps[:, 0] + root_to_joint(right_hand_idx)
-
-        # # discard if the target foot position is too far
-        # # def too_far(effector_p, base_idx, tolerance=0.05):
-        # #     return np.any(np.linalg.norm(effector_p - copy_global_ps[:, base_idx], axis=-1) > left_lower_chain_len + tolerance)
-        # # if too_far(scaled_left_foot, left_leg_idx) or too_far(scaled_right_foot, right_leg_idx) or too_far(scaled_left_hand, left_arm_idx) or too_far(scaled_right_hand, right_arm_idx):
-        # #     print(f"Scale factor {scale_factor} is too large.")
-        # #     return None
-
-        # # apply two-bone IK
-        # for i in range(len(copy_motion)):
-        #     copy_motion.poses[i].two_bone_ik(left_leg_idx,  left_foot_idx,  scaled_left_foot[i])
-        #     copy_motion.poses[i].two_bone_ik(right_leg_idx, right_foot_idx, scaled_right_foot[i])
-        #     # copy_motion.poses[i].two_bone_ik(left_arm_idx,  left_hand_idx,  scaled_left_hand[i], facing="backward")
-        #     # copy_motion.poses[i].two_bone_ik(right_arm_idx, right_hand_idx, scaled_right_hand[i], facing="backward")
-        #     copy_motion.poses[i].update()
-
-        """ Version 2. Scale the joint velocities by the same factor as the root velocity.
-            1. (e_i - p_i) - (e_{i-1} - p_{i-1}) = u_i
-            2. e_i = u_i + p_i + e_{i-1} - p_{i-1}
-            3. e_i' = w * u_i + p_i + e_{i-1} - p_{i-1} (scale the velocity u_i by w) """
-        # scaling joint velocities
-        rel_ps = np.stack([pose.global_p - pose.root_p for pose in self.poses])
-        rel_vs = (rel_ps[1:] - rel_ps[:-1]) * npconst.Y() + (rel_ps[1:] - rel_ps[:-1]) * npconst.XZ() * scale_factor
-        for i in range(1, len(copy_motion)):
-            left_foot_p  = rel_vs[i-1, left_foot_idx] + copy_motion.poses[i].root_p + copy_motion.poses[i-1].global_p[left_foot_idx] - copy_motion.poses[i-1].root_p
-            right_foot_p = rel_vs[i-1, right_foot_idx] + copy_motion.poses[i].root_p + copy_motion.poses[i-1].global_p[right_foot_idx] - copy_motion.poses[i-1].root_p
-            left_foot_p[1] = copy_motion.poses[i].global_p[left_foot_idx][1]
-            right_foot_p[1] = copy_motion.poses[i].global_p[right_foot_idx][1]
-            copy_motion.poses[i].two_bone_ik(left_leg_idx,  left_foot_idx,  left_foot_p)
-            copy_motion.poses[i].two_bone_ik(right_leg_idx, right_foot_idx, right_foot_p)
-            copy_motion.poses[i].update()
-        return copy_motion
