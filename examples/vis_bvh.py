@@ -2,6 +2,13 @@ from pymovis.motion.data import bvh
 from pymovis.vis.app import MotionApp
 from pymovis.vis.appmanager import AppManager
 
+class MyApp(MotionApp):
+    def __init__(self, motion):
+        super().__init__(motion)
+    
+    def render(self):
+        super().render(render_model=False, render_xray=True)
+
 if __name__ == "__main__":
     # app cycle manager
     app_manager = AppManager()

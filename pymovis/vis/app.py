@@ -117,10 +117,94 @@ class App:
         image_path = os.path.join(image_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".png")
         cv2.imwrite(image_path, image)
 
-""" Class for motion data visualization """
-class MotionApp(App):
-    def __init__(self, motion: Motion, model: Model=None, skeleton_dict=LAFAN_BVH_TO_FBX):
+""" Class for general animation with a fixed number of frames """
+class AnimApp(App):
+    def __init__(self, total_frames, fps=30):
         super().__init__()
+        self.total_frames = int(total_frames)
+        self.fps = fps
+
+        self.frame = 0
+        self.playing = True
+        self.recording = False
+        self.record_start_time = 0
+        self.record_end_time = 0
+        self.captures = []
+
+    def key_callback(self, window, key, scancode, action, mods):
+        super().key_callback(window, key, scancode, action, mods)
+
+        # Space: play/pause
+        if key == glfw.KEY_SPACE and action == glfw.PRESS:
+            self.playing = not self.playing
+        
+        # Replay when the end of the animation is reached
+        if self.playing and self.frame == self.total_frames - 1:
+            self.frame = 0
+            glfw.set_time(0)
+
+        # 0~9, []: frame control
+        if glfw.KEY_0 <= key <= glfw.KEY_9 and action == glfw.PRESS:
+            self.frame = int(self.total_frames * (key - glfw.KEY_0) * 0.1)
+            glfw.set_time(self.frame / self.fps)
+            
+        if not self.playing:
+            if key == glfw.KEY_LEFT_BRACKET and action == glfw.PRESS:
+                self.frame = max(self.frame - 1, 0)
+            elif key == glfw.KEY_RIGHT_BRACKET and action == glfw.PRESS:
+                self.frame = min(self.frame + 1, self.total_frames - 1)
+            if key == glfw.KEY_LEFT and action == glfw.PRESS:
+                self.frame = max(self.frame - 10, 0)
+            elif key == glfw.KEY_RIGHT and action == glfw.PRESS:
+                self.frame = min(self.frame + 10, self.total_frames - 1)
+            glfw.set_time(self.frame / self.fps)
+        
+        # F6: record
+        if key == glfw.KEY_F6 and action == glfw.PRESS:
+            if self.recording:
+                self.record_end_time = time.perf_counter()
+                self.save_video()
+                self.captures = []
+            else:
+                self.record_start_time = time.perf_counter()
+            self.recording = not self.recording
+
+    def render(self):
+        super().render()
+
+        # time setting
+        if self.playing:
+            self.frame = min(int(glfw.get_time() * self.fps), self.total_frames - 1)
+        else:
+            glfw.set_time(self.frame / self.fps)
+
+    def late_update(self):
+        super().late_update()
+        
+        if self.recording:
+            self.captures.append(super().capture_screen())
+
+    """ Capture functions """
+    def save_video(self):
+        video_dir = os.path.join(self.capture_path, "videos")
+        if not os.path.exists(video_dir):
+            os.makedirs(video_dir)
+        
+        video_path = os.path.join(video_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".mp4")
+        fps = len(self.captures) / (self.record_end_time - self.record_start_time)
+        height, width, _ = self.captures[0].shape
+        
+        video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
+        for image in self.captures:
+            video.write(image)
+        video.release()
+
+        glfw.set_time(self.frame / self.fps)
+
+""" Class for motion data visualization """
+class MotionApp(AnimApp):
+    def __init__(self, motion: Motion, model: Model=None, skeleton_dict=LAFAN_BVH_TO_FBX):
+        super().__init__(len(motion), motion.fps)
         self.motion = motion
         self.model = model
         if self.model is not None:
@@ -142,29 +226,6 @@ class MotionApp(App):
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)
 
-        # play / pause
-        if key == glfw.KEY_SPACE and action == glfw.PRESS:
-            self.playing = not self.playing
-            if self.playing and self.frame == len(self.motion) - 1:
-                self.frame = 0
-                glfw.set_time(0)
-        
-        # move frames
-        if glfw.KEY_0 <= key <= glfw.KEY_9 and action == glfw.PRESS:
-            self.frame = int(len(self.motion) * (key - glfw.KEY_0) * 0.1)
-            glfw.set_time(self.frame / self.motion.fps)
-            
-        if not self.playing:
-            if key == glfw.KEY_LEFT_BRACKET and action == glfw.PRESS:
-                self.frame = max(self.frame - 1, 0)
-            elif key == glfw.KEY_RIGHT_BRACKET and action == glfw.PRESS:
-                self.frame = min(self.frame + 1, len(self.motion) - 1)
-            if key == glfw.KEY_LEFT and action == glfw.PRESS:
-                self.frame = max(self.frame - 10, 0)
-            elif key == glfw.KEY_RIGHT and action == glfw.PRESS:
-                self.frame = min(self.frame + 10, len(self.motion) - 1)
-            glfw.set_time(self.frame / self.motion.fps)
-        
         # render and capture options
         if action == glfw.PRESS:
             if key == glfw.KEY_G:
@@ -173,14 +234,6 @@ class MotionApp(App):
                 self.axis.switch_visible()
             elif key == glfw.KEY_T:
                 self.text.switch_visible()
-            elif key == glfw.KEY_F6:
-                if self.recording:
-                    self.record_end_time = time.perf_counter()
-                    self.save_video()
-                    self.captures = []
-                else:
-                    self.record_start_time = time.perf_counter()
-                self.recording = not self.recording
 
     def update(self):
         # stop playing at the end of the motion
@@ -188,20 +241,14 @@ class MotionApp(App):
             self.playing = False
 
     def late_update(self):
-        # rendering the current frame
-        self.text.set_text(self.frame).draw()
+        super().late_update()
 
-        # recording
-        if self.recording:
-            self.captures.append(super().capture_screen())
+        # render the current frame
+        self.text.set_text(self.frame).draw()
         
     def render(self, render_model=True, render_xray=False):
-        # time setting
-        if self.playing:
-            self.frame = min(int(glfw.get_time() * self.motion.fps), len(self.motion) - 1)
-        else:
-            glfw.set_time(self.frame / self.motion.fps)
-        
+        super().render()
+
         # render the environment
         self.grid.draw()
         self.axis.draw()
@@ -216,7 +263,7 @@ class MotionApp(App):
         if render_xray:
             self.render_xray(self.motion.poses[self.frame])
 
-    def render_xray(self, pose, albedo=[0, 1, 1]):
+    def render_xray(self, pose, albedo=[0, 0, 0]):
         if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):
             self.joint_sphere = Render.sphere(0.03)
             self.joint_bone   = Render.cone(radius=0.03, height=1, sectors=4)
@@ -239,20 +286,3 @@ class MotionApp(App):
             
             self.joint_bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo(albedo).set_color_mode(True).draw()
         glEnable(GL_DEPTH_TEST)
-
-    """ Capture functions """
-    def save_video(self):
-        video_dir = os.path.join(self.capture_path, "videos")
-        if not os.path.exists(video_dir):
-            os.makedirs(video_dir)
-        
-        video_path = os.path.join(video_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".mp4")
-        fps = len(self.captures) / (self.record_end_time - self.record_start_time)
-        height, width, _ = self.captures[0].shape
-        
-        video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
-        for image in self.captures:
-            video.write(image)
-        video.release()
-
-        glfw.set_time(self.frame / self.motion.fps)

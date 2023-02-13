@@ -87,10 +87,10 @@ def sample_paired_height_numpy(heightmap, x, z, h_scale, v_scale):
     z0 = np.clip(z0, 0, H - 1)
     z1 = np.clip(z1, 0, H - 1)
 
-    s0 = heightmap[np.arange(heightmap.shape[0])[:, None, None], z0, x0] # (Nh, Np)
-    s1 = heightmap[np.arange(heightmap.shape[0])[:, None, None], z0, x1]
-    s2 = heightmap[np.arange(heightmap.shape[0])[:, None, None], z1, x0]
-    s3 = heightmap[np.arange(heightmap.shape[0])[:, None, None], z1, x1]
+    s0 = heightmap[np.arange(heightmap.shape[0])[:, None], z0, x0] # (Nh, Np)
+    s1 = heightmap[np.arange(heightmap.shape[0])[:, None], z0, x1]
+    s2 = heightmap[np.arange(heightmap.shape[0])[:, None], z1, x0]
+    s3 = heightmap[np.arange(heightmap.shape[0])[:, None], z1, x1]
 
     return v_scale * ((s0 * (1 - a0) + s1 * a0) * (1 - a1) + (s2 * (1 - a0) + s3 * a0) * a1)
 

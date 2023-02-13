@@ -22,7 +22,7 @@ if __name__ == "__main__":
     model = fbx.FBX("data/character.fbx").model()
 
     # align and slice
-    motion.align_by_frame(0)
+    motion.align_by_frame(0, origin_axes="xz")
     motion = motion.make_window(0, 1000)
 
     # create app
