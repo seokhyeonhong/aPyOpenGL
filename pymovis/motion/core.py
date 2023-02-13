@@ -280,6 +280,12 @@ class Motion:
             pose.root_p = np.matmul(R_delta, (pose.root_p - base).T).T + base
             pose.update()
     
-    def align_by_frame(self, frame, forward=npconst.FORWARD()):
-        self.align_to_origin_by_frame(frame)
+    def align_by_frame(self, frame, origin_axes="xyz", forward=npconst.FORWARD()):
+        """
+        Args:
+            frame (int) : The frame to align to.
+            origin_axes (str) : The axes to align the origin to. "x", "y", "z", or any combination of them.
+            forward (np.array) : The forward direction to align to.
+        """
+        self.align_to_origin_by_frame(frame, origin_axes)
         self.align_to_forward_by_frame(frame, forward)

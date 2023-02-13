@@ -1,24 +1,57 @@
 import torch
-import numpy as np
-import scipy.linalg as linalg
-import scipy.spatial as spatial
+import torch.nn as nn
+
+def multiquadric(x):
+    return torch.sqrt(x**2 + 1)
+
+def inverse(x):
+    return 1.0 / torch.sqrt(x**2 + 1)
+
+def gaussian(x):
+    return torch.exp(-x**2)
+
+def linear(x):
+    return x
+
+def quadric(x):
+    return x**2
+
+def cubic(x):
+    return x**3
+
+def quartic(x):
+    return x**4
+
+def quintic(x):
+    return x**5
+
+def thin_plate(x):
+    return x**2 * torch.log(x + 1e-8)
+
+def logistic(x):
+    return 1.0 / (1.0 + torch.exp(-torch.clamp(x, -5, 5)))
+
+def smoothstep(x):
+    return ((torch.clamp(1.0 - x, 0.0, 1.0))**2.0) * (3 - 2*(torch.clamp(1.0 - x, 0.0, 1.0)))
 
 KERNELS = {
-    "multiquadric": lambda x: torch.sqrt(x**2 + 1),
-    "inverse":      lambda x: 1.0 / torch.sqrt(x**2 + 1),
-    "gaussian":     lambda x: torch.exp(-x**2),
-    "linear":       lambda x: x,
-    "quadric":      lambda x: x**2,
-    "cubic":        lambda x: x**3,
-    "quartic":      lambda x: x**4,
-    "quintic":      lambda x: x**5,
-    "thin_plate":   lambda x: x**2 * torch.log(x + 1e-8),
-    "logistic":     lambda x: 1.0 / (1.0 + torch.exp(-torch.clamp(x, -5, 5))),
-    "smoothstep":   lambda x: ((torch.clamp(1.0 - x, 0.0, 1.0))**2.0) * (3 - 2*(torch.clamp(1.0 - x, 0.0, 1.0)))
+    "multiquadric": multiquadric,
+    "inverse":      inverse,
+    "gaussian":     gaussian,
+    "linear":       linear,
+    "quadric":      quadric,
+    "cubic":        cubic,
+    "quartic":      quartic,
+    "quintic":      quintic,
+    "thin_plate":   thin_plate,
+    "logistic":     logistic,
+    "smoothstep":   smoothstep,
 }
 
-class Solve:
+
+class Solve(nn.Module):
     def __init__(self, l=1e-5):
+        super(Solve, self).__init__()
         self.l = l
         
     def fit(self, X, Y):
@@ -28,7 +61,7 @@ class Solve:
             Y: (..., N, K)
         """
         LU, piv = torch.linalg.lu_factor(X.transpose(-1, -2) + torch.eye(X.shape[-2], device=X.device) * self.l)
-        self.M = torch.lu_solve(Y, LU, piv).transpose(-1, -2)
+        self.M = nn.Parameter(torch.lu_solve(Y, LU, piv).transpose(-1, -2))
         
     def forward(self, Xp):
         """
@@ -37,10 +70,11 @@ class Solve:
         Returns:
             (..., M, K)
         """
-        return self.M.matmul(Xp.transpose(-1, -2)).transpose(-1, -2)
+        return torch.matmul(self.M, Xp.transpose(-1, -2)).transpose(-1, -2)
 
-class RBF:
+class RBF(nn.Module):
     def __init__(self, L=None, eps=None, function="multiquadric", smooth=1e-8):
+        super(RBF, self).__init__()
         self.solver = Solve(l=-smooth) if L is None else L
         self.kernel = KERNELS.get(function)
         if self.kernel is None:

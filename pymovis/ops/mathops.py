@@ -86,3 +86,13 @@ def lerp(x, y, t):
         interpolated value (..., D)
     """
     return x + t * (y - x)
+
+####################################################################################
+
+def clamp(x, min_val, max_val):
+    if isinstance(x, torch.Tensor):
+        return torch.clamp(x, min_val, max_val)
+    elif isinstance(x, np.ndarray):
+        return np.clip(x, min_val, max_val)
+    else:
+        return max(min(x, max_val), min_val)
