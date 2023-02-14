@@ -34,6 +34,40 @@ def R_to_R6(R):
 
 # -----------------------------------------------------------------------------------
 
+def R_to_A_torch(R):
+    trace = R[..., 0, 0] + R[..., 1, 1] + R[..., 2, 2]
+    angle = torch.acos(torch.clamp((trace - 1) / 2, -1, 1))
+    axis = F.normalize(torch.stack([R[..., 2, 1] - R[..., 1, 2],
+                                    R[..., 0, 2] - R[..., 2, 0],
+                                    R[..., 1, 0] - R[..., 0, 1]], dim=-1), dim=-1)
+
+    return angle, axis
+
+def R_to_A_numpy(R):
+    trace = R[..., 0, 0] + R[..., 1, 1] + R[..., 2, 2]
+    angle = np.arccos(np.clip((trace - 1) / 2, -1, 1))
+    axis = mathops.normalize_numpy(np.stack([R[..., 2, 1] - R[..., 1, 2],
+                                             R[..., 0, 2] - R[..., 2, 0],
+                                             R[..., 1, 0] - R[..., 0, 1]], axis=-1), axis=-1)
+    return angle, axis
+
+def R_to_A(R):
+    """
+    Args:
+        R: (..., 3, 3) rotation matrix
+    Returns:
+        angle: (...,) angle of rotation
+        axis: (..., 3) axis of rotation
+    """
+    if isinstance(R, torch.Tensor):
+        return R_to_A_torch(R)
+    elif isinstance(R, np.ndarray):
+        return R_to_A_numpy(R)
+    else:
+        raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(R)}")
+
+# -----------------------------------------------------------------------------------
+
 def R_inv_torch(R):
     return R.transpose(-1, -2)
 
