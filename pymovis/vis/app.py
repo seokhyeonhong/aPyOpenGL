@@ -169,6 +169,12 @@ class AnimApp(App):
                 self.record_start_time = time.perf_counter()
             self.recording = not self.recording
 
+
+    def update(self):
+        # stop playing at the end of the motion
+        if self.playing and self.frame == self.total_frames - 1:
+            self.playing = False
+
     def render(self):
         super().render()
 
@@ -234,11 +240,6 @@ class MotionApp(AnimApp):
                 self.axis.switch_visible()
             elif key == glfw.KEY_T:
                 self.text.switch_visible()
-
-    def update(self):
-        # stop playing at the end of the motion
-        if self.playing and self.frame == len(self.motion) - 1:
-            self.playing = False
 
     def late_update(self):
         super().late_update()

@@ -119,8 +119,16 @@ class Render:
         return RenderOptions(Cylinder(radius, height, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
+    def arrow():
+        return RenderOptions(Arrow(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+
+    @staticmethod
     def vao(vao):
         return RenderOptions(vao, Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+    
+    @staticmethod
+    def heightmap(heightmap):
+        return Render.vao(heightmap.vao)
 
     @staticmethod
     def mesh(mesh: Mesh):
@@ -144,22 +152,14 @@ class Render:
 
     @staticmethod
     def axis():
-        cone_radius = 0.07
-        cone_height = 0.2
-        cylinder_radius = 0.03
-        cylinder_height = 0.8
-
         R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
-        x_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0.9, 0, 0).set_orientation(R_x).set_albedo(glm.vec3(1, 0, 0)).set_color_mode(True)
-        x_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0.4, 0, 0).set_orientation(R_x).set_albedo(glm.vec3(1, 0, 0)).set_color_mode(True)
-
-        y_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.9, 0).set_albedo(glm.vec3(0, 1, 0)).set_color_mode(True)
-        y_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0.4, 0).set_albedo(glm.vec3(0, 1, 0)).set_color_mode(True)
+        arrow_x = RenderOptions(Arrow(), Render.primitive_shader, Render.draw_phong).set_orientation(R_x).set_albedo(glm.vec3(1, 0, 0)).set_color_mode(True)
+        
+        arrow_y = RenderOptions(Arrow(), Render.primitive_shader, Render.draw_phong).set_albedo(glm.vec3(0, 1, 0)).set_color_mode(True)
 
         R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
-        z_head = RenderOptions(Cone(cone_radius, cone_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.9).set_orientation(R_z).set_albedo(glm.vec3(0, 0, 1)).set_color_mode(True)
-        z_body = RenderOptions(Cylinder(cylinder_radius, cylinder_height, 16), Render.primitive_shader, Render.draw_phong).set_position(0, 0, 0.4).set_orientation(R_z).set_albedo(glm.vec3(0, 0, 1)).set_color_mode(True)
-        return RenderOptionsVec([x_head, x_body, y_head, y_body, z_head, z_body])
+        arrow_z = RenderOptions(Arrow(), Render.primitive_shader, Render.draw_phong).set_orientation(R_z).set_albedo(glm.vec3(0, 0, 1)).set_color_mode(True)
+        return RenderOptionsVec([arrow_x, arrow_y, arrow_z])
 
     @staticmethod
     def text(t="", color=glm.vec3(0)):

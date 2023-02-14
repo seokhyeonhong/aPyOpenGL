@@ -21,7 +21,8 @@ class Plane(VAO):
         vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
-    def generate_vertices(self):
+    @staticmethod
+    def generate_vertices():
         positions = [
             glm.vec3(0.5, 0.0, 0.5),   # v0
             glm.vec3(0.5, 0.0, -0.5),  # v1
@@ -53,7 +54,8 @@ class Cube(VAO):
         vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
-    def generate_vertices(self):
+    @staticmethod
+    def generate_vertices():
         v = [
             glm.vec3(0.5, 0.5, 0.5), glm.vec3(-0.5, 0.5, 0.5), glm.vec3(-0.5, -0.5, 0.5), glm.vec3(0.5, -0.5, 0.5),
             glm.vec3(0.5, -0.5, -0.5), glm.vec3(0.5, 0.5, -0.5), glm.vec3(-0.5, 0.5, -0.5), glm.vec3(-0.5, -0.5, -0.5)
@@ -124,7 +126,8 @@ class Sphere(VAO):
         vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
-    def generate_vertices(self, radius, stacks, sectors):
+    @staticmethod
+    def generate_vertices(radius, stacks, sectors):
         # TODO: Optimization using numpy (e.g. without for loops)
         """
         theta: angle between up-axis(=y) and the point on the sphere
@@ -177,7 +180,8 @@ class Cone(VAO):
         vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
     
-    def generate_vertices(self, radius, height, sectors):
+    @staticmethod
+    def generate_vertices(radius, height, sectors):
         positions, normals, tex_coords = [], [], []
         indices = []
 
@@ -231,7 +235,8 @@ class Cylinder(VAO):
         vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
     
-    def generate_vertices(self, radius, height, sectors):
+    @staticmethod
+    def generate_vertices(radius, height, sectors):
         positions, normals, tex_coords = [], [], []
         indices = []
 
@@ -294,6 +299,24 @@ class Cylinder(VAO):
         
         return positions, normals, tex_coords, indices
 
+class Arrow(VAO):
+    def __init__(self):
+        cone_positions, cone_normals, cone_tex_coords, cone_indices = Cone.generate_vertices(radius=0.07, height=0.2, sectors=16)
+        for p in cone_positions:
+            p[1] += 0.9
+        cylinder_positions, cylinder_normals, cylinder_tex_coords, cylinder_indices = Cylinder.generate_vertices(radius=0.03, height=0.8, sectors=16)
+        for p in cylinder_positions:
+            p[1] += 0.4
+
+        positions = cone_positions + cylinder_positions
+        normals = cone_normals + cylinder_normals
+        tex_coords = cone_tex_coords + cylinder_tex_coords
+        indices = cone_indices + [i + len(cone_positions) for i in cylinder_indices]
+
+        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
+        vao = VAO.from_vertex_array(vertices, indices)
+        super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
+
 class Cubemap(VAO):
     """
     Cubemap is actually not a mesh itself, but this implementation is convenient for rendering.
@@ -304,7 +327,8 @@ class Cubemap(VAO):
         vao = VAO.from_positions(positions)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
     
-    def generate_vertices(self):
+    @staticmethod
+    def generate_vertices():
         positions = [
             glm.vec3(-1,  1, -1),
             glm.vec3(-1, -1, -1),
