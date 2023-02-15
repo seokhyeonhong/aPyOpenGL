@@ -34,37 +34,105 @@ def R_to_R6(R):
 
 # -----------------------------------------------------------------------------------
 
-def R_to_A_torch(R):
-    trace = R[..., 0, 0] + R[..., 1, 1] + R[..., 2, 2]
-    angle = torch.acos(torch.clamp((trace - 1) / 2, -1, 1))
-    axis = F.normalize(torch.stack([R[..., 2, 1] - R[..., 1, 2],
-                                    R[..., 0, 2] - R[..., 2, 0],
-                                    R[..., 1, 0] - R[..., 0, 1]], dim=-1), dim=-1)
+def R_to_Q_torch(R):
+    batch_dim = R.shape[:-2]
+    R00, R01, R02, R10, R11, R12, R20, R21, R22 = torch.unbind(R.reshape(batch_dim + (9,)), dim=-1)
 
-    return angle, axis
+    def _to_positive_sqrt(x):
+        ret = torch.zeros_like(x)
+        positive = x > 0
+        ret[positive] = torch.sqrt(x[positive])
+        return ret
 
-def R_to_A_numpy(R):
-    trace = R[..., 0, 0] + R[..., 1, 1] + R[..., 2, 2]
-    angle = np.arccos(np.clip((trace - 1) / 2, -1, 1))
-    axis = mathops.normalize_numpy(np.stack([R[..., 2, 1] - R[..., 1, 2],
-                                             R[..., 0, 2] - R[..., 2, 0],
-                                             R[..., 1, 0] - R[..., 0, 1]], axis=-1), axis=-1)
-    return angle, axis
+    Q_square = torch.stack([
+        (1.0 + R00 + R11 + R22), # 4*r*r
+        (1.0 + R00 - R11 - R22), # 4*i*i
+        (1.0 - R00 + R11 - R22), # 4*j*j
+        (1.0 - R00 - R11 + R22), # 4*k*k
+    ], dim=-1) # (..., 4)
+    Q_abs = _to_positive_sqrt(Q_square, 0) # 2*|r|, 2*|i|, 2*|j|, 2*|k|
+    r, i, j, k = torch.unbind(Q_abs, dim=-1)
+
+    Q_candidates = torch.stack([
+        torch.stack([r*r, R21-R12, R02-R20, R10-R01], dim=-1),
+        torch.stack([R21-R12, i*i, R01+R10, R02+R20], dim=-1),
+        torch.stack([R02-R20, R01+R10, j*j, R12+R21], dim=-1),
+        torch.stack([R10-R01, R02+R20, R12+R21, k*k], dim=-1),
+    ], dim=-2) # (..., 4, 4)
+    Q_candidates = Q_candidates / (2 * Q_abs[..., None] + 1e-8)
+
+    Q_idx = torch.argmax(Q_square, dim=-1)
+    Q = torch.gather(Q_candidates, dim=-2, index=Q_idx[..., None, None].expand(batch_dim + (1, 4))).squeeze(-2)
+    Q = F.normalize(Q, dim=-1)
+    
+    return Q.reshape(batch_dim + (4,))
+
+def R_to_Q_numpy(R):
+    batch_dim = R.shape[:-2]
+    R_ = R.reshape(batch_dim + (9,))
+    R00, R01, R02, R10, R11, R12, R20, R21, R22 = R_[:, 0], R_[:, 1], R_[:, 2], R_[:, 3], R_[:, 4], R_[:, 5], R_[:, 6], R_[:, 7], R_[:, 8]
+
+    def _to_positive_sqrt(x):
+        ret = np.zeros_like(x)
+        positive = x > 0
+        ret[positive] = np.sqrt(x[positive])
+        return ret
+
+    Q_square = np.stack([
+        (1.0 + R00 + R11 + R22), # 4*r*r
+        (1.0 + R00 - R11 - R22), # 4*i*i
+        (1.0 - R00 + R11 - R22), # 4*j*j
+        (1.0 - R00 - R11 + R22), # 4*k*k
+    ], axis=-1) # (..., 4)
+    Q_abs = _to_positive_sqrt(Q_square) # 2*|r|, 2*|i|, 2*|j|, 2*|k|
+    r, i, j, k = Q_abs[..., 0], Q_abs[..., 1], Q_abs[..., 2], Q_abs[..., 3]
+
+    Q_candidates = np.stack([
+        np.stack([r*r, R21-R12, R02-R20, R10-R01], axis=-1),
+        np.stack([R21-R12, i*i, R01+R10, R02+R20], axis=-1),
+        np.stack([R02-R20, R01+R10, j*j, R12+R21], axis=-1),
+        np.stack([R10-R01, R02+R20, R12+R21, k*k], axis=-1),
+    ], axis=-2) # (..., 4, 4)
+    Q_candidates = Q_candidates / (2 * Q_abs[..., None] + 1e-8)
+
+    Q_idx = np.argmax(Q_square, axis=-1)
+    Q = np.take_along_axis(Q_candidates, Q_idx[..., None, None].repeat(4, axis=-1), axis=-2).squeeze(-2)
+    Q = mathops.normalize_numpy(Q)
+
+    return Q.reshape(batch_dim + (4,))
+
+def R_to_Q(R):
+    """
+    Args:
+        R: (..., 3, 3)
+    Returns:
+        Q: (..., 4)
+    """
+    if R.shape[-2:] != (3, 3):
+        raise ValueError(f"R must have shape (..., 3, 3), but got {R.shape}")
+
+    if isinstance(R, torch.Tensor):
+        return R_to_Q_torch(R)
+    elif isinstance(R, np.ndarray):
+        return R_to_Q_numpy(R)
+    else:
+        raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(R)}")
+
+# -----------------------------------------------------------------------------------
 
 def R_to_A(R):
     """
+    It is possible to recover the angle and axis of rotation from the rotation matrix, (LINK: http://motion.pratt.duke.edu/RoboticSystems/3DRotations.html#Converting-from-a-rotation-matrix)
+    but this process has some ambiguity.
+    Thus, we use the quaternion representation to recover the angle and axis of rotation.
+    
     Args:
         R: (..., 3, 3) rotation matrix
     Returns:
         angle: (...,) angle of rotation
         axis: (..., 3) axis of rotation
     """
-    if isinstance(R, torch.Tensor):
-        return R_to_A_torch(R)
-    elif isinstance(R, np.ndarray):
-        return R_to_A_numpy(R)
-    else:
-        raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(R)}")
+    return Q_to_A(R_to_Q(R))
 
 # -----------------------------------------------------------------------------------
 
@@ -275,7 +343,7 @@ def A_to_R_numpy(angle, axis):
     sin = np.sin(angle)                               # (...,)
     cos = np.cos(angle)                               # (...,)
 
-    return I + S * sin + np.matmul(S, S) * (1 - cos)  # (..., 3, 3)
+    return I + S * sin[..., None, None] + np.matmul(S, S) * (1 - cos[..., None, None])  # (..., 3, 3)
 
 def A_to_R(angle, axis):
     """
