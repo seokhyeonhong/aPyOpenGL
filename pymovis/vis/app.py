@@ -171,22 +171,17 @@ class AnimApp(App):
 
 
     def update(self):
-        # stop playing at the end of the motion
-        if self.playing and self.frame == self.total_frames - 1:
-            self.playing = False
-
-    def render(self):
-        super().render()
-
         # time setting
         if self.playing:
             self.frame = min(int(glfw.get_time() * self.fps), self.total_frames - 1)
         else:
             glfw.set_time(self.frame / self.fps)
 
+        # stop playing at the end of the motion
+        if self.playing and self.frame == self.total_frames - 1:
+            self.playing = False
+
     def late_update(self):
-        super().late_update()
-        
         if self.recording:
             self.captures.append(super().capture_screen())
 
@@ -232,14 +227,13 @@ class MotionApp(AnimApp):
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)
 
-        # render and capture options
-        if action == glfw.PRESS:
-            if key == glfw.KEY_G:
-                self.grid.switch_visible()
-            elif key == glfw.KEY_A:
-                self.axis.switch_visible()
-            elif key == glfw.KEY_T:
-                self.text.switch_visible()
+        # render options
+        if key == glfw.KEY_G and action == glfw.PRESS:
+            self.grid.switch_visible()
+        if key == glfw.KEY_A and action == glfw.PRESS:
+            self.axis.switch_visible()
+        if key == glfw.KEY_T and action == glfw.PRESS:
+            self.text.switch_visible()
 
     def late_update(self):
         super().late_update()

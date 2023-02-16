@@ -8,6 +8,16 @@
 python examples/{script_to_run}.py
 ```
 
+Also, if you want to use this module in the external scripts, you can do that by adding this module to the environment variable.
+### Linux
+```
+git clone https://github.com/seokhyeonhong/pymovis-framework.git
+cd pymovis-framework
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+```
+### Windows
+Add the path of the cloned repository to the environment variable PYTHONPATH. If you don't know how, please refer to [this](https://stackoverflow.com/questions/3701646/how-to-add-to-the-pythonpath-in-windows-so-it-finds-my-modules-packages)
+
 ## Motion
 We provide BVH parser for motion data and FBX parser for mesh data. Motion data in this framework is basically structred by hierarchy of Joint, Skeleton, Pose, and Motion, and you can see the structure [here](pymovis/motion/core.py). FBX motion parser will be updated soon.
 
@@ -30,29 +40,33 @@ pip install -r requirements.txt
 * F1: Render the scene in GL_FILL mode.
 * F2: Render the scene in GL_LINE mode.
 * F5: Capture the screen in image and save in ```captures/yyyy-mm-dd/images```.
-* F6: Capture the screen in video if entered once, and save in ```captures/yyyy-mm-dd/videos``` if entered again.
 * Alt + Left Mouse: Tumble tool for the camera.
 * Alt + Middle Mouse: Track tool for the camera.
 * Alt + Mouse Scroll: Dolly tool for the camera.
 * Mouse Scroll: Zoom tool for the camera.
 
-### Special Commands for MotionApp
-```MotionApp``` is a class that inherits ```App``` and specialized to visualize motion data.
-
+### AnimApp
+```AnimApp``` is a class that inherits ```App``` and specialized to visualize any sequential data with a fixed length. You should assign total number of frames, and you also can assign FPS whose default value is set to 30. We also provide additional commands for ```AnimApp```.
 * Numbers (0~9): Moves the frame to play to (number * 10)% of the entire frames. For example, if the motion data consists of 1000 frames and you enter 5, the frame will be moved to frame 500.
-* A: Switch the visualization of the axis.
-* G: Switch the visualization of the grid.
-* T: Switch the visualization of the frame.
 * Spacebar: Play or pause the motion.
 * []: Move a single frame to the past/future.
 * Left/Right arrow: Move 10 frames to the past/future.
+* F6: Capture the screen in video if entered once, and save in ```captures/yyyy-mm-dd/videos``` if entered again.
+
+### MotionApp
+```MotionApp``` is a class that inherits ```App``` and specialized to visualize motion data, and there are more utility commands.
+* A: Switch the visualization of the axis.
+* G: Switch the visualization of the grid.
+* T: Switch the visualization of the frame.
+
+### Python FBX SDK Installation References on Linux
+To be updated.
 
 ### Python FBX SDK Installation References on Windows
 Reference:
 [Link1](https://www.ralphminderhoud.com/blog/build-fbx-python-sdk-for-windows/)
 [Link2](https://forums.autodesk.com/t5/fbx-forum/cannot-manage-to-compile-python-fbx-2020-0-1-vs2017-with-python/td-p/9270853)
 [Link3](https://stackoverflow.com/questions/32054021/how-to-install-sip-pyqt-on-windows-7)
-
 
 ## Learning
 ```learning``` module provides several neural network models in PyTorch and linear regression models in SciPy.
@@ -103,7 +117,8 @@ The overall structure of the rendering modules is inspired by
 [aOpenGL](https://github.com/ltepenguin/aOpenGL)
 and [LearnOpenGL](https://learnopengl.com/)
 
-BVH data processing and utility functions are inspired by
+Data processing, operation functions, and utility functions are inspired by
 [fairmotion](https://github.com/facebookresearch/fairmotion),
+[pytorch3d](https://github.com/facebookresearch/pytorch3d),
 [PFNN](https://github.com/sreyafrancis/PFNN),
 and [LaFAN1](https://github.com/ubisoft/ubisoft-laforge-animation-dataset) repositories

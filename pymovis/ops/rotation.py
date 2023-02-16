@@ -50,7 +50,7 @@ def R_to_Q_torch(R):
         (1.0 - R00 + R11 - R22), # 4*j*j
         (1.0 - R00 - R11 + R22), # 4*k*k
     ], dim=-1) # (..., 4)
-    Q_abs = _to_positive_sqrt(Q_square, 0) # 2*|r|, 2*|i|, 2*|j|, 2*|k|
+    Q_abs = _to_positive_sqrt(Q_square) # 2*|r|, 2*|i|, 2*|j|, 2*|k|
     r, i, j, k = torch.unbind(Q_abs, dim=-1)
 
     Q_candidates = torch.stack([
@@ -122,10 +122,11 @@ def R_to_Q(R):
 
 def R_to_A(R):
     """
-    It is possible to recover the angle and axis of rotation from the rotation matrix, (LINK: http://motion.pratt.duke.edu/RoboticSystems/3DRotations.html#Converting-from-a-rotation-matrix)
-    but this process has some ambiguity.
+    It is possible to recover the angle and axis of rotation from the rotation matrix,
+    (LINK: http://motion.pratt.duke.edu/RoboticSystems/3DRotations.html#Converting-from-a-rotation-matrix)
+    but this does not work when the matrix is symmetric.
     Thus, we use the quaternion representation to recover the angle and axis of rotation.
-    
+
     Args:
         R: (..., 3, 3) rotation matrix
     Returns:
