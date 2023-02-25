@@ -1,7 +1,4 @@
-from pymovis.vis.heightmap import Heightmap
-from pymovis.vis.render import Render
-from pymovis.vis.appmanager import AppManager
-from pymovis.vis.app import App
+from pymovis.vis import Heightmap, Render, App, AppManager
 
 class HeightApp(App):
     def __init__(self, heightmap):

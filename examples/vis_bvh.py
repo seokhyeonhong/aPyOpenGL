@@ -1,6 +1,5 @@
 from pymovis.motion.data import bvh
-from pymovis.vis.app import MotionApp
-from pymovis.vis.appmanager import AppManager
+from pymovis.vis import MotionApp, AppManager
 
 class MyApp(MotionApp):
     def __init__(self, motion):

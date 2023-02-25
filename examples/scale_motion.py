@@ -1,9 +1,7 @@
 import copy
 
 from pymovis.motion.data import bvh, fbx
-from pymovis.vis.render import Render
-from pymovis.vis.app import MotionApp
-from pymovis.vis.appmanager import AppManager
+from pymovis.vis import Render, MotionApp, AppManager
 from pymovis.ops import motionops
 
 class MyApp(MotionApp):

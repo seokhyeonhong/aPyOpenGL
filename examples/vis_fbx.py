@@ -1,7 +1,5 @@
 from pymovis.motion.data.fbx import FBX
-from pymovis.vis.app import App
-from pymovis.vis.appmanager import AppManager
-from pymovis.vis.render import Render
+from pymovis.vis import App, AppManager, Render
 
 class MyApp(App):
     def __init__(self, model):

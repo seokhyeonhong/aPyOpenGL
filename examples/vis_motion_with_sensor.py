@@ -1,8 +1,6 @@
 import numpy as np
 from pymovis.motion.data import bvh, fbx
-from pymovis.vis.app import MotionApp
-from pymovis.vis.appmanager import AppManager
-from pymovis.vis.render import Render
+from pymovis.vis import MotionApp, AppManager, Render
 
 def env_sensor(radius, num):
     x, z = np.meshgrid(np.linspace(-radius, radius, num), np.linspace(-radius, radius, num))
