@@ -43,3 +43,28 @@ LAFAN_BVH_TO_FBX = {
     "RightForeArm":  "Model:RightForeArm",
     "RightHand":     "Model:RightHand",
 }
+
+LAFAN_BVH_TO_YBOT = {
+    "Hips":          "mixamorig:Hips",
+    "LeftUpLeg":     "mixamorig:LeftUpLeg",
+    "LeftLeg":       "mixamorig:LeftLeg",
+    "LeftFoot":      "mixamorig:LeftFoot",
+    "LeftToe":       "mixamorig:LeftToeBase",
+    "RightUpLeg":    "mixamorig:RightUpLeg",
+    "RightLeg":      "mixamorig:RightLeg",
+    "RightFoot":     "mixamorig:RightFoot",
+    "RightToe":      "mixamorig:RightToeBase",
+    "Spine":         "mixamorig:Spine",
+    "Spine1":        "mixamorig:Spine1",
+    "Spine2":        "mixamorig:Spine2",
+    "Neck":          "mixamorig:Neck",
+    "Head":          "mixamorig:Head",
+    "LeftShoulder":  "mixamorig:LeftShoulder",
+    "LeftArm":       "mixamorig:LeftArm",
+    "LeftForeArm":   "mixamorig:LeftForeArm",
+    "LeftHand":      "mixamorig:LeftHand",
+    "RightShoulder": "mixamorig:RightShoulder",
+    "RightArm":      "mixamorig:RightArm",
+    "RightForeArm":  "mixamorig:RightForeArm",
+    "RightHand":     "mixamorig:RightHand",
+}

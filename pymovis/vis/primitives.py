@@ -299,6 +299,61 @@ class Cylinder(VAO):
         
         return positions, normals, tex_coords, indices
 
+class Pyramid(VAO):
+    def __init__(self, radius, height, sectors=16):
+        positions, normals, tex_coords, indices = self.generate_vertices(radius, height, sectors)
+        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
+        vao = VAO.from_vertex_array(vertices, indices)
+        super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
+
+    @staticmethod
+    def generate_vertices(radius, height, sectors):
+        positions, normals, tex_coords = [], [], []
+        indices = []
+
+        half_height = height * 0.5
+        theta = np.linspace(0, 2 * np.pi, sectors+1)
+        x = radius * np.sin(theta)
+        z = radius * np.cos(theta)
+
+        # side
+        for i in range(sectors):
+            positions.append(glm.vec3(0, half_height, 0))
+            positions.append(glm.vec3(x[i], -half_height, z[i]))
+            positions.append(glm.vec3(x[i+1], -half_height, z[i+1]))
+
+            n = glm.normalize(glm.cross(positions[-1] - positions[-2], positions[-3] - positions[-2]))
+            normals.append(n)
+            normals.append(n)
+            normals.append(n)
+
+            tex_coords.append(glm.vec2(0.5, 0.5))
+            tex_coords.append(glm.vec2(z[i] / radius * 0.5 + 0.5, x[i] / radius * 0.5 + 0.5))
+            tex_coords.append(glm.vec2(z[i+1] / radius * 0.5 + 0.5, x[i+1] / radius * 0.5 + 0.5))
+
+            indices.append(i*3)
+            indices.append(i*3 + 1)
+            indices.append(i*3 + 2)
+        
+        # bottom
+        positions.append(glm.vec3(0, -half_height, 0))
+        normals.append(glm.vec3(0, -1, 0))
+        tex_coords.append(glm.vec2(0.5, 0.5))
+
+        index_offset = len(positions)
+        for i in range(sectors+1):
+            positions.append(glm.vec3(x[i], -half_height, z[i]))
+            normals.append(glm.vec3(0, -1, 0))
+            tex_coords.append(glm.vec2(z[i] / radius * 0.5 + 0.5, x[i] / radius * 0.5 + 0.5))
+
+            if i < sectors:
+                indices.append(index_offset - 1)
+                indices.append(index_offset + i + 1)
+                indices.append(index_offset + i)
+
+        return positions, normals, tex_coords, indices
+
+
 class Arrow(VAO):
     def __init__(self):
         cone_positions, cone_normals, cone_tex_coords, cone_indices = Cone.generate_vertices(radius=0.07, height=0.2, sectors=16)

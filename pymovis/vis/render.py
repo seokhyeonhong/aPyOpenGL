@@ -123,6 +123,10 @@ class Render:
         return RenderOptions(Arrow(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
+    def pyramid(radius=0.5, height=1.0, sectors=4):
+        return RenderOptions(Pyramid(radius, height, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+
+    @staticmethod
     def vao(vao):
         return RenderOptions(vao, Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
     

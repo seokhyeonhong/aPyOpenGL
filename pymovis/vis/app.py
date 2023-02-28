@@ -213,12 +213,18 @@ class MotionApp(AnimApp):
                 raise ValueError("skeleton_dict must be provided if model is provided")
             self.model.set_source_skeleton(self.motion.skeleton, skeleton_dict)
 
+        # play options
         self.frame = 0
         self.playing = True
         self.recording = False
         self.record_start_time = 0
         self.record_end_time = 0
         self.captures = []
+
+        # camera options
+        self.focus_on_root = False
+        self.follow_root = False
+        self.init_cam_pos = self.camera.position
 
         self.grid = Render.plane().set_scale(50).set_uv_repeat(5).set_texture("grid.png")
         self.axis = Render.axis()
@@ -234,6 +240,12 @@ class MotionApp(AnimApp):
             self.axis.switch_visible()
         if key == glfw.KEY_T and action == glfw.PRESS:
             self.text.switch_visible()
+        
+        # set camera focus on the root
+        if key == glfw.KEY_F3 and action == glfw.PRESS:
+            self.focus_on_root = not self.focus_on_root
+        elif key == glfw.KEY_F4 and action == glfw.PRESS:
+            self.follow_root = not self.follow_root
 
     def late_update(self):
         super().late_update()
@@ -243,6 +255,14 @@ class MotionApp(AnimApp):
         
     def render(self, render_model=True, render_xray=False):
         super().render()
+
+        # set camera focus on the root
+        if self.focus_on_root:
+            self.camera.set_focus_position(self.motion.poses[self.frame].root_p)
+        elif self.follow_root:
+            delta_pos = self.motion.poses[self.frame].root_p - self.motion.poses[0].root_p
+            self.camera.set_position(self.init_cam_pos + delta_pos)
+            self.camera.set_focus_position(self.motion.poses[self.frame].root_p)
 
         # render the environment
         self.grid.draw()
@@ -258,10 +278,10 @@ class MotionApp(AnimApp):
         if render_xray:
             self.render_xray(self.motion.poses[self.frame])
 
-    def render_xray(self, pose, albedo=[0, 0, 0]):
+    def render_xray(self, pose, albedo=[1, 0, 0]):
         if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):
-            self.joint_sphere = Render.sphere(0.03)
-            self.joint_bone   = Render.cone(radius=0.03, height=1, sectors=4)
+            # self.joint_sphere = Render.sphere(0.03)
+            self.joint_bone   = Render.pyramid(radius=0.03, height=1, sectors=4)
         
         global_p = pose.global_p
         # for i in range(pose.skeleton.num_joints):
@@ -279,5 +299,5 @@ class MotionApp(AnimApp):
             angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
             orientation = glm.rotate(glm.mat4(1.0), angle, axis)
             
-            self.joint_bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo(albedo).set_color_mode(True).draw()
+            self.joint_bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo(albedo).draw()
         glEnable(GL_DEPTH_TEST)
