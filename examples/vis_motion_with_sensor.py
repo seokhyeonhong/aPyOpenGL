@@ -1,5 +1,5 @@
 import numpy as np
-from pymovis.motion.data import bvh, fbx
+from pymovis.motion import BVH, FBX
 from pymovis.vis import MotionApp, AppManager, Render
 
 def env_sensor(radius, num):
@@ -33,8 +33,8 @@ if __name__ == "__main__":
     app_manager = AppManager()
 
     # load data
-    motion = bvh.load("data/motion.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
-    model = fbx.FBX("data/character.fbx").model()
+    motion = BVH.load("data/motion.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
+    model = FBX("data/character.fbx").model()
 
     # align and slice
     motion.align_by_frame(600, origin_axes="xz")

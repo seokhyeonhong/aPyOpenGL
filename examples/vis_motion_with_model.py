@@ -1,9 +1,10 @@
-from pymovis.motion.data import bvh, fbx
+from pymovis.motion import BVH, FBX
 from pymovis.vis import MotionApp, AppManager
+from pymovis.vis.const import LAFAN_BVH_TO_YBOT
 
 class MyApp(MotionApp):
     def __init__(self, motion, model):
-        super().__init__(motion, model)
+        super().__init__(motion, model, LAFAN_BVH_TO_YBOT)
         self.motion = motion
         self.model = model
 
@@ -17,12 +18,13 @@ if __name__ == "__main__":
     app_manager = AppManager()
 
     # load data
-    motion = bvh.load("data/motion.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
-    model = fbx.FBX("data/character.fbx").model()
+    motion = BVH.load("data/motion.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
+    # motion = BVH.load("data/bvh3/lafan_Moonwalk_mcp.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
+    model = FBX("data/ybot.fbx").model()
 
     # align and slice
     motion.align_by_frame(0, origin_axes="xz")
-    motion = motion.make_window(0, 1000)
+    # motion = motion.make_window(0, 1000)
 
     # create app
     app = MyApp(motion, model)

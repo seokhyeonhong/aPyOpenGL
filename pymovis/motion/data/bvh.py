@@ -25,116 +25,120 @@ ordermap = {
     'z': 2,
 }
 
-def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD(), type="default"):
-    if not filename.endswith(".bvh"):
-        print(f"{filename} is not a bvh file.")
-        return
-    
-    v_up = np.array(v_up)
-    v_forward = np.array(v_forward)
+class BVH:
+    @staticmethod
+    def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD(), type="default"):
+        if not filename.endswith(".bvh"):
+            print(f"{filename} is not a bvh file.")
+            return
+        
+        v_up = np.array(v_up)
+        v_forward = np.array(v_forward)
 
-    assert v_up.shape == (3,) and v_forward.shape == (3,), f"v_up and v_forward must be 3D vectors, but got {v_up.shape} and {v_forward.shape}."
+        assert v_up.shape == (3,) and v_forward.shape == (3,), f"v_up and v_forward must be 3D vectors, but got {v_up.shape} and {v_forward.shape}."
 
-    i = 0
-    active = -1
-    end_site = False
+        i = 0
+        active = -1
+        end_site = False
 
-    skeleton = Skeleton(joints=[], v_up=v_up, v_forward=v_forward)
-    poses = []
+        skeleton = Skeleton(joints=[], v_up=v_up, v_forward=v_forward)
+        poses = []
 
-    with open(filename, "r") as f:
-        for line in f:
-            if "HIERARCHY" in line: continue
-            if "MOTION" in line: continue
-            if "{" in line: continue
+        with open(filename, "r") as f:
+            for line in f:
+                if "HIERARCHY" in line: continue
+                if "MOTION" in line: continue
+                if "{" in line: continue
 
-            rmatch = re.match(r"ROOT (\w+)", line)
-            if rmatch:
-                skeleton.add_joint(rmatch.group(1), None)
-                active = skeleton.num_joints - 1
-                continue
-
-            if "}" in line:
-                if end_site:
-                    end_site = False
-                else:
-                    active = skeleton.parent_idx[active]
-                continue
-
-            offmatch = re.match(r"\s*OFFSET\s+([\-\d\.e]+)\s+([\-\d\.e]+)\s+([\-\d\.e]+)", line)
-            if offmatch:
-                if not end_site:
-                    skeleton.joints[active].offset = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * to_meter
-                continue
-
-            chanmatch = re.match(r"\s*CHANNELS\s+(\d+)", line)
-            if chanmatch:
-                channels = int(chanmatch.group(1))
-                channelis = 0 if channels == 3 else 3
-                channelie = 3 if channels == 3 else 6
-                parts = line.split()[2 + channelis:2 + channelie]
-                if any([p not in channelmap for p in parts]):
+                rmatch = re.match(r"ROOT (\w+)", line)
+                if rmatch:
+                    skeleton.add_joint(rmatch.group(1), None)
+                    active = skeleton.num_joints - 1
                     continue
-                order = "".join([channelmap[p] for p in parts])
-                continue
 
-            jmatch = re.match("\s*JOINT\s+(\w+)", line)
-            if jmatch:
-                skeleton.add_joint(jmatch.group(1), active)
-                active = skeleton.num_joints - 1
-                continue
+                if "}" in line:
+                    if end_site:
+                        end_site = False
+                    else:
+                        active = skeleton.parent_idx[active]
+                    continue
 
-            if "End Site" in line:
-                end_site = True
-                continue
+                offmatch = re.match(r"\s*OFFSET\s+([\-\d\.e]+)\s+([\-\d\.e]+)\s+([\-\d\.e]+)", line)
+                if offmatch:
+                    if not end_site:
+                        skeleton.joints[active].offset = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * to_meter
+                    continue
 
-            fmatch = re.match("\s*Frames:\s+(\d+)", line)
-            if fmatch:
-                fnum = int(fmatch.group(1))
-                positions = np.zeros((fnum, skeleton.num_joints, 3), dtype=np.float32)
-                rotations = np.zeros((fnum, skeleton.num_joints, 3), dtype=np.float32)
-                continue
+                chanmatch = re.match(r"\s*CHANNELS\s+(\d+)", line)
+                if chanmatch:
+                    channels = int(chanmatch.group(1))
+                    channelis = 0 if channels == 3 else 3
+                    channelie = 3 if channels == 3 else 6
+                    parts = line.split()[2 + channelis:2 + channelie]
+                    if any([p not in channelmap for p in parts]):
+                        continue
+                    order = "".join([channelmap[p] for p in parts])
+                    continue
 
-            fmatch = re.match("\s*Frame Time:\s+([\d\.]+)", line)
-            if fmatch:
-                frametime = float(fmatch.group(1))
-                fps = round(1. / frametime)
-                if fps % target_fps != 0:
-                    raise Exception(f"Invalid target fps for {filename}: {target_fps} (fps: {fps})")
+                jmatch = re.match("\s*JOINT\s+(\w+)", line)
+                if jmatch:
+                    skeleton.add_joint(jmatch.group(1), active)
+                    active = skeleton.num_joints - 1
+                    continue
 
-                sampling_step = fps // target_fps
-                continue
+                if "End Site" in line:
+                    end_site = True
+                    continue
 
-            dmatch = line.strip().split(' ')
-            if dmatch:
-                data_block = np.array(list(map(float, dmatch)), dtype=np.float32)
-                N = skeleton.num_joints
-                fi = i
-                if channels == 3:
-                    positions[fi, 0:1] = data_block[0:3] * to_meter
-                    rotations[fi, :]   = data_block[3:].reshape(N, 3)
-                elif channels == 6:
-                    data_block         = data_block.reshape(N, 6)
-                    positions[fi, :]   = data_block[:, 0:3] * to_meter
-                    rotations[fi, :]   = data_block[:, 3:6]
-                elif channels == 9: 
-                    positions[fi, 0]   = data_block[0:3] * to_meter
-                    data_block         = data_block[3:].reshape(N - 1, 9)
-                    rotations[fi, 1:]  = data_block[:, 3:6]
-                    positions[fi, 1:]  += data_block[:, 0:3] * data_block[:, 6:9]
-                else:
-                    raise Exception(f"Invalid channels: {channels}")
+                fmatch = re.match("\s*Frames:\s+(\d+)", line)
+                if fmatch:
+                    fnum = int(fmatch.group(1))
+                    positions = np.zeros((fnum, skeleton.num_joints, 3), dtype=np.float32)
+                    rotations = np.zeros((fnum, skeleton.num_joints, 3), dtype=np.float32)
+                    continue
 
-                poses.append(Pose.from_bvh(skeleton, rotations[fi], order, positions[fi, 0]))
-                i += 1
+                fmatch = re.match("\s*Frame Time:\s+([\d\.]+)", line)
+                if fmatch:
+                    frametime = float(fmatch.group(1))
+                    fps = round(1. / frametime)
+                    if fps % target_fps != 0:
+                        raise Exception(f"Invalid target fps for {filename}: {target_fps} (fps: {fps})")
 
-    poses = poses[1::sampling_step]
-    name = os.path.splitext(os.path.basename(filename))[0]
-    return Motion(skeleton=skeleton, poses=poses, fps=target_fps, name=name, type=type)
+                    sampling_step = fps // target_fps
+                    continue
 
-def load_with_type(file_and_type, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()):
-    file, type = file_and_type
-    return load(file, target_fps, to_meter, v_up, v_forward, type=type)
+                dmatch = line.strip().split(' ')
+                if dmatch:
+                    data_block = np.array(list(map(float, dmatch)), dtype=np.float32)
+                    N = skeleton.num_joints
+                    fi = i
+                    if channels == 3:
+                        positions[fi, 0:1] = data_block[0:3] * to_meter
+                        rotations[fi, :]   = data_block[3:].reshape(N, 3)
+                    elif channels == 6:
+                        data_block         = data_block.reshape(N, 6)
+                        positions[fi, :]   = data_block[:, 0:3] * to_meter
+                        rotations[fi, :]   = data_block[:, 3:6]
+                    elif channels == 9: 
+                        positions[fi, 0]   = data_block[0:3] * to_meter
+                        data_block         = data_block[3:].reshape(N - 1, 9)
+                        rotations[fi, 1:]  = data_block[:, 3:6]
+                        positions[fi, 1:]  += data_block[:, 0:3] * data_block[:, 6:9]
+                    else:
+                        raise Exception(f"Invalid channels: {channels}")
 
-def load_parallel(files, cpus=mp.cpu_count(), **kwargs):
-    return util.run_parallel_sync(load, files, cpus, desc=f"Loading {len(files)} BVH files", **kwargs)
+                    poses.append(Pose.from_bvh(skeleton, rotations[fi], order, positions[fi, 0]))
+                    i += 1
+
+        poses = poses[1::sampling_step]
+        name = os.path.splitext(os.path.basename(filename))[0]
+        return Motion(skeleton=skeleton, poses=poses, fps=target_fps, name=name, type=type)
+
+    @staticmethod
+    def load_with_type(file_and_type, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()):
+        file, type = file_and_type
+        return BVH.load(file, target_fps, to_meter, v_up, v_forward, type=type)
+
+    @staticmethod
+    def load_parallel(files, cpus=mp.cpu_count(), **kwargs):
+        return util.run_parallel_sync(BVH.load, files, cpus, desc=f"Loading {len(files)} BVH files", **kwargs)
