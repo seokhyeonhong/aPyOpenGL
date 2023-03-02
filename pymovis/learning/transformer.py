@@ -69,8 +69,8 @@ class RelativeMultiHeadAttention(nn.Module):
     
     def skew(self, QE_t):
         B, H, T, _ = QE_t.shape # (B, H, T, 2T-1)
-        QE_t = F.pad(QE_t, (0, 1)).view(B, H, -1)
-        QE_t = F.pad(QE_t, (0, T - 1)).view(B, H, T+1, 2*T - 1)
+        QE_t = F.pad(QE_t, (0, 1)).view(B, H, 2*T*T)
+        QE_t = F.pad(QE_t, (0, T-1)).view(B, H, T+1, 2*T - 1)
         return QE_t[:, :, :T, -T:]
 
     def forward(self, x, lookup_table, mask=None):

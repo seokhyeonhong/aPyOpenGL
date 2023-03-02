@@ -40,7 +40,7 @@ class Render:
 
     @staticmethod
     def initialize_shaders():
-        Render.primitive_shader = Shader("phong.vs",   "phong.fs")
+        Render.primitive_shader = Shader("basic.vs",   "phong.fs")
         Render.lbs_shader       = Shader("lbs.vs",     "phong.fs")
         Render.shadow_shader    = Shader("shadow.vs",  "shadow.fs")
         Render.text_shader      = Shader("text.vs",    "text.fs")

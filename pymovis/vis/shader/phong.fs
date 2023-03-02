@@ -59,8 +59,7 @@ uniform Light uLight;
 uniform vec3 uViewPosition;
 
 // --------------------------------------------
-// TODO: replace uShadowMap with shadowMap in the parameter list
-float Shadow(vec4 fragPosLightSpace, vec3 lightDir) // , sampler2D shadowMap)
+float Shadow(vec4 fragPosLightSpace, vec3 lightDir, sampler2D shadowMap)
 {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5f + 0.5f;
@@ -71,7 +70,7 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir) // , sampler2D shadowMap)
         return 0.0f;
     }
 
-    float closestDepth = texture(uShadowMap, projCoords.xy).r;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
     float bias = max(0.0001f * (1.0f - dot(fNormal, lightDir)), 0.00001f);
 
@@ -79,12 +78,12 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir) // , sampler2D shadowMap)
     // then the fragment is in shadow
     // float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
     float shadow = 0.0f;
-    vec2 texelSize = 1.0f / textureSize(uShadowMap, 0);
+    vec2 texelSize = 1.0f / textureSize(shadowMap, 0);
     for(int u = -1; u <= 1; ++u)
     {
         for(int v = -1; v <= 1; ++v)
         {
-            float pcfDepth = texture(uShadowMap, projCoords.xy + vec2(u, v) * texelSize).r;
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(u, v) * texelSize).r;
             shadow += currentDepth - bias > pcfDepth ? 1.0f : 0.0f;
         }
     }
@@ -94,28 +93,28 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir) // , sampler2D shadowMap)
 
 // --------------------------------------------
 // TODO: replace uLight and uMaterial with light and mateiral in the parameter list
-vec4 BlinnPhong(vec3 albedo, vec3 N, vec3 V) // , Light light, Material material)
+vec4 BlinnPhong(vec3 albedo, vec3 N, vec3 V, sampler2D shadowMap, Light light, Material material)
 {
     // vec3 ambient = albedo;
-    vec3 ambient = uLight.color * 0.1f;
+    vec3 ambient = light.color * 0.1f;
 
-    vec3 L = uLight.vector.w == 1.0f ? normalize(uLight.vector.xyz - fPosition) : normalize(-uLight.vector.xyz);
+    vec3 L = light.vector.w == 1.0f ? normalize(light.vector.xyz - fPosition) : normalize(-light.vector.xyz);
 
-    vec3 diffuse = max(dot(N, L), 0.0f) * uMaterial[fMaterialID].diffuse * uLight.color;
+    vec3 diffuse = max(dot(N, L), 0.0f) * material.diffuse * light.color;
 
     // vec3 R = reflect(-L, N); // for phong shading, use R instead of H
     vec3 H = normalize(L + V); // for blinn-phong shading, use H instead of R
-    vec3 specular = pow(max(dot(V, H), 0.0f), uMaterial[fMaterialID].shininess) * uMaterial[fMaterialID].specular * uLight.color;
+    vec3 specular = pow(max(dot(V, H), 0.0f), material.shininess) * material.specular * light.color;
     
     // attenuation
     float atten = 1.0f;
-    if(uLight.vector.w == 1.0f)
+    if(light.vector.w == 1.0f)
     {
-        float d = length(uLight.vector.xyz - fPosition.xyz);
-        atten = min(1.0f / (uLight.attenuation.x + uLight.attenuation.y * d + uLight.attenuation.z * d * d), 1.0f);
+        float d = length(light.vector.xyz - fPosition.xyz);
+        atten = min(1.0f / (light.attenuation.x + light.attenuation.y * d + light.attenuation.z * d * d), 1.0f);
     }
 
-    float shadow = Shadow(fPosLightSpace, L);
+    float shadow = Shadow(fPosLightSpace, L, shadowMap);
     vec3 result = (ambient + atten * (1.0f - shadow) * (diffuse + specular)) * albedo;
     return vec4(result, 1.0f);
 }
@@ -195,7 +194,7 @@ void main()
     }
     else
     {
-        FragColor = BlinnPhong(albedo, N, V);
+        FragColor = BlinnPhong(albedo, N, V, uShadowMap, uLight, uMaterial[fMaterialID]);
         FragColor.a = alpha;
     }
 
