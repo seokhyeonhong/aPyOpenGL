@@ -15,15 +15,27 @@ class Material:
         self.shininess  = shininess
         self.alpha      = 1.0
         self.albedo_map = Texture()
+        self.normal_map = Texture()
         self.cubemap    = Texture()
+
+        self.type_dict  = {
+            "albedo"    : TextureType.eALBEDO,
+            "diffuse"   : TextureType.eDIFFUSE,
+            "normal"    : TextureType.eNORMAL,
+            "cubemap"   : TextureType.eCUBEMAP
+        }
     
     def set_texture(self, texture, texture_type):
+        texture_type = self.type_dict.get(texture_type, TextureType.eUNKNOWN)
+        if texture_type == TextureType.eUNKNOWN:
+            raise Exception("Texture type not supported")
+
         if texture_type == TextureType.eALBEDO or texture_type == TextureType.eDIFFUSE:
             self.albedo_map = texture
         elif texture_type == TextureType.eCUBEMAP:
             self.cubemap = texture
-        else:
-            raise Exception("Texture type not supported")
+        elif texture_type == TextureType.eNORMAL:
+            self.normal_map = texture
 
     def set_albedo(self, albedo):
         self.albedo = glm.vec3(albedo)

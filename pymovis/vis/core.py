@@ -4,6 +4,45 @@ import numpy as np
 from OpenGL.GL import *
 import glm
 
+def compute_tangent_space(vertices: list[VertexGL], indices: list[int]) -> list[VertexGL]:
+    # https://learnopengl.com/Advanced-Lighting/Normal-Mapping
+
+    if len(vertices) == 0 or len(indices) == 0:
+        raise Exception("Empty vertex array or index array")
+    
+    if len(indices) % 3 != 0:
+        raise Exception("Index array length must be a multiple of 3")
+
+    tangents, bitangents = [], []
+    for i in range(0, len(indices), 3):
+        delta_pos1 = glm.vec3(vertices[indices[i+1]].position - vertices[indices[i]].position)
+        delta_pos2 = glm.vec3(vertices[indices[i+2]].position - vertices[indices[i]].position)
+
+        delta_uv1 = glm.vec2(vertices[indices[i+1]].uv - vertices[indices[i]].uv)
+        delta_uv2 = glm.vec2(vertices[indices[i+2]].uv - vertices[indices[i]].uv)
+
+        det = 1.0 / (delta_uv1.x * delta_uv2.y - delta_uv2.x * delta_uv1.y)
+
+        tangent = glm.normalize(det * (delta_uv2.y * delta_pos1 - delta_uv1.y * delta_pos2))
+        bitangent = glm.normalize(det * (-delta_uv2.x * delta_pos1 + delta_uv1.x * delta_pos2))
+
+        tangents.append(tangent)
+        bitangents.append(bitangent)
+    
+    for i in range(0, len(indices), 3):
+        idx = i//3
+        
+        vertices[indices[i]].set_tangent(tangents[idx])
+        vertices[indices[i]].set_bitangent(bitangents[idx])
+
+        vertices[indices[i+1]].set_tangent(tangents[idx])
+        vertices[indices[i+1]].set_bitangent(bitangents[idx])
+
+        vertices[indices[i+2]].set_tangent(tangents[idx])
+        vertices[indices[i+2]].set_bitangent(bitangents[idx])
+
+    return vertices
+
 class VAO:
     def __init__(self, id=None, vbos=None, ebo=None, indices=None) -> None:
         self.id      = id
@@ -13,8 +52,11 @@ class VAO:
 
     @classmethod
     def from_vertex_array(cls, vertex_array: list[VertexGL], indices) -> VAO:
+        # compute tangent and bitangent
+        vertex_array = compute_tangent_space(vertex_array, indices)
+
         id   = glGenVertexArrays(1)
-        vbos = glGenBuffers(8)
+        vbos = glGenBuffers(10)
         ebo  = glGenBuffers(1)
 
         glBindVertexArray(id)
@@ -43,40 +85,54 @@ class VAO:
         glEnableVertexAttribArray(2)
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
 
-        # material id
-        data = np.array([v.material_id for v in vertex_array], dtype=np.int32).flatten()
+        # tangent
+        data = np.array([v.tangent for v in vertex_array]).flatten()
         glBindBuffer(GL_ARRAY_BUFFER, vbos[3])
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(3)
-        glVertexAttribIPointer(3, 1, GL_INT, 0, ctypes.c_void_p(0))
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
 
-        # skinning indices
-        data = np.array([v.skinning_indices1 for v in vertex_array], dtype=np.int32).flatten()
+        # bitangent
+        data = np.array([v.bitangent for v in vertex_array]).flatten()
         glBindBuffer(GL_ARRAY_BUFFER, vbos[4])
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(4)
-        glVertexAttribIPointer(4, 4, GL_INT, 0, ctypes.c_void_p(0))
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
 
-        # skinning weights
-        data = np.array([v.skinning_weights1 for v in vertex_array]).flatten()
+        # material id
+        data = np.array([v.material_id for v in vertex_array], dtype=np.int32).flatten()
         glBindBuffer(GL_ARRAY_BUFFER, vbos[5])
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(5)
-        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
+        glVertexAttribIPointer(5, 1, GL_INT, 0, ctypes.c_void_p(0))
 
         # skinning indices
-        data = np.array([v.skinning_indices2 for v in vertex_array], dtype=np.int32).flatten()
+        data = np.array([v.skinning_indices1 for v in vertex_array], dtype=np.int32).flatten()
         glBindBuffer(GL_ARRAY_BUFFER, vbos[6])
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(6)
         glVertexAttribIPointer(6, 4, GL_INT, 0, ctypes.c_void_p(0))
 
         # skinning weights
-        data = np.array([v.skinning_weights2 for v in vertex_array]).flatten()
+        data = np.array([v.skinning_weights1 for v in vertex_array]).flatten()
         glBindBuffer(GL_ARRAY_BUFFER, vbos[7])
         glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
         glEnableVertexAttribArray(7)
         glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
+
+        # skinning indices
+        data = np.array([v.skinning_indices2 for v in vertex_array], dtype=np.int32).flatten()
+        glBindBuffer(GL_ARRAY_BUFFER, vbos[8])
+        glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
+        glEnableVertexAttribArray(8)
+        glVertexAttribIPointer(8, 4, GL_INT, 0, ctypes.c_void_p(0))
+
+        # skinning weights
+        data = np.array([v.skinning_weights2 for v in vertex_array]).flatten()
+        glBindBuffer(GL_ARRAY_BUFFER, vbos[9])
+        glBufferData(GL_ARRAY_BUFFER, data.nbytes, data, GL_STATIC_DRAW)
+        glEnableVertexAttribArray(9)
+        glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
 
         # indices
         data = np.array(indices, dtype=np.uint32).flatten()
@@ -118,6 +174,9 @@ class VertexGL:
         self.skinning_indices2 = skinning_indices2
         self.skinning_weights2 = skinning_weights2
 
+        self.tangent           = glm.vec3(0)
+        self.bitangent         = glm.vec3(0)
+
     @staticmethod
     def make_vertex_array(positions, normals, tex_coords, lbs_indices1=None, lbs_weights1=None, lbs_indices2=None, lbs_weights2=None) -> list[VertexGL]:
         vertex_array = []
@@ -129,7 +188,14 @@ class VertexGL:
             else:
                 v = VertexGL(positions[i], normals[i], tex_coords[i], 0)
             vertex_array.append(v)
+        
         return vertex_array
+    
+    def set_tangent(self, tangent):
+        self.tangent = tangent
+
+    def set_bitangent(self, bitangent):
+        self.bitangent = bitangent
 
 class MeshGL:
     def __init__(self, vao=None, vertices=None, indices=None):

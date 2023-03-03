@@ -31,10 +31,10 @@ class Plane(VAO):
         ]
         normals = [glm.vec3(0.0, 1.0, 0.0)] * 4
         tex_coords = [
-            glm.vec2(1.0, 0.0),
             glm.vec2(1.0, 1.0),
-            glm.vec2(0.0, 1.0),
+            glm.vec2(1.0, 0.0),
             glm.vec2(0.0, 0.0),
+            glm.vec2(0.0, 1.0),
         ]
         indices = [0, 1, 2, 2, 3, 0]
         return positions, normals, tex_coords, indices

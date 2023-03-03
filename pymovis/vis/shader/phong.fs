@@ -4,8 +4,8 @@
 // input vertex data
 // --------------------------------------------
 in vec3     fPosition;
-in vec3     fNormal;
 in vec2     fTexCoord;
+in mat3     fTBN;
 flat in int fMaterialID;
 in vec4     fPosLightSpace;
 
@@ -72,7 +72,7 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir, sampler2D shadowMap)
 
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
-    float bias = max(0.0001f * (1.0f - dot(fNormal, lightDir)), 0.00001f);
+    float bias = max(0.0001f * (1.0f - dot(fTBN[2], lightDir)), 0.00001f);
 
     // if current depth from camera is greater than that of the light source,
     // then the fragment is in shadow
@@ -92,7 +92,6 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir, sampler2D shadowMap)
 }
 
 // --------------------------------------------
-// TODO: replace uLight and uMaterial with light and mateiral in the parameter list
 vec4 BlinnPhong(vec3 albedo, vec3 N, vec3 V, sampler2D shadowMap, Light light, Material material)
 {
     // vec3 ambient = albedo;
@@ -157,6 +156,7 @@ void main()
 {
     // find material texture ID
     int albedoID = uMaterial[fMaterialID].textureID.x;
+    int normalID = uMaterial[fMaterialID].textureID.y;
 
     // texture scaling
     vec2 uv = fTexCoord * uvScale;
@@ -166,17 +166,24 @@ void main()
     float alpha = uMaterial[fMaterialID].albedo.a;
 
     // set normal
-    vec3 N = normalize(fNormal);
+    vec3 N = normalize(fTBN[2]);
     vec3 V = normalize(uViewPosition - fPosition);
 
     // materials
     vec3 albedo = materialColor;
 
-    // --------------------------------------------
-    // albedo texture
+    // Textures --------------------------------------------
+    // albedo
     if (uMaterial[fMaterialID].textureID.x >= 0)
     {
         albedo = texture(uTextures[albedoID], uv).rgb;
+    }
+
+    // normal
+    if (uMaterial[fMaterialID].textureID.y >= 0)
+    {
+        N = texture(uTextures[normalID], uv).rgb * 2.0f - 1.0f;
+        N = normalize(fTBN * N);
     }
 
     // --------------------------------------------

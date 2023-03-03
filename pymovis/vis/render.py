@@ -179,7 +179,7 @@ class Render:
             Render.font_texture = FontTexture()
 
         res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=True))
-        return res.set_text(str(t)).set_albedo(glm.vec3(0))
+        return res.set_text(str(t)).set_albedo(color)
 
     # @staticmethod
     # def cubemap(dirname, scale=100):
@@ -224,7 +224,7 @@ class Render:
         # texture indexing
         if shader.is_texture_updated is False:
             shader.set_int("uShadowMap", 1)
-            for i in range(len(option.materials)):
+            for i in range(MAX_MATERIAL_TEXTURES):
                 shader.set_int(f"uTextures[{i}]", i + 2)
             shader.is_texture_updated = True
 
@@ -253,16 +253,16 @@ class Render:
         texture_id = [glm.ivec4(-1)] * MAX_MATERIAL_NUM
 
         def gl_set_texture(texture_id, count):
-            if texture_id == 0 or count >= MAX_MATERIAL_TEXTURES:
+            if texture_id == 0 or count[0] >= MAX_MATERIAL_TEXTURES:
                 return -1
             
-            idx_on_shader = count
-            glActiveTexture(GL_TEXTURE2 + count)
+            idx_on_shader = count[0]
+            glActiveTexture(GL_TEXTURE2 + count[0])
             glBindTexture(GL_TEXTURE_2D, texture_id)
-            count += 1
+            count[0] += 1
             return idx_on_shader
         
-        texture_count = 0
+        texture_count = [0] # use list to pass by reference
         for i in range(len(option.materials)):
             if i >= MAX_MATERIAL_NUM:
                 break
@@ -271,7 +271,8 @@ class Render:
             rgba[i] = glm.vec4(material.albedo, material.alpha)
 
             texture_id[i].x = gl_set_texture(material.albedo_map.texture_id, texture_count)
-
+            texture_id[i].y = gl_set_texture(material.normal_map.texture_id, texture_count)
+        
         for i in range(len(option.materials)):
             shader.set_vec4(f"uMaterial[{i}].albedo", rgba[i])
             shader.set_vec3(f"uMaterial[{i}].diffuse", option.materials[i].diffuse)
@@ -390,8 +391,8 @@ class Render:
 
             x += (ch.advance >> 6) * scale
         
-        glBindVertexArray(0)
         glBindTexture(GL_TEXTURE_2D, 0)
+        glBindVertexArray(0)
 
     # @staticmethod
     # def draw_cubemap(option: RenderOptions, shader: Shader):
@@ -544,7 +545,7 @@ class RenderOptions:
         self.materials[0].set_albedo(glm.vec3(color))
         return self
 
-    def set_texture(self, filename, texture_type=TextureType.eALBEDO, material_id=0):
+    def set_texture(self, filename, texture_type="albedo", material_id=0):
         if len(self.materials) == 0:
             self.materials.append(Material())
             material_id = 0

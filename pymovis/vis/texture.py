@@ -31,7 +31,7 @@ class TextureLoader:
     __instance = None
     __texture_map = {}
     __cubemap_texture_map = {}
-    
+
     def __new__(cls):
         if TextureLoader.__instance is None:
             TextureLoader.__instance = object.__new__(cls)
@@ -67,8 +67,6 @@ class TextureLoader:
     @staticmethod
     def load(path):
         if path not in TextureLoader.__texture_map:
-            print(path)
-            print(TextureLoader.__texture_map)
             texture_id = TextureLoader.generate_texture(path)
             texture = Texture(path, texture_id)
             TextureLoader.__texture_map[path] = texture
