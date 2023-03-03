@@ -16,12 +16,14 @@ class Material:
         self.alpha      = 1.0
         self.albedo_map = Texture()
         self.normal_map = Texture()
+        self.disp_map   = Texture()
         self.cubemap    = Texture()
 
         self.type_dict  = {
             "albedo"    : TextureType.eALBEDO,
             "diffuse"   : TextureType.eDIFFUSE,
             "normal"    : TextureType.eNORMAL,
+            "disp"      : TextureType.eDISPLACEMENT,
             "cubemap"   : TextureType.eCUBEMAP
         }
     
@@ -36,6 +38,8 @@ class Material:
             self.cubemap = texture
         elif texture_type == TextureType.eNORMAL:
             self.normal_map = texture
+        elif texture_type == TextureType.eDISPLACEMENT:
+            self.disp_map = texture
 
     def set_albedo(self, albedo):
         self.albedo = glm.vec3(albedo)

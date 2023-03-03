@@ -20,6 +20,7 @@ out vec4 FragColor;
 // --------------------------------------------
 uniform bool      uColorMode;
 uniform vec2      uvScale;
+uniform float     uDispScale;
 uniform sampler2D uShadowMap;
 uniform bool      uIsFloor;
 uniform vec2      uGridSize;
@@ -30,7 +31,7 @@ uniform vec3      uGridColors[2];
 // --------------------------------------------
 #define MAX_MATERIAL_NUM 5
 struct Material {
-    ivec4 textureID; // albedo, normal, metalic, emissive
+    ivec4 textureID; // albedo, normal, displacement
     vec4  albedo;
     vec3  diffuse;
     vec3  specular;
@@ -151,6 +152,54 @@ vec3 FilterGrid(vec2 p)
 }
 
 // --------------------------------------------
+vec2 ParallaxMapping(sampler2D dispMap, vec2 texCoords, vec3 viewDir)
+{
+    // number of the depth layers
+    const float minLayers = 8.0f;
+    const float maxLayers = 32.0f;
+    const float numLayers = mix(maxLayers, minLayers, max(viewDir.z, 0.0f));
+
+    // calculate the size of each layer
+    float layerDepth = 1.0f / numLayers;
+
+    // depth of the current layer
+    float currLayerDepth = 0.0f;
+
+    // the amount to shift the texture coordinates per layer from vector P
+    vec2 P = viewDir.xy * uDispScale;
+    vec2 deltaTexCoords = P * numLayers;
+    
+    // get initial values
+    vec2 currTexCoords = texCoords;
+    float currDepthMapValue = texture(dispMap, currTexCoords).r;
+
+    while (currLayerDepth < currDepthMapValue)
+    {
+        // shift texture coordinates along direction of P
+        currTexCoords -= deltaTexCoords;
+
+        // get depthmap value at current texture coordinates
+        currDepthMapValue = texture(dispMap, currTexCoords).r;
+
+        // get the depth of the next layer
+        currLayerDepth += layerDepth;
+    }
+
+    // get texture coordinates before collision
+    vec2 prevTexCoords = currTexCoords + deltaTexCoords;
+
+    // get depth after and before collision
+    float afterDepth = currDepthMapValue - currLayerDepth;
+    float beforeDepth = texture(dispMap, prevTexCoords).r - currLayerDepth + layerDepth;
+
+    // linear interpolation of texture coordinates
+    float t = afterDepth / (afterDepth - beforeDepth);
+    vec2 finalTexCoords = mix(currTexCoords, prevTexCoords, t);
+
+    return finalTexCoords;
+}
+
+// --------------------------------------------
 // main function
 // --------------------------------------------
 void main()
@@ -158,6 +207,7 @@ void main()
     // find material texture ID
     int albedoID = uMaterial[fMaterialID].textureID.x;
     int normalID = uMaterial[fMaterialID].textureID.y;
+    int dispID   = uMaterial[fMaterialID].textureID.z;
 
     // texture scaling
     vec2 uv = fTexCoord * uvScale;
@@ -174,6 +224,19 @@ void main()
     vec3 albedo = materialColor;
 
     // Textures --------------------------------------------
+    // displacement
+    if (uMaterial[fMaterialID].textureID.z >= 0)
+    {
+        mat3 TBN_t = transpose(fTBN);
+        vec3 V_ = normalize(TBN_t * V);
+
+        uv = ParallaxMapping(uTextures[dispID], uv, V_);
+        if (uv.x > 1.0f || uv.y > 1.0f || uv.x < 0.0f || uv.y < 0.0f)
+        {
+            discard;
+        }
+    }
+
     // albedo
     if (uMaterial[fMaterialID].textureID.x >= 0)
     {

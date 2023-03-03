@@ -272,6 +272,7 @@ class Render:
 
             texture_id[i].x = gl_set_texture(material.albedo_map.texture_id, texture_count)
             texture_id[i].y = gl_set_texture(material.normal_map.texture_id, texture_count)
+            texture_id[i].z = gl_set_texture(material.disp_map.texture_id, texture_count)
         
         for i in range(len(option.materials)):
             shader.set_vec4(f"uMaterial[{i}].albedo", rgba[i])
@@ -287,6 +288,7 @@ class Render:
 
         shader.set_bool("uColorMode", option.color_mode)
         shader.set_vec2("uvScale",    option.uv_repeat)
+        shader.set_float("uDispScale", option.disp_scale)
 
         # final rendering
         glBindVertexArray(option.vao.id)
@@ -477,6 +479,7 @@ class RenderOptions:
         # material
         self.materials     = [Material()]
         self.uv_repeat     = glm.vec2(1.0)
+        self.disp_scale    = 0.0001
         self.text          = ""
         self.color_mode    = False
         self.is_floor      = False
@@ -584,6 +587,10 @@ class RenderOptions:
             self.uv_repeat = glm.vec2(u)
         else:
             self.uv_repeat = glm.vec2(u, v)
+        return self
+
+    def set_disp_scale(self, scale):
+        self.disp_scale = scale
         return self
     
     def set_text(self, text):
