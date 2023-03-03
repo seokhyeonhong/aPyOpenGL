@@ -6,6 +6,7 @@
 in vec3     fPosition;
 in vec2     fTexCoord;
 in mat3     fTBN;
+in vec3     fNormal;
 flat in int fMaterialID;
 in vec4     fPosLightSpace;
 
@@ -72,7 +73,7 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir, sampler2D shadowMap)
 
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
-    float bias = max(0.0001f * (1.0f - dot(fTBN[2], lightDir)), 0.00001f);
+    float bias = max(0.0001f * (1.0f - dot(fNormal, lightDir)), 0.00001f);
 
     // if current depth from camera is greater than that of the light source,
     // then the fragment is in shadow
@@ -166,7 +167,7 @@ void main()
     float alpha = uMaterial[fMaterialID].albedo.a;
 
     // set normal
-    vec3 N = normalize(fTBN[2]);
+    vec3 N = normalize(fNormal);
     vec3 V = normalize(uViewPosition - fPosition);
 
     // materials

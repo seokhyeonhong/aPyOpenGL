@@ -19,6 +19,7 @@ layout(location=9) in vec4  vLbsWeights2;
 // --------------------------------------------
 out vec3     fPosition;
 out vec2     fTexCoord;
+out vec3     fNormal;
 out mat3     fTBN;
 flat out int fMaterialID;
 out vec4     fPosLightSpace;
@@ -37,6 +38,7 @@ void main()
     vec3 B         = normalize(transpose(inverse(mat3(M))) * vBitangent);
     vec3 N         = normalize(transpose(inverse(mat3(M))) * vNormal);
     fTBN           = mat3(T, B, N);
+    fNormal        = N;
     fTexCoord      = vTexCoord;
     fPosLightSpace = uLightSpaceMatrix * vec4(fPosition, 1.0f);
     fMaterialID    = vMaterialID;

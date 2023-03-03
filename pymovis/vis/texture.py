@@ -1,5 +1,6 @@
 import os
 from OpenGL.GL import *
+import numpy as np
 from PIL import Image
 from enum import Enum
 
@@ -84,14 +85,13 @@ class TextureLoader:
 
     @staticmethod
     def clear():
-        instance = TextureLoader()
-        for texture in instance.__texture_map.values():
-            glDeleteTextures(1, texture.texture_id)
-        instance.__texture_map.clear()
+        for texture in TextureLoader.__texture_map.values():
+            glDeleteTextures(1, np.array(texture.texture_id, dtype=np.uint32))
+        TextureLoader.__texture_map.clear()
 
-        for texture in instance.__cubemap_texture_map.values():
-            glDeleteTextures(1, texture.texture_id)
-        instance.__cubemap_texture_map.clear()
+        for texture in TextureLoader.__cubemap_texture_map.values():
+            glDeleteTextures(1, np.array(texture.texture_id, dtype=np.uint32))
+        TextureLoader.__cubemap_texture_map.clear()
     
     @staticmethod
     def generate_texture(filename, nearest=False):
