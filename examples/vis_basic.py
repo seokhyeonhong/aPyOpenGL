@@ -15,6 +15,7 @@ class MyApp(App):
         self.pyramid = Render.pyramid().set_albedo([1, 1, 0]).set_position([0, 0.5, 2])
         self.text = Render.text("Hello, PyMoVis!")
         self.text_on_screen = Render.text_on_screen("Hello, Screen!").set_scale(1)
+        self.cubemap = Render.cubemap("skybox")
     
     def render(self):
         super().render()
@@ -25,6 +26,10 @@ class MyApp(App):
         self.sphere.set_scale(glm.sin((time.time() * 0.3 % 1.0) * glm.pi()) + 1.0).draw()
         self.cone.set_position([glm.cos((time.time() * 0.5 % 1.0) * 2 * glm.pi()), 0.5, glm.sin((time.time() * 0.5 % 1.0) * 2 * glm.pi())]).draw()
         self.pyramid.draw()
+        self.cubemap.draw()
+    
+    def late_update(self):
+        super().late_update()
         self.text.draw()
         self.text_on_screen.draw()
 

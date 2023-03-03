@@ -17,14 +17,12 @@ class Material:
         self.albedo_map = Texture()
         self.normal_map = Texture()
         self.disp_map   = Texture()
-        self.cubemap    = Texture()
 
         self.type_dict  = {
             "albedo"    : TextureType.eALBEDO,
             "diffuse"   : TextureType.eDIFFUSE,
             "normal"    : TextureType.eNORMAL,
             "disp"      : TextureType.eDISPLACEMENT,
-            "cubemap"   : TextureType.eCUBEMAP
         }
     
     def set_texture(self, texture, texture_type):
@@ -34,8 +32,6 @@ class Material:
 
         if texture_type == TextureType.eALBEDO or texture_type == TextureType.eDIFFUSE:
             self.albedo_map = texture
-        elif texture_type == TextureType.eCUBEMAP:
-            self.cubemap = texture
         elif texture_type == TextureType.eNORMAL:
             self.normal_map = texture
         elif texture_type == TextureType.eDISPLACEMENT:

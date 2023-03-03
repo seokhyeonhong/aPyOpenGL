@@ -181,11 +181,11 @@ class Render:
         res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=True))
         return res.set_text(str(t)).set_albedo(color)
 
-    # @staticmethod
-    # def cubemap(dirname, scale=100):
-    #     ro = RenderOptions(Cubemap(scale=scale), Render.cubemap_shader, Render.draw_cubemap)
-    #     ro.set_cubemap(dirname)
-    #     return ro
+    @staticmethod
+    def cubemap(dirname, scale=100):
+        ro = RenderOptions(Cubemap(scale=scale), Render.cubemap_shader, Render.draw_cubemap)
+        ro.set_cubemap(dirname)
+        return ro
 
     @staticmethod
     def draw_phong(option: RenderOptions, shader: Shader):
@@ -229,7 +229,7 @@ class Render:
             shader.is_texture_updated = True
 
         # TODO: fix this
-        # set environment map 
+        # # set environment map 
         # shader.set_int("uMaterial.albedoMap", 0)
         # if option.texture_id is not None:
         #     shader.set_int("uMaterial.id", 0)
@@ -396,37 +396,39 @@ class Render:
         glBindTexture(GL_TEXTURE_2D, 0)
         glBindVertexArray(0)
 
-    # @staticmethod
-    # def draw_cubemap(option: RenderOptions, shader: Shader):
-    #     if option is None or shader is None:
-    #         return
-    #     if Render.render_mode == RenderMode.eSHADOW:
-    #         return
+    @staticmethod
+    def draw_cubemap(option: RenderOptions, shader: Shader):
+        if option is None or shader is None:
+            return
+        if Render.render_mode == RenderMode.eSHADOW:
+            return
+        if option.cubemap.texture_id == 0:
+            return
         
-    #     # adjust depth settings for optimized rendering
-    #     glDepthFunc(GL_LEQUAL)
+        # adjust depth settings for optimized rendering
+        glDepthFunc(GL_LEQUAL)
 
-    #     shader.use()
+        shader.use()
 
-    #     # update view
-    #     P = Render.render_info.cam_projection
-    #     V = glm.mat4(glm.mat3(Render.render_info.cam_view))
-    #     shader.set_mat4("PV", P * V)
+        # update view
+        P = Render.render_info.cam_projection
+        V = glm.mat4(glm.mat3(Render.render_info.cam_view))
+        shader.set_mat4("PV", P * V)
 
-    #     # set textures
-    #     shader.set_int("uSkybox", 0)
-    #     glActiveTexture(GL_TEXTURE0)
-    #     glBindTexture(GL_TEXTURE_CUBE_MAP, option.cubemap_id)
+        # set textures
+        shader.set_int("uSkybox", 0)
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, option.cubemap.texture_id)
 
-    #     # final rendering
-    #     glBindVertexArray(option.vao.id)
-    #     glDrawArrays(GL_TRIANGLES, 0, 36)
+        # final rendering
+        glBindVertexArray(option.vao.id)
+        glDrawArrays(GL_TRIANGLES, 0, 36)
 
-    #     # restore depth settings
-    #     glDepthFunc(GL_LESS)
+        # restore depth settings
+        glDepthFunc(GL_LESS)
 
-    #     # unbind vao
-    #     glBindVertexArray(0)
+        # unbind vao
+        glBindVertexArray(0)
 
 
     @staticmethod
@@ -478,6 +480,7 @@ class RenderOptions:
 
         # material
         self.materials     = [Material()]
+        self.cubemap       = Texture()
         self.uv_repeat     = glm.vec2(1.0)
         self.disp_scale    = 0.0001
         self.text          = ""
@@ -558,9 +561,9 @@ class RenderOptions:
 
         return self
     
-    # def set_cubemap(self, dirname):
-    #     self.material.set_texture(TextureLoader.load_cubemap(dirname), TextureType.eCUBEMAP)
-    #     return self
+    def set_cubemap(self, dirname):
+        self.cubemap = TextureLoader.load_cubemap(dirname)
+        return self
 
     def set_floor(self, is_floor):
         self.is_floor = is_floor
