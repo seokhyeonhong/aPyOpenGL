@@ -16,8 +16,9 @@ from pymovis.vis.model import Model
 from pymovis.vis.const import SHADOW_MAP_SIZE, TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES, MAX_JOINT_NUM
 
 class RenderMode(Enum):
-    ePHONG  = 0
+    eDRAW   = 0
     eSHADOW = 1
+    eTEXT   = 2
 
 class RenderInfo:
     sky_color         = glm.vec4(1.0)
@@ -33,7 +34,7 @@ class RenderInfo:
 
 """ Global rendering state and functions """
 class Render:
-    render_mode      = RenderMode.ePHONG
+    render_mode      = RenderMode.eDRAW
     render_info      = RenderInfo()
     primitive_meshes = {}
     font_texture     = None
@@ -46,35 +47,8 @@ class Render:
         Render.text_shader      = Shader("text.vs",    "text.fs")
         Render.cubemap_shader   = Shader("cubemap.vs", "cubemap.fs")
         Render.shaders = [Render.primitive_shader, Render.lbs_shader, Render.shadow_shader, Render.text_shader, Render.cubemap_shader]
-        Render.generate_shadow_buffer()
+        Render.depth_map_fbo, Render.depth_map = TextureLoader.generate_shadow_buffer()
     
-    @staticmethod
-    def generate_shadow_buffer():
-        # create depth texture
-        depth_map_fbo = glGenFramebuffers(1)
-        depth_map = glGenTextures(1)
-
-        glBindTexture(GL_TEXTURE_2D, depth_map)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, None)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER)
-        border_color = [1.0, 1.0, 1.0, 1.0]
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color)
-
-        # create frame buffer
-        glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo)
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_map, 0)
-        glDrawBuffer(GL_NONE)
-        glReadBuffer(GL_NONE)
-
-        # reset the frame buffer
-        glBindFramebuffer(GL_FRAMEBUFFER, 0)
-
-        Render.depth_map = depth_map
-        Render.depth_map_fbo = depth_map_fbo
-
     @staticmethod
     def sky_color():
         return Render.render_info.sky_color
@@ -191,10 +165,13 @@ class Render:
     def draw_phong(option: RenderOptions, shader: Shader):
         if option is None or shader is None:
             return
-        if Render.render_mode == RenderMode.eSHADOW:
+        if Render.render_mode != RenderMode.eDRAW:
             return
 
         shader.use()
+
+        # update shading mode
+        shader.set_bool("uPhong", False)
         
         # update view
         if shader.is_view_updated is False:
@@ -275,10 +252,13 @@ class Render:
             texture_id[i].z = gl_set_texture(material.disp_map.texture_id, texture_count)
         
         for i in range(len(option.materials)):
-            shader.set_vec4(f"uMaterial[{i}].albedo", rgba[i])
-            shader.set_vec3(f"uMaterial[{i}].diffuse", option.materials[i].diffuse)
-            shader.set_vec3(f"uMaterial[{i}].specular", option.materials[i].specular)
+            shader.set_vec4 (f"uMaterial[{i}].albedo",    rgba[i])
+            shader.set_vec3 (f"uMaterial[{i}].diffuse",   option.materials[i].diffuse)
+            shader.set_vec3 (f"uMaterial[{i}].specular",  option.materials[i].specular)
             shader.set_float(f"uMaterial[{i}].shininess", option.materials[i].shininess)
+            shader.set_float(f"UMaterial[{i}].metallic",  option.materials[i].metallic)
+            shader.set_float(f"uMaterial[{i}].roughness", option.materials[i].roughness)
+            shader.set_float(f"uMaterial[{i}].ao",        option.materials[i].ao)
             shader.set_ivec4(f"uMaterial[{i}].textureID", texture_id[i])
 
         shader.set_bool("uIsFloor", option.is_floor)
@@ -331,6 +311,8 @@ class Render:
     @staticmethod
     def draw_text(option: RenderOptions, shader: Shader, on_screen=False):
         if option is None or shader is None:
+            return
+        if Render.render_mode != RenderMode.eTEXT:
             return
         
         if on_screen:

@@ -19,6 +19,7 @@ out vec4 FragColor;
 // uniform
 // --------------------------------------------
 uniform bool      uColorMode;
+uniform bool      uPhong; // true: phong shading, false: pbr shading
 uniform vec2      uvScale;
 uniform float     uDispScale;
 uniform sampler2D uShadowMap;
@@ -32,10 +33,17 @@ uniform vec3      uGridColors[2];
 #define MAX_MATERIAL_NUM 5
 struct Material {
     ivec4 textureID; // albedo, normal, displacement
-    vec4  albedo;
+    vec4  albedo; // RGBA
+
+    // phong shading
     vec3  diffuse;
     vec3  specular;
     float shininess;
+
+    // pbr
+    float metallic;
+    float roughness;
+    float ao;
 };
 uniform Material uMaterial[MAX_MATERIAL_NUM];
 
@@ -59,6 +67,11 @@ uniform Light uLight;
 // camera position
 // --------------------------------------------
 uniform vec3 uViewPosition;
+
+// --------------------------------------------
+// constants
+// --------------------------------------------
+const float PI = 3.14159265359f;
 
 // --------------------------------------------
 float Shadow(vec4 fragPosLightSpace, vec3 lightDir, sampler2D shadowMap)
@@ -94,36 +107,48 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir, sampler2D shadowMap)
 }
 
 // --------------------------------------------
-vec4 BlinnPhong(vec3 albedo, vec3 N, vec3 V, sampler2D shadowMap, Light light, Material material)
+float GetAttenuation(Light light)
 {
-    // vec3 ambient = albedo;
-    vec3 ambient = light.color * 0.1f;
-
-    vec3 L = light.vector.w == 1.0f ? normalize(light.vector.xyz - fPosition) : normalize(-light.vector.xyz);
-
-    vec3 diffuse = max(dot(N, L), 0.0f) * material.diffuse * light.color;
-
-    // vec3 R = reflect(-L, N); // for phong shading, use R instead of H
-    vec3 H = normalize(L + V); // for blinn-phong shading, use H instead of R
-    vec3 specular = pow(max(dot(V, H), 0.0f), material.shininess) * material.specular * light.color;
-    
-    // attenuation
     float atten = 1.0f;
-    if(light.vector.w == 1.0f)
+    if (light.vector.w == 1.0f)
     {
         float d = length(light.vector.xyz - fPosition.xyz);
         atten = min(1.0f / (light.attenuation.x + light.attenuation.y * d + light.attenuation.z * d * d), 1.0f);
     }
 
-    float shadow = Shadow(fPosLightSpace, L, shadowMap);
+    return atten;
+}
+
+vec4 BlinnPhong(vec3 albedo, vec3 N, vec3 V, vec3 L, Light light, Material material)
+{
+    // ambient
+    vec3 ambient = albedo * 0.05f;
+
+    // diffuse
+    vec3 diffuse = max(dot(N, L), 0.0f) * material.diffuse * light.color;
+
+    // specular
+    // vec3 R = reflect(-L, N); // for phong shading, use R instead of H
+    vec3 H = normalize(L + V); // for blinn-phong shading, use H instead of R
+    vec3 specular = pow(max(dot(V, H), 0.0f), material.shininess) * material.specular * light.color;
+    
+    // attenuation
+    float atten = GetAttenuation(light);
+
+    // shadow
+    float shadow = Shadow(fPosLightSpace, L, uShadowMap);
+
+    // final color
     vec3 result = (ambient + atten * (1.0f - shadow) * (diffuse + specular)) * albedo;
     return vec4(result, 1.0f);
 }
 
 // --------------------------------------------
-vec3 GammaCorrection(vec3 color, float gamma)
+vec3 ReinhardToneMapping(vec3 color)
 {
-    return pow(color, vec3(1.0f / gamma));
+    const float gamma = 2.2f;
+    vec3 result = color / (color + vec3(1.0f));
+    return pow(result, vec3(1.0f / gamma));
 }
 
 // --------------------------------------------
@@ -152,7 +177,14 @@ vec3 FilterGrid(vec2 p)
 }
 
 // --------------------------------------------
-vec2 ParallaxMapping(sampler2D dispMap, vec2 texCoords, vec3 viewDir)
+vec3 GetNormalFromMap(sampler2D normalMap, vec2 uv)
+{
+    vec3 N = texture(normalMap, uv).rgb * 2.0f - 1.0f;
+    return normalize(fTBN * N);
+}
+
+// --------------------------------------------
+vec2 ParallaxOcclusionMapping(sampler2D dispMap, vec2 texCoords, vec3 viewDir)
 {
     // number of the depth layers
     const float minLayers = 8.0f;
@@ -200,6 +232,85 @@ vec2 ParallaxMapping(sampler2D dispMap, vec2 texCoords, vec3 viewDir)
 }
 
 // --------------------------------------------
+// PBR functions
+// normal distribution function
+float TrowbridgeReitzGGX(vec3 N, vec3 H, float roughness)
+{
+    float a = roughness*roughness;
+    float a2 = a*a;
+    float NdotH = max(dot(N, H), 0.0f);
+
+    float num = a2;
+    float denom = (NdotH*NdotH) * (a2 - 1.0f) + 1.0f;
+    denom = PI * denom * denom;
+
+    return num / denom;
+}
+
+// geometry function
+float SchlickGGX(float NdotV, float roughness)
+{
+    float r = (roughness + 1.0f);
+    float k = (r*r) / 8.0f;
+
+    float num = NdotV;
+    float denom = NdotV * (1.0f - k) + k;
+    
+    return num / denom;
+}
+
+float Smith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+    float NdotV = max(dot(N, V), 0.0f);
+    float NdotL = max(dot(N, L), 0.0f);
+    float ggx1 = SchlickGGX(NdotV, roughness);
+    float ggx2 = SchlickGGX(NdotL, roughness);
+
+    return ggx1 * ggx2;
+}
+
+// Fresnel equation
+vec3 FresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0f - F0) * pow(1.0f - cosTheta, 5.0f);
+}
+
+// PBR
+vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, Light light, Material material)
+{
+    float d = length(light.vector.xyz - fPosition);
+    float atten = GetAttenuation(light);
+    vec3 radiance = light.color * atten;
+
+    vec3 F0 = vec3(0.04f);
+    F0 = mix(F0, albedo, material.metallic);
+    vec3 F = FresnelSchlick(max(dot(H, V), 0.0f), F0);
+
+    float NDF = TrowbridgeReitzGGX(N, H, material.roughness);
+    float G = Smith(N, V, L, material.roughness);
+
+    vec3 num = NDF * G * F;
+    float denom = 4.0f * max(dot(N, V), 0.0f) * max(dot(N, L), 0.0f) + 0.0001f;
+    vec3 specular = num / denom;
+
+    vec3 kS = F;
+    vec3 kD = vec3(1.0f) - kS;
+    kD *= 1.0f - material.metallic;
+
+    float NdotL = max(dot(N, L), 0.0f);
+
+    vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;
+
+    // shadow
+    float shadow = Shadow(fPosLightSpace, L, uShadowMap);
+
+    // final color
+    vec3 result = ((1.0f - shadow) * Lo);
+
+    return result;
+}
+
+// --------------------------------------------
 // main function
 // --------------------------------------------
 void main()
@@ -213,15 +324,14 @@ void main()
     vec2 uv = fTexCoord * uvScale;
 
     // find material attributes
-    vec3 materialColor = uMaterial[fMaterialID].albedo.rgb;
+    vec3 albedo = uMaterial[fMaterialID].albedo.rgb;
     float alpha = uMaterial[fMaterialID].albedo.a;
 
-    // set normal
+    // normal, view, light and half vectors
     vec3 N = normalize(fNormal);
     vec3 V = normalize(uViewPosition - fPosition);
-
-    // materials
-    vec3 albedo = materialColor;
+    vec3 L = uLight.vector.w == 1.0f ? normalize(uLight.vector.xyz - fPosition) : normalize(-uLight.vector.xyz);
+    vec3 H = normalize(V + L);
 
     // Textures --------------------------------------------
     // displacement
@@ -230,7 +340,7 @@ void main()
         mat3 TBN_t = transpose(fTBN);
         vec3 V_ = normalize(TBN_t * V);
 
-        uv = ParallaxMapping(uTextures[dispID], uv, V_);
+        uv = ParallaxOcclusionMapping(uTextures[dispID], uv, V_);
         if (uv.x > 1.0f || uv.y > 1.0f || uv.x < 0.0f || uv.y < 0.0f)
         {
             discard;
@@ -246,8 +356,7 @@ void main()
     // normal
     if (uMaterial[fMaterialID].textureID.y >= 0)
     {
-        N = texture(uTextures[normalID], uv).rgb * 2.0f - 1.0f;
-        N = normalize(fTBN * N);
+        N = GetNormalFromMap(uTextures[normalID], uv);
     }
 
     // --------------------------------------------
@@ -263,11 +372,25 @@ void main()
         FragColor = vec4(albedo, 1.0f);
         return;
     }
-    else
+    else if (uPhong)
     {
-        FragColor = BlinnPhong(albedo, N, V, uShadowMap, uLight, uMaterial[fMaterialID]);
+        FragColor = BlinnPhong(albedo, N, V, L, uLight, uMaterial[fMaterialID]);
         FragColor.a = alpha;
     }
+    else
+    {
+        vec3 color = vec3(0.0f);
+        for (int i = 0; i < 4; ++i)
+        {
+            color += CookTorranceBRDF(N, V, L, H, albedo, uLight, uMaterial[fMaterialID]);
+        }
+        // FragColor.rgb = CookTorranceBRDF(N, V, L, H, albedo, uLight, uMaterial[fMaterialID]);
+        FragColor.rgb = color;
+        // FragColor.rgb = ReinhardToneMapping(FragColor.rgb);
+        FragColor.a = alpha;
+    }
+
+    // FragColor.rgb = ReinhardToneMapping(FragColor.rgb);
 
     // Fog
     // float D = length(uViewPosition - fPosition);

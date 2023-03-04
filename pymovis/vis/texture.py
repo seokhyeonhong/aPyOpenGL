@@ -4,6 +4,8 @@ import numpy as np
 from PIL import Image
 from enum import Enum
 
+from pymovis.vis.const import SHADOW_MAP_SIZE
+
 class TextureType(Enum):
     eUNKNOWN      = -1
     eALBEDO       = 0
@@ -32,6 +34,7 @@ class TextureLoader:
     __instance = None
     __texture_map = {}
     __cubemap_texture_map = {}
+    __hdr_texture_map = {}
 
     def __new__(cls):
         if TextureLoader.__instance is None:
@@ -142,3 +145,48 @@ class TextureLoader:
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         
         return texture_id
+    
+    @staticmethod
+    def generate_hdr_texture(filename):
+        texture_id = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, texture_id)
+        
+        curr_path = os.path.dirname(os.path.abspath(__file__))
+        texture_path = os.path.join(curr_path, "texture", filename)
+        texture_image = Image.open(texture_path)
+        texture_image = texture_image.transpose(Image.FLIP_TOP_BOTTOM)
+        texture_data = texture_image.convert("RGBA").tobytes()
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, 512, 512, 0, GL_RGB, GL_FLOAT, None)
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        
+        return texture_id
+    
+    @staticmethod
+    def generate_shadow_buffer():
+        # create depth texture
+        depth_map_fbo = glGenFramebuffers(1)
+        depth_map = glGenTextures(1)
+
+        glBindTexture(GL_TEXTURE_2D, depth_map)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, None)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER)
+        border_color = [1.0, 1.0, 1.0, 1.0]
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color)
+
+        # create frame buffer
+        glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo)
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_map, 0)
+        glDrawBuffer(GL_NONE)
+        glReadBuffer(GL_NONE)
+
+        # reset the frame buffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+        return depth_map_fbo, depth_map

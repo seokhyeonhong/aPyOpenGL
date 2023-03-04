@@ -10,19 +10,34 @@ class Material:
         shininess = 10.0
     ):
         self.albedo     = glm.vec3(albedo)
+        self.alpha      = 1.0
+
+        # phong model
         self.diffuse    = glm.vec3(diffuse)
         self.specular   = glm.vec3(specular)
         self.shininess  = shininess
-        self.alpha      = 1.0
-        self.albedo_map = Texture()
-        self.normal_map = Texture()
-        self.disp_map   = Texture()
+
+        # pbr model
+        self.metallic   = 0.0
+        self.roughness  = 1.0
+        self.ao         = 1.0
+
+        # textures
+        self.albedo_map    = Texture()
+        self.normal_map    = Texture()
+        self.disp_map      = Texture()
+        self.metallic_map  = Texture()
+        self.roughness_map = Texture()
+        self.ao_map        = Texture()
 
         self.type_dict  = {
             "albedo"    : TextureType.eALBEDO,
             "diffuse"   : TextureType.eDIFFUSE,
             "normal"    : TextureType.eNORMAL,
             "disp"      : TextureType.eDISPLACEMENT,
+            "metallic"  : TextureType.eMETALIC,
+            "roughness" : TextureType.eROUGHNESS,
+            "ao"        : TextureType.eAO
         }
     
     def set_texture(self, texture, texture_type):
@@ -36,6 +51,12 @@ class Material:
             self.normal_map = texture
         elif texture_type == TextureType.eDISPLACEMENT:
             self.disp_map = texture
+        elif texture_type == TextureType.eMETALIC:
+            self.metallic_map = texture
+        elif texture_type == TextureType.eROUGHNESS:
+            self.roughness_map = texture
+        elif texture_type == TextureType.eAO:
+            self.ao_map = texture
 
     def set_albedo(self, albedo):
         self.albedo = glm.vec3(albedo)

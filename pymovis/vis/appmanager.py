@@ -19,7 +19,7 @@ class AppManager:
     def run(self, app: App):
         self.app = app
         self.app.width, self.app.height = self.width, self.height
-        self.start_loop()
+        self.render_loop()
 
     def initialize(self):
         # initialize glfw
@@ -46,7 +46,7 @@ class AppManager:
         # intialize shaders
         Render.initialize_shaders()
     
-    def start_loop(self):
+    def render_loop(self):
         if not isinstance(self.app, App):
             raise Exception("Invalid app type")
             
@@ -89,9 +89,14 @@ class AppManager:
             self.app.render()
 
             # render scene
-            Render.set_render_mode(RenderMode.ePHONG)
+            Render.set_render_mode(RenderMode.eDRAW)
             glViewport(0, 0, width, height)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            self.app.render()
+
+            # render text
+            Render.set_render_mode(RenderMode.eTEXT)
+            glViewport(0, 0, width, height)
             self.app.render()
 
             # late update
