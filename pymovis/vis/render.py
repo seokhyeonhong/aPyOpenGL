@@ -8,12 +8,19 @@ import glm
 from pymovis.vis.primitives import *
 from pymovis.vis.material import Material
 from pymovis.vis.shader import Shader
-from pymovis.vis.primitives import Cube
-from pymovis.vis.texture import Texture, TextureType, TextureLoader
+from pymovis.vis.texture import Texture, TextureLoader
 from pymovis.vis.text import FontTexture
 from pymovis.vis.mesh import Mesh
 from pymovis.vis.model import Model
-from pymovis.vis.const import SHADOW_MAP_SIZE, TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES, MAX_JOINT_NUM
+from pymovis.vis.const import TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES, MAX_JOINT_NUM
+
+def get_draw_func(render_func):
+    if render_func is "phong":
+        return functools.partial(Render.draw, pbr=False)
+    elif render_func is "pbr":
+        return functools.partial(Render.draw, pbr=True)
+    else:
+        raise Exception("Unknown render function")
 
 class RenderMode(Enum):
     eDRAW   = 0
@@ -46,7 +53,7 @@ class Render:
         Render.shadow_shader    = Shader("shadow.vs",  "shadow.fs")
         Render.text_shader      = Shader("text.vs",    "text.fs")
         Render.cubemap_shader   = Shader("cubemap.vs", "cubemap.fs")
-        Render.shaders = [Render.primitive_shader, Render.lbs_shader, Render.shadow_shader, Render.text_shader, Render.cubemap_shader]
+        Render.shaders          = [Render.primitive_shader, Render.lbs_shader, Render.shadow_shader, Render.text_shader, Render.cubemap_shader]
         Render.depth_map_fbo, Render.depth_map = TextureLoader.generate_shadow_buffer()
     
     @staticmethod
@@ -62,81 +69,74 @@ class Render:
         Render.render_mode = mode
 
     @staticmethod
-    def render_options(p):
-        if Render.render_mode == RenderMode.eSHADOW:
-            return RenderOptions(p, Render.shadow_shader, Render.draw_shadow)
-        else:
-            return RenderOptions(p, Render.primitive_shader, Render.draw_phong)
+    def cube(render_mode="pbr"):
+        return RenderOptions(Cube(), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
-    def cube():
-        return RenderOptions(Cube(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
-
-    @staticmethod
-    def sphere(radius=0.5, stacks=16, sectors=16):
-        return RenderOptions(Sphere(radius, stacks, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+    def sphere(radius=0.5, stacks=16, sectors=16, render_mode="pbr"):
+        return RenderOptions(Sphere(radius, stacks, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
     
     @staticmethod
-    def cone(radius=0.5, height=1, sectors=16):
-        return RenderOptions(Cone(radius, height, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+    def cone(radius=0.5, height=1, sectors=16, render_mode="pbr"):
+        return RenderOptions(Cone(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
-    def plane():
-        return RenderOptions(Plane(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+    def plane(render_mode="pbr"):
+        return RenderOptions(Plane(), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
     
     @staticmethod
-    def grid(size_x=1.0, size_z=1.0):
-        return RenderOptions(Plane(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow).set_floor(True).set_grid_size(size_x, size_z)
+    def grid(size_x=1.0, size_z=1.0, render_mode="pbr"):
+        return RenderOptions(Plane(), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow).set_floor(True).set_grid_size(size_x, size_z)
 
     @staticmethod
-    def cylinder(radius=0.5, height=1, sectors=16):
-        return RenderOptions(Cylinder(radius, height, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+    def cylinder(radius=0.5, height=1, sectors=16, render_mode="pbr"):
+        return RenderOptions(Cylinder(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
-    def arrow():
-        return RenderOptions(Arrow(), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+    def arrow(render_mode="pbr"):
+        return RenderOptions(Arrow(), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
-    def pyramid(radius=0.5, height=1.0, sectors=4):
-        return RenderOptions(Pyramid(radius, height, sectors), Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+    def pyramid(radius=0.5, height=1.0, sectors=4, render_mode="pbr"):
+        return RenderOptions(Pyramid(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
-    def vao(vao):
-        return RenderOptions(vao, Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+    def vao(vao, render_mode="pbr"):
+        return RenderOptions(vao, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
     
     @staticmethod
-    def heightmap(heightmap):
-        return Render.vao(heightmap.vao)
+    def heightmap(heightmap, render_mode="pbr"):
+        return Render.vao(heightmap.vao, render_mode)
 
     @staticmethod
-    def mesh(mesh: Mesh):
+    def mesh(mesh: Mesh, render_mode="pbr"):
         if mesh.use_skinning:
-            ro = RenderOptions(mesh.mesh_gl.vao, Render.lbs_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+            ro = RenderOptions(mesh.mesh_gl.vao, Render.lbs_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
             ro.set_skinning(True).set_buffer_transforms(mesh.buffer)
         else:
-            ro = RenderOptions(mesh.mesh_gl.vao, Render.primitive_shader, Render.draw_phong, Render.shadow_shader, Render.draw_shadow)
+            ro = RenderOptions(mesh.mesh_gl.vao, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
         
         ro.set_materials(mesh.materials)
         return ro
 
     @staticmethod
-    def model(model: Model):
+    def model(model: Model, render_mode="pbr"):
         meshes = model.meshes
         rov = []
         for mesh in meshes:
-            rov.append(Render.mesh(mesh))
+            rov.append(Render.mesh(mesh, render_mode))
 
         return RenderOptionsVec(rov)
 
     @staticmethod
     def axis():
         R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
-        arrow_x = RenderOptions(Arrow(), Render.primitive_shader, Render.draw_phong).set_orientation(R_x).set_albedo(glm.vec3(1, 0, 0)).set_color_mode(True)
+        arrow_x = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_orientation(R_x).set_albedo(glm.vec3(1, 0, 0)).set_color_mode(True)
         
-        arrow_y = RenderOptions(Arrow(), Render.primitive_shader, Render.draw_phong).set_albedo(glm.vec3(0, 1, 0)).set_color_mode(True)
+        arrow_y = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_albedo(glm.vec3(0, 1, 0)).set_color_mode(True)
 
         R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
-        arrow_z = RenderOptions(Arrow(), Render.primitive_shader, Render.draw_phong).set_orientation(R_z).set_albedo(glm.vec3(0, 0, 1)).set_color_mode(True)
+        arrow_z = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_orientation(R_z).set_albedo(glm.vec3(0, 0, 1)).set_color_mode(True)
         return RenderOptionsVec([arrow_x, arrow_y, arrow_z])
 
     @staticmethod
@@ -162,7 +162,7 @@ class Render:
         return ro
 
     @staticmethod
-    def draw_phong(option: RenderOptions, shader: Shader):
+    def draw(option: RenderOptions, shader: Shader, pbr=True):
         if option is None or shader is None:
             return
         if Render.render_mode != RenderMode.eDRAW:
@@ -171,7 +171,7 @@ class Render:
         shader.use()
 
         # update shading mode
-        shader.set_bool("uPhong", False)
+        shader.set_bool("uPBR", pbr)
         
         # update view
         if shader.is_view_updated is False:
@@ -227,7 +227,8 @@ class Render:
         # material settings
         rgba = [glm.vec4(1)] * MAX_MATERIAL_NUM
         # attribs = [glm.vec3(0)] * MAX_MATERIAL_NUM
-        texture_id = [glm.ivec4(-1)] * MAX_MATERIAL_NUM
+        texture_id = [glm.ivec3(-1)] * MAX_MATERIAL_NUM
+        pbr_texture_id = [glm.ivec3(-1)] * MAX_MATERIAL_NUM
 
         def gl_set_texture(texture_id, count):
             if texture_id == 0 or count[0] >= MAX_MATERIAL_TEXTURES:
@@ -240,26 +241,32 @@ class Render:
             return idx_on_shader
         
         texture_count = [0] # use list to pass by reference
-        for i in range(len(option.materials)):
-            if i >= MAX_MATERIAL_NUM:
-                break
-
+        for i in range(min(len(option.materials), MAX_MATERIAL_NUM)):
             material = option.materials[i]
             rgba[i] = glm.vec4(material.albedo, material.alpha)
-
+            
             texture_id[i].x = gl_set_texture(material.albedo_map.texture_id, texture_count)
             texture_id[i].y = gl_set_texture(material.normal_map.texture_id, texture_count)
             texture_id[i].z = gl_set_texture(material.disp_map.texture_id, texture_count)
+
+            if pbr:
+                pbr_texture_id[i].x = gl_set_texture(material.metallic_map.texture_id, texture_count)
+                pbr_texture_id[i].y = gl_set_texture(material.roughness_map.texture_id, texture_count)
+                pbr_texture_id[i].z = gl_set_texture(material.ao_map.texture_id, texture_count)
         
-        for i in range(len(option.materials)):
-            shader.set_vec4 (f"uMaterial[{i}].albedo",    rgba[i])
-            shader.set_vec3 (f"uMaterial[{i}].diffuse",   option.materials[i].diffuse)
-            shader.set_vec3 (f"uMaterial[{i}].specular",  option.materials[i].specular)
-            shader.set_float(f"uMaterial[{i}].shininess", option.materials[i].shininess)
-            shader.set_float(f"UMaterial[{i}].metallic",  option.materials[i].metallic)
-            shader.set_float(f"uMaterial[{i}].roughness", option.materials[i].roughness)
-            shader.set_float(f"uMaterial[{i}].ao",        option.materials[i].ao)
-            shader.set_ivec4(f"uMaterial[{i}].textureID", texture_id[i])
+        for i in range(min(len(option.materials), MAX_MATERIAL_NUM)):
+            shader.set_vec4 (f"uMaterial[{i}].albedo",       rgba[i])
+            shader.set_ivec3(f"uMaterial[{i}].textureID",    texture_id[i])
+            shader.set_ivec3(f"uMaterial[{i}].pbrTextureID", pbr_texture_id[i])
+
+            if pbr:
+                shader.set_float(f"uMaterial[{i}].metallic",     option.materials[i].metallic)
+                shader.set_float(f"uMaterial[{i}].roughness",    option.materials[i].roughness)
+                shader.set_float(f"uMaterial[{i}].ao",           option.materials[i].ao)
+            else:
+                shader.set_vec3 (f"uMaterial[{i}].diffuse",   option.materials[i].diffuse)
+                shader.set_vec3 (f"uMaterial[{i}].specular",  option.materials[i].specular)
+                shader.set_float(f"uMaterial[{i}].shininess", option.materials[i].shininess)
 
         shader.set_bool("uIsFloor", option.is_floor)
         shader.set_vec2("uGridSize", option.grid_size)
@@ -441,7 +448,7 @@ class Render:
 class RenderOptions:
     def __init__(
         self,
-        vao: VAO,
+        vao:           VAO,
         shader,
         draw_func,
         shadow_shader=None,
@@ -515,6 +522,26 @@ class RenderOptions:
 
         return self
     
+    def set_metallic(self, metallic, material_id=0):
+        if len(self.materials) == 0:
+            self.materials.append(Material())
+            material_id = 0
+        
+        if material_id < len(self.materials):
+            self.materials[material_id].metallic = metallic
+
+        return self
+    
+    def set_roughness(self, roughness, material_id=0):
+        if len(self.materials) == 0:
+            self.materials.append(Material())
+            material_id = 0
+        
+        if material_id < len(self.materials):
+            self.materials[material_id].roughness = roughness
+
+        return self
+
     def set_material(self, material, material_id=0):
         if len(self.materials) == 0:
             self.materials.append(Material())

@@ -50,6 +50,9 @@ class App:
 
     def render(self):
         pass
+
+    def render_text(self):
+        pass
     
     def terminate(self):
         pass

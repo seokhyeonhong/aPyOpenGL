@@ -19,7 +19,7 @@ out vec4 FragColor;
 // uniform
 // --------------------------------------------
 uniform bool      uColorMode;
-uniform bool      uPhong; // true: phong shading, false: pbr shading
+uniform bool      uPBR; // true: pbr shading, false: phong shading
 uniform vec2      uvScale;
 uniform float     uDispScale;
 uniform sampler2D uShadowMap;
@@ -32,7 +32,8 @@ uniform vec3      uGridColors[2];
 // --------------------------------------------
 #define MAX_MATERIAL_NUM 5
 struct Material {
-    ivec4 textureID; // albedo, normal, displacement
+    ivec3 textureID; // albedo, normal, displacement
+    ivec3 pbrTextureID; // metallic, roughness, ao
     vec4  albedo; // RGBA
 
     // phong shading
@@ -276,18 +277,18 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
 }
 
 // PBR
-vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, Light light, Material material)
+vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, float metallic, float roughness, float ao, Light light)
 {
     float d = length(light.vector.xyz - fPosition);
     float atten = GetAttenuation(light);
     vec3 radiance = light.color * atten;
 
     vec3 F0 = vec3(0.04f);
-    F0 = mix(F0, albedo, material.metallic);
+    F0 = mix(F0, albedo, metallic);
     vec3 F = FresnelSchlick(max(dot(H, V), 0.0f), F0);
 
-    float NDF = TrowbridgeReitzGGX(N, H, material.roughness);
-    float G = Smith(N, V, L, material.roughness);
+    float NDF = TrowbridgeReitzGGX(N, H, roughness);
+    float G = Smith(N, V, L, roughness);
 
     vec3 num = NDF * G * F;
     float denom = 4.0f * max(dot(N, V), 0.0f) * max(dot(N, L), 0.0f) + 0.0001f;
@@ -295,17 +296,19 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, Light light, 
 
     vec3 kS = F;
     vec3 kD = vec3(1.0f) - kS;
-    kD *= 1.0f - material.metallic;
+    kD *= 1.0f - metallic;
 
     float NdotL = max(dot(N, L), 0.0f);
 
     vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;
+    // vec3 ambient = (kD * diffuse) * ao;
+    vec3 ambient = vec3(0.03f) * albedo * ao;
 
     // shadow
     float shadow = Shadow(fPosLightSpace, L, uShadowMap);
 
     // final color
-    vec3 result = ((1.0f - shadow) * Lo);
+    vec3 result = ((1.0f - shadow) * (Lo + ambient));
 
     return result;
 }
@@ -316,16 +319,23 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, Light light, 
 void main()
 {
     // find material texture ID
-    int albedoID = uMaterial[fMaterialID].textureID.x;
-    int normalID = uMaterial[fMaterialID].textureID.y;
-    int dispID   = uMaterial[fMaterialID].textureID.z;
+    int albedoID    = uMaterial[fMaterialID].textureID.x;
+    int normalID    = uMaterial[fMaterialID].textureID.y;
+    int dispID      = uMaterial[fMaterialID].textureID.z;
+    
+    int metallicID  = uMaterial[fMaterialID].pbrTextureID.x;
+    int roughnessID = uMaterial[fMaterialID].pbrTextureID.y;
+    int aoID        = uMaterial[fMaterialID].pbrTextureID.z;
 
     // texture scaling
     vec2 uv = fTexCoord * uvScale;
 
     // find material attributes
-    vec3 albedo = uMaterial[fMaterialID].albedo.rgb;
-    float alpha = uMaterial[fMaterialID].albedo.a;
+    vec3  albedo    = uMaterial[fMaterialID].albedo.rgb;
+    float alpha     = uMaterial[fMaterialID].albedo.a;
+    float metallic  = uMaterial[fMaterialID].metallic;
+    float roughness = uMaterial[fMaterialID].roughness;
+    float ao        = uMaterial[fMaterialID].ao;
 
     // normal, view, light and half vectors
     vec3 N = normalize(fNormal);
@@ -335,7 +345,7 @@ void main()
 
     // Textures --------------------------------------------
     // displacement
-    if (uMaterial[fMaterialID].textureID.z >= 0)
+    if (dispID >= 0)
     {
         mat3 TBN_t = transpose(fTBN);
         vec3 V_ = normalize(TBN_t * V);
@@ -348,15 +358,33 @@ void main()
     }
 
     // albedo
-    if (uMaterial[fMaterialID].textureID.x >= 0)
+    if (albedoID >= 0)
     {
         albedo = texture(uTextures[albedoID], uv).rgb;
     }
 
     // normal
-    if (uMaterial[fMaterialID].textureID.y >= 0)
+    if (normalID >= 0)
     {
         N = GetNormalFromMap(uTextures[normalID], uv);
+    }
+
+    // metallic
+    if (metallicID >= 0)
+    {
+        metallic = texture(uTextures[metallicID], uv).r;
+    }
+
+    // roughness
+    if (roughnessID >= 0)
+    {
+        roughness = texture(uTextures[roughnessID], uv).r;
+    }
+
+    // ambient occlusion
+    if (aoID >= 0)
+    {
+        ao = texture(uTextures[aoID], uv).r;
     }
 
     // --------------------------------------------
@@ -370,23 +398,23 @@ void main()
     else if (uColorMode)
     {
         FragColor = vec4(albedo, 1.0f);
-        return;
     }
-    else if (uPhong)
-    {
-        FragColor = BlinnPhong(albedo, N, V, L, uLight, uMaterial[fMaterialID]);
-        FragColor.a = alpha;
-    }
-    else
+    else if (uPBR)
     {
         vec3 color = vec3(0.0f);
         for (int i = 0; i < 4; ++i)
         {
-            color += CookTorranceBRDF(N, V, L, H, albedo, uLight, uMaterial[fMaterialID]);
+            color += CookTorranceBRDF(N, V, L, H, albedo, metallic, roughness, ao, uLight);
         }
+
         // FragColor.rgb = CookTorranceBRDF(N, V, L, H, albedo, uLight, uMaterial[fMaterialID]);
         FragColor.rgb = color;
         // FragColor.rgb = ReinhardToneMapping(FragColor.rgb);
+        FragColor.a = alpha;
+    }
+    else
+    {
+        FragColor = BlinnPhong(albedo, N, V, L, uLight, uMaterial[fMaterialID]);
         FragColor.a = alpha;
     }
 

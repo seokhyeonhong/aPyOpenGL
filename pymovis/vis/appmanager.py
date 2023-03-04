@@ -97,7 +97,7 @@ class AppManager:
             # render text
             Render.set_render_mode(RenderMode.eTEXT)
             glViewport(0, 0, width, height)
-            self.app.render()
+            self.app.render_text()
 
             # late update
             self.app.late_update()
