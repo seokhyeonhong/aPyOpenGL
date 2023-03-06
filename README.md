@@ -29,9 +29,14 @@ PyOpenGL-accelerate
 PyGLM
 glfw
 freetype-py
+FreeImage binary
 FBX SDK Python Binding
 ```
-All modules except FBX SDK Python Binding can be installed by this command:
+FreeImage binary can be downloaded by this command:
+```
+imageio_download_bin freeimage
+```
+All the other modules except FBX SDK Python Binding can be installed by this command:
 ```
 pip install -r requirements.txt
 ```
@@ -52,6 +57,7 @@ pip install -r requirements.txt
 * []: Move a single frame to the past/future.
 * Left/Right arrow: Move 10 frames to the past/future.
 * F6: Capture the screen in video if entered once, and save in ```captures/yyyy-mm-dd/videos``` if entered again.
+* F7: Capture all frames and save the video in ```captures/yyyy-mm-dd/videos```. Once F7 is entered, other commands will not be working while capturing the frames, and it will be restored after capturing all the frames.
 
 ### MotionApp
 ```MotionApp``` is a class that inherits ```App``` and specialized to visualize motion data, and there are more utility commands.

@@ -1,3 +1,4 @@
+from enum import Enum
 from OpenGL.GL import *
 
 import glfw
@@ -121,7 +122,13 @@ class App:
         cv2.imwrite(image_path, image)
 
 """ Class for general animation with a fixed number of frames """
+# TODO: refactor this class, focusing on glfw.set_time() and glfw.get_time()
 class AnimApp(App):
+    class RecordMode(Enum):
+        eNONE = 0
+        eALL = 1
+        eCURRENT = 2
+
     def __init__(self, total_frames, fps=30):
         super().__init__()
         self.total_frames = int(total_frames)
@@ -129,7 +136,7 @@ class AnimApp(App):
 
         self.frame = 0
         self.playing = True
-        self.recording = False
+        self.record_mode = AnimApp.RecordMode.eNONE
         self.record_start_time = 0
         self.record_end_time = 0
         self.captures = []
@@ -137,8 +144,12 @@ class AnimApp(App):
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)
 
+        # return if no key is pressed
+        if action != glfw.PRESS:
+            return
+
         # Space: play/pause
-        if key == glfw.KEY_SPACE and action == glfw.PRESS:
+        if key == glfw.KEY_SPACE:
             self.playing = not self.playing
         
         # Replay when the end of the animation is reached
@@ -147,35 +158,41 @@ class AnimApp(App):
             glfw.set_time(0)
 
         # 0~9, []: frame control
-        if glfw.KEY_0 <= key <= glfw.KEY_9 and action == glfw.PRESS:
+        if glfw.KEY_0 <= key <= glfw.KEY_9:
             self.frame = int(self.total_frames * (key - glfw.KEY_0) * 0.1)
             glfw.set_time(self.frame / self.fps)
             
         if not self.playing:
-            if key == glfw.KEY_LEFT_BRACKET and action == glfw.PRESS:
+            if key == glfw.KEY_LEFT_BRACKET:
                 self.frame = max(self.frame - 1, 0)
-            elif key == glfw.KEY_RIGHT_BRACKET and action == glfw.PRESS:
+            elif key == glfw.KEY_RIGHT_BRACKET:
                 self.frame = min(self.frame + 1, self.total_frames - 1)
-            if key == glfw.KEY_LEFT and action == glfw.PRESS:
+            if key == glfw.KEY_LEFT:
                 self.frame = max(self.frame - 10, 0)
-            elif key == glfw.KEY_RIGHT and action == glfw.PRESS:
+            elif key == glfw.KEY_RIGHT:
                 self.frame = min(self.frame + 10, self.total_frames - 1)
             glfw.set_time(self.frame / self.fps)
         
-        # F6: record
-        if key == glfw.KEY_F6 and action == glfw.PRESS:
-            if self.recording:
+        # F6/F7: record current/all frames
+        if key == glfw.KEY_F6:
+            if self.record_mode == AnimApp.RecordMode.eCURRENT:
                 self.record_end_time = time.perf_counter()
                 self.save_video()
                 self.captures = []
-            else:
+                self.record_mode = AnimApp.RecordMode.eNONE
+            elif self.record_mode == AnimApp.RecordMode.eNONE:
                 self.record_start_time = time.perf_counter()
-            self.recording = not self.recording
-
+                self.record_mode = AnimApp.RecordMode.eCURRENT
+        if key == glfw.KEY_F7 and self.record_mode == AnimApp.RecordMode.eNONE:
+            self.frame = 0
+            glfw.set_time(0)
+            self.record_mode = AnimApp.RecordMode.eALL
 
     def update(self):
         # time setting
-        if self.playing:
+        if self.record_mode == AnimApp.RecordMode.eALL:
+            self.frame = min(self.frame, self.total_frames - 1)
+        elif self.playing:
             self.frame = min(int(glfw.get_time() * self.fps), self.total_frames - 1)
         else:
             glfw.set_time(self.frame / self.fps)
@@ -185,17 +202,27 @@ class AnimApp(App):
             self.playing = False
 
     def late_update(self):
-        if self.recording:
+        if self.record_mode != AnimApp.RecordMode.eNONE:
             self.captures.append(super().capture_screen())
+        if self.record_mode == AnimApp.RecordMode.eALL:
+            if self.frame == self.total_frames - 1:
+                self.save_video(self.fps)
+                self.captures = []
+                self.record_mode = AnimApp.RecordMode.eNONE
+                self.frame = 0
+                glfw.set_time(0)
+            else:
+                self.frame += 1
+                glfw.set_time(self.frame / self.fps)
 
     """ Capture functions """
-    def save_video(self):
+    def save_video(self, fps=None):
         video_dir = os.path.join(self.capture_path, "videos")
         if not os.path.exists(video_dir):
             os.makedirs(video_dir)
         
         video_path = os.path.join(video_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".mp4")
-        fps = len(self.captures) / (self.record_end_time - self.record_start_time)
+        fps = len(self.captures) / (self.record_end_time - self.record_start_time) if fps is None else fps
         height, width, _ = self.captures[0].shape
         
         video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
@@ -217,7 +244,6 @@ class MotionApp(AnimApp):
             self.model.set_source_skeleton(self.motion.skeleton, skeleton_dict)
 
         # play options
-        self.frame = 0
         self.playing = True
         self.recording = False
         self.record_start_time = 0
