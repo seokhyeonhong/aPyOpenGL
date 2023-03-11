@@ -19,17 +19,17 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm(d_model)
     
-    def forward(self, Q, K, V, mask=None):
-        B, T1, D = Q.shape
-        _, T2, _ = K.shape
+    def forward(self, x, context, mask=None):
+        B, T1, D = x.shape
+        _, T2, _ = context.shape
 
         if self.pre_layernorm:
-            Q = self.layer_norm(Q)
+            x = self.layer_norm(x)
 
         # linear projection
-        q = self.W_q(Q) # (B, T1, n_head*d_head)
-        k = self.W_k(K) # (B, T2, n_head*d_head)
-        v = self.W_v(V) # (B, T2, n_head*d_head)
+        q = self.W_q(x) # (B, T1, n_head*d_head)
+        k = self.W_k(context) # (B, T2, n_head*d_head)
+        v = self.W_v(context) # (B, T2, n_head*d_head)
 
         # split heads
         q = q.view(B, T1, self.n_head, self.d_head).transpose(1, 2) # (B, n_head, T1, d_head)
@@ -50,9 +50,9 @@ class MultiHeadAttention(nn.Module):
         output = self.dropout(output)
 
         if self.pre_layernorm:
-            return output
+            return x + output
         else:
-            return self.layer_norm(output)
+            return self.layer_norm(x + output)
 
 class RelativeMultiHeadAttention(nn.Module):
     def __init__(self, d_model, d_head, n_head, dropout=0.1, pre_layernorm=True):
@@ -78,17 +78,17 @@ class RelativeMultiHeadAttention(nn.Module):
         QE_t = F.pad(QE_t, (0, T-1)).view(B, H, T+1, 2*T - 1)
         return QE_t[:, :, :T, -T:]
 
-    def forward(self, Q, K, V, lookup_table, mask=None):
-        B, T1, D = Q.shape
-        _, T2, _ = K.shape
+    def forward(self, x, context, lookup_table, mask=None):
+        B, T1, D = x.shape
+        _, T2, _ = context.shape
 
         if self.pre_layernorm:
-            Q = self.layer_norm(Q)
+            x = self.layer_norm(x)
 
         # linear projection to
-        q = self.W_q(Q) # (B, T1, n_head*d_head)
-        k = self.W_k(K) # (B, T2, n_head*d_head)
-        v = self.W_v(V) # (B, T2, n_head*d_head)
+        q = self.W_q(x) # (B, T1, n_head*d_head)
+        k = self.W_k(context) # (B, T2, n_head*d_head)
+        v = self.W_v(context) # (B, T2, n_head*d_head)
 
         # split heads
         q = q.view(B, T1, self.n_head, self.d_head).transpose(1, 2) # (B, n_head, T1, d_head)
@@ -112,9 +112,9 @@ class RelativeMultiHeadAttention(nn.Module):
         output = self.dropout(output)
         
         if self.pre_layernorm:
-            return output
+            return x + output
         else:
-            return self.layer_norm(output)
+            return self.layer_norm(x + output)
 
 class PoswiseFeedForwardNet(nn.Module):
     def __init__(self, d_model, d_ff, dropout=0.1, pre_layernorm=True):
