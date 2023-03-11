@@ -53,9 +53,9 @@ class MultiHeadAttention(nn.Module):
         else:
             return self.layer_norm(Q + out)
 
-class RelativeMultiHeadSelfAttention(nn.Module):
+class RelativeMultiHeadAttention(nn.Module):
     def __init__(self, d_model, d_head, n_head, dropout=0.1, pre_layernorm=True):
-        super(RelativeMultiHeadSelfAttention, self).__init__()
+        super(RelativeMultiHeadAttention, self).__init__()
         self.d_model = d_model
         self.d_head = d_head
         self.n_head = n_head
