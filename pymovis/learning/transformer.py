@@ -50,9 +50,9 @@ class MultiHeadAttention(nn.Module):
         output = self.dropout(output)
 
         if self.pre_layernorm:
-            return Q + output
+            return output
         else:
-            return self.layer_norm(Q + output)
+            return self.layer_norm(output)
 
 class RelativeMultiHeadAttention(nn.Module):
     def __init__(self, d_model, d_head, n_head, dropout=0.1, pre_layernorm=True):
@@ -112,9 +112,9 @@ class RelativeMultiHeadAttention(nn.Module):
         output = self.dropout(output)
         
         if self.pre_layernorm:
-            return Q + output
+            return output
         else:
-            return self.layer_norm(Q + output)
+            return self.layer_norm(output)
 
 class PoswiseFeedForwardNet(nn.Module):
     def __init__(self, d_model, d_ff, dropout=0.1, pre_layernorm=True):
