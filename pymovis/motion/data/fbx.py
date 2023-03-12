@@ -34,10 +34,10 @@ class Parser:
     def init_character_data(self, scale):
         filename = os.path.splitext(os.path.basename(self.path))[0]
         save_path = os.path.join(os.path.dirname(self.path), f"{filename}_character_data.pkl")
-        if os.path.exists(save_path) and self.save:
-            with open(save_path, "rb") as f:
-                self.char_data = pickle.load(f)
-            return
+        # if os.path.exists(save_path) and self.save:
+        #     with open(save_path, "rb") as f:
+        #         self.char_data = pickle.load(f)
+        #     return
 
         self.char_data = fbx_parser.CharacterData()
         root = self.parser.scene.GetRootNode()
@@ -54,17 +54,17 @@ class Parser:
         for i in range(root.GetChildCount()):
             fbx_skeleton.parse_nodes_by_type(root.GetChild(i), self.char_data.joint_data, -1, fbx.FbxNodeAttribute.eSkeleton, scale)
         
-        if not os.path.exists(save_path) and self.save:
-            with open(save_path, "wb") as f:
-                pickle.dump(self.char_data, f, pickle.HIGHEST_PROTOCOL)
+        # if not os.path.exists(save_path) and self.save:
+        #     with open(save_path, "wb") as f:
+        #         pickle.dump(self.char_data, f, pickle.HIGHEST_PROTOCOL)
 
     def init_mesh_data(self, scale):
         filename = os.path.splitext(os.path.basename(self.path))[0]
         save_path = os.path.join(os.path.dirname(self.path), f"{filename}_mesh_data.pkl")
-        if os.path.exists(save_path) and self.save:
-            with open(save_path, "rb") as f:
-                self.mesh_data = pickle.load(f)
-            return
+        # if os.path.exists(save_path) and self.save:
+        #     with open(save_path, "rb") as f:
+        #         self.mesh_data = pickle.load(f)
+        #     return
 
         mesh_nodes = []
 
@@ -107,9 +107,9 @@ class Parser:
             
             self.mesh_data.append(mesh_data)
         
-        if not os.path.exists(save_path) and self.save:
-            with open(save_path, "wb") as f:
-                pickle.dump(self.mesh_data, f, pickle.HIGHEST_PROTOCOL)
+        # if not os.path.exists(save_path) and self.save:
+        #     with open(save_path, "wb") as f:
+        #         pickle.dump(self.mesh_data, f, pickle.HIGHEST_PROTOCOL)
     
     def __load_mesh_recursive(self, node, mesh_nodes):
         for i in range(node.GetNodeAttributeCount()):

@@ -15,7 +15,7 @@ from pymovis.vis.camera import Camera
 from pymovis.vis.light import Light, DirectionalLight, PointLight
 from pymovis.vis.render import Render
 from pymovis.vis.model import Model
-from pymovis.vis.const import LAFAN_BVH_TO_FBX
+from pymovis.vis.const import LAFAN1_FBX_DICT
 
 """ Base class for all applications """
 class App:
@@ -234,7 +234,7 @@ class AnimApp(App):
 
 """ Class for motion data visualization """
 class MotionApp(AnimApp):
-    def __init__(self, motion: Motion, model: Model=None, skeleton_dict=LAFAN_BVH_TO_FBX):
+    def __init__(self, motion: Motion, model: Model=None, skeleton_dict=LAFAN1_FBX_DICT):
         super().__init__(len(motion), motion.fps)
         self.motion = motion
         self.model = model
@@ -255,7 +255,8 @@ class MotionApp(AnimApp):
         self.follow_root = False
         self.init_cam_pos = self.camera.position
 
-        self.grid = Render.plane().set_scale(50).set_uv_repeat(5).set_texture("grid.png")
+        self.grid = Render.plane(200, 200).set_albedo(0.2).set_floor(True)
+        # self.grid = Render.plane().set_floor(True)#.set_scale(50).set_uv_repeat(5).set_texture("grid.png")
         self.axis = Render.axis()
         self.text = Render.text()
     
@@ -282,7 +283,7 @@ class MotionApp(AnimApp):
         # render the current frame
         self.text.set_text(self.frame).draw()
         
-    def render(self, render_model=True, render_xray=False):
+    def render(self, render_model=True, render_xray=False, xray_color=[1, 0, 0]):
         super().render()
 
         # set camera focus on the root
@@ -305,7 +306,7 @@ class MotionApp(AnimApp):
 
         # render the xray
         if render_xray:
-            self.render_xray(self.motion.poses[self.frame])
+            self.render_xray(self.motion.poses[self.frame], xray_color)
 
     def render_xray(self, pose, albedo=[1, 0, 0]):
         if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):

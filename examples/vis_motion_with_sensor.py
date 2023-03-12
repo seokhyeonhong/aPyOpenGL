@@ -14,9 +14,9 @@ class MyApp(MotionApp):
         self.model = model
         self.sensor = env_sensor(1, 11) # (S, S, 3)
         self.sensor_sphere = Render.sphere(0.05).set_albedo([0.2, 1, 0.2])
-        self.base_sphere = Render.sphere(0.05).set_albedo([1, 0.2, 0.2])
+
     def render(self):
-        super().render(render_xray=False)
+        super().render(render_xray=True)
 
         # transform sensor
         forward = self.motion.poses[self.frame].forward
@@ -24,7 +24,6 @@ class MyApp(MotionApp):
         left = self.motion.poses[self.frame].left
         R = np.stack([left, up, forward], axis=-1)
         sensor = np.einsum("ij,aj->ai", R, self.sensor) + self.motion.poses[self.frame].base
-        self.base_sphere.draw()
         for s in sensor:
             self.sensor_sphere.set_position(s).draw()
 

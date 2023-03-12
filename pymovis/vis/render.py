@@ -12,7 +12,7 @@ from pymovis.vis.texture import Texture, TextureLoader
 from pymovis.vis.text import FontTexture
 from pymovis.vis.mesh import Mesh
 from pymovis.vis.model import Model
-from pymovis.vis.const import TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES, MAX_JOINT_NUM
+from pymovis.vis.const import TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES, MAX_JOINT_NUM, BACKGROUND_TEXTURE_FILE
 
 def get_draw_func(render_func):
     if render_func is "phong":
@@ -43,18 +43,22 @@ class RenderInfo:
 class Render:
     render_mode      = RenderMode.eDRAW
     render_info      = RenderInfo()
-    primitive_meshes = {}
     font_texture     = None
 
     @staticmethod
     def initialize_shaders():
-        Render.primitive_shader = Shader("basic.vs",   "phong.fs")
-        Render.lbs_shader       = Shader("lbs.vs",     "phong.fs")
-        Render.shadow_shader    = Shader("shadow.vs",  "shadow.fs")
-        Render.text_shader      = Shader("text.vs",    "text.fs")
-        Render.cubemap_shader   = Shader("cubemap.vs", "cubemap.fs")
-        Render.shaders          = [Render.primitive_shader, Render.lbs_shader, Render.shadow_shader, Render.text_shader, Render.cubemap_shader]
-        Render.depth_map_fbo, Render.depth_map = TextureLoader.generate_shadow_buffer()
+        Render.primitive_shader = Shader("vert.vs",     "frag.fs")
+        Render.lbs_shader       = Shader("lbs.vs",      "frag.fs")
+        Render.text_shader      = Shader("text.vs",     "text.fs")
+        Render.cubemap_shader   = Shader("cubemap.vs",  "cubemap.fs")
+
+        Render.shadow_shader    = Shader("shadow.vs",   "shadow.fs")
+        Render.shadowmap_fbo, Render.shadowmap_texture_id = TextureLoader.generate_shadow_buffer()
+
+        Render.equirect_shader = Shader("equirect.vs", "equirect.fs")
+        TextureLoader.load_irradiance_map(BACKGROUND_TEXTURE_FILE, Render.equirect_shader)
+
+        Render.shaders          = [Render.primitive_shader, Render.lbs_shader, Render.shadow_shader, Render.text_shader, Render.cubemap_shader, Render.equirect_shader]
     
     @staticmethod
     def sky_color():
@@ -63,7 +67,7 @@ class Render:
     @staticmethod
     def set_render_mode(mode):
         if mode == RenderMode.eSHADOW:
-            glBindFramebuffer(GL_FRAMEBUFFER, Render.depth_map_fbo)
+            glBindFramebuffer(GL_FRAMEBUFFER, Render.shadowmap_fbo)
         else:
             glBindFramebuffer(GL_FRAMEBUFFER, 0)
         Render.render_mode = mode
@@ -81,13 +85,9 @@ class Render:
         return RenderOptions(Cone(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
-    def plane(render_mode="pbr"):
-        return RenderOptions(Plane(), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+    def plane(width=1.0, height=1.0, render_mode="pbr"):
+        return RenderOptions(Plane(width, height), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
     
-    @staticmethod
-    def grid(size_x=1.0, size_z=1.0, render_mode="pbr"):
-        return RenderOptions(Plane(), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow).set_floor(True).set_grid_size(size_x, size_z)
-
     @staticmethod
     def cylinder(radius=0.5, height=1, sectors=16, render_mode="pbr"):
         return RenderOptions(Cylinder(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
@@ -131,12 +131,12 @@ class Render:
     @staticmethod
     def axis():
         R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
-        arrow_x = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_orientation(R_x).set_albedo(glm.vec3(1, 0, 0)).set_color_mode(True)
+        arrow_x = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_orientation(R_x).set_albedo(glm.vec3(1, 0, 0))#.set_color_mode(True)
         
-        arrow_y = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_albedo(glm.vec3(0, 1, 0)).set_color_mode(True)
+        arrow_y = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_albedo(glm.vec3(0, 1, 0))#.set_color_mode(True)
 
         R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
-        arrow_z = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_orientation(R_z).set_albedo(glm.vec3(0, 0, 1)).set_color_mode(True)
+        arrow_z = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_orientation(R_z).set_albedo(glm.vec3(0, 0, 1))#.set_color_mode(True)
         return RenderOptionsVec([arrow_x, arrow_y, arrow_z])
 
     @staticmethod
@@ -156,8 +156,8 @@ class Render:
         return res.set_text(str(t)).set_albedo(color)
 
     @staticmethod
-    def cubemap(dirname, scale=100):
-        ro = RenderOptions(Cubemap(scale=scale), Render.cubemap_shader, Render.draw_cubemap)
+    def cubemap(dirname):
+        ro = RenderOptions(Cubemap(), Render.cubemap_shader, Render.draw_cubemap)
         ro.set_cubemap(dirname)
         return ro
 
@@ -181,6 +181,7 @@ class Render:
             shader.set_vec3("uLight.color",       Render.render_info.light_color)
             shader.set_vec3("uLight.attenuation", Render.render_info.light_attenuation)
             shader.set_mat4("uLightSpaceMatrix",  Render.render_info.light_matrix)
+            shader.set_vec3("uSkyColor",          Render.render_info.sky_color)
             shader.is_view_updated = True
 
         # update model
@@ -200,24 +201,20 @@ class Render:
 
         # texture indexing
         if shader.is_texture_updated is False:
+            shader.set_int("uIrradianceMap", 0)
             shader.set_int("uShadowMap", 1)
             for i in range(MAX_MATERIAL_TEXTURES):
                 shader.set_int(f"uTextures[{i}]", i + 2)
             shader.is_texture_updated = True
-
-        # TODO: fix this
-        # # set environment map 
-        # shader.set_int("uMaterial.albedoMap", 0)
-        # if option.texture_id is not None:
-        #     shader.set_int("uMaterial.id", 0)
-        #     glActiveTexture(GL_TEXTURE0)
-        #     glBindTexture(GL_TEXTURE_2D, option.texture_id)
-        # else:
-        #     shader.set_int("uMaterial.id", -1)
         
+        # set irradiance map
+        irradiance_map = TextureLoader.load_irradiance_map(BACKGROUND_TEXTURE_FILE, Render.equirect_shader)
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, irradiance_map.texture_id)
+
         # set shadow map
         glActiveTexture(GL_TEXTURE1)
-        glBindTexture(GL_TEXTURE_2D, Render.depth_map)
+        glBindTexture(GL_TEXTURE_2D, Render.shadowmap_texture_id)
         
         # remove all textures
         for i in range(MAX_MATERIAL_TEXTURES):
@@ -260,18 +257,18 @@ class Render:
             shader.set_ivec3(f"uMaterial[{i}].pbrTextureID", pbr_texture_id[i])
 
             if pbr:
-                shader.set_float(f"uMaterial[{i}].metallic",     option.materials[i].metallic)
-                shader.set_float(f"uMaterial[{i}].roughness",    option.materials[i].roughness)
-                shader.set_float(f"uMaterial[{i}].ao",           option.materials[i].ao)
+                shader.set_float(f"uMaterial[{i}].metallic",  option.materials[i].metallic)
+                shader.set_float(f"uMaterial[{i}].roughness", option.materials[i].roughness)
+                shader.set_float(f"uMaterial[{i}].ao",        option.materials[i].ao)
             else:
                 shader.set_vec3 (f"uMaterial[{i}].diffuse",   option.materials[i].diffuse)
                 shader.set_vec3 (f"uMaterial[{i}].specular",  option.materials[i].specular)
                 shader.set_float(f"uMaterial[{i}].shininess", option.materials[i].shininess)
 
         shader.set_bool("uIsFloor", option.is_floor)
-        shader.set_vec2("uGridSize", option.grid_size)
-        for i in range(2):
-            shader.set_vec3(f"uGridColors[{i}]", option.grid_colors[i])
+        shader.set_vec3("uGridColor", option.grid_color)
+        shader.set_float("uGridWidth", option.grid_width)
+        shader.set_float("uGridInterval", option.grid_interval)
 
         shader.set_bool("uColorMode", option.color_mode)
         shader.set_vec2("uvScale",    option.uv_repeat)
@@ -283,7 +280,7 @@ class Render:
 
         # unbind vao
         glBindVertexArray(0)
-    
+
     @staticmethod
     def draw_shadow(option: RenderOptions, shader: Shader):
         if option is None or shader is None:
@@ -389,15 +386,15 @@ class Render:
     def draw_cubemap(option: RenderOptions, shader: Shader):
         if option is None or shader is None:
             return
-        if Render.render_mode == RenderMode.eSHADOW:
+        if Render.render_mode != RenderMode.eDRAW:
             return
         if option.cubemap.texture_id == 0:
             return
         
+        shader.use()
+
         # adjust depth settings for optimized rendering
         glDepthFunc(GL_LEQUAL)
-
-        shader.use()
 
         # update view
         P = Render.render_info.cam_projection
@@ -414,12 +411,11 @@ class Render:
         glDrawArrays(GL_TRIANGLES, 0, 36)
 
         # restore depth settings
-        glDepthFunc(GL_LESS)
+        glDepthFunc(GL_LEQUAL)
 
         # unbind vao
         glBindVertexArray(0)
-
-
+        
     @staticmethod
     def update_render_view(app, width, height):
         cam = app.camera
@@ -440,7 +436,6 @@ class Render:
     
     @staticmethod
     def clear():
-        Render.primitive_meshes.clear()
         Render.font_texture = None
         TextureLoader.clear()
 
@@ -448,7 +443,7 @@ class Render:
 class RenderOptions:
     def __init__(
         self,
-        vao:           VAO,
+        vao: VAO,
         shader,
         draw_func,
         shadow_shader=None,
@@ -475,8 +470,9 @@ class RenderOptions:
         self.text          = ""
         self.color_mode    = False
         self.is_floor      = False
-        self.grid_size     = glm.vec2(1.0)
-        self.grid_colors   = [glm.vec3(0.0), glm.vec3(1.0)]
+        self.grid_color    = glm.vec3(0.0)
+        self.grid_width    = 1.0
+        self.grid_interval = 1.0
 
         # visibility
         self.visible       = True
@@ -574,18 +570,13 @@ class RenderOptions:
         self.cubemap = TextureLoader.load_cubemap(dirname)
         return self
 
-    def set_floor(self, is_floor):
+    def set_floor(self, is_floor, line_width=1.0, line_interval=1.0, line_color=glm.vec3(1.0)):
         self.is_floor = is_floor
+        self.grid_color = line_color
+        self.grid_width = line_width
+        self.grid_interval = line_interval
         return self
     
-    def set_grid_size(self, size_x=1.0, size_z=1.0):
-        self.grid_size = glm.vec2(size_x, size_z)
-        return self
-    
-    def set_grid_color(self, color1=glm.vec3(0.0), color2=glm.vec3(1.0)):
-        self.grid_colors = [glm.vec3(color1), glm.vec3(color2)]
-        return self
-
     def set_skinning(self, use_skinning):
         self.use_skinning = use_skinning
         return self
@@ -645,15 +636,29 @@ class RenderOptionsVec:
             option.switch_visible()
         return self
     
+    def set_all_scales(self, scale):
+        for option in self.options:
+            option.set_scale(scale)
+        return self
+    
     def set_all_alphas(self, alpha):
         for option in self.options:
             for material in option.materials:
                 material.set_alpha(alpha)
         return self
     
+    def set_all_color_modes(self, color_mode):
+        for option in self.options:
+            option.set_color_mode(color_mode)
+        return self
+    
     def set_albedo(self, albedo, material_id=0):
         for option in self.options:
             option.set_albedo(albedo, material_id)
+        return self
+    
+    def set_albedo_of(self, albedo, model_id=0):
+        self.options[model_id].set_albedo(albedo)
         return self
     
     def set_alpha(self, alpha, material_id=0):

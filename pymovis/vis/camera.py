@@ -65,7 +65,7 @@ class Camera:
 
         if self.__is_perspective:
             self.__zoom_factor -= yoffset
-            self.__zoom_factor = max(0.1, min(self.__zoom_factor, 10))
+            self.__zoom_factor = max(0.1, min(self.__zoom_factor, 2))
         else:
             self.__ortho_zoom -= yoffset * 100
             self.__ortho_zoom  = max(0.1, min(self.__ortho_zoom, 1000))

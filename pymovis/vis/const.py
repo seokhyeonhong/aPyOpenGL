@@ -1,5 +1,6 @@
 """ Shadow constants """
-SHADOW_MAP_SIZE = 2048
+SHADOW_MAP_SIZE = 4096
+BACKGROUND_MAP_SIZE = 512
 
 """ Camera constants """
 CAM_TRACK_SENSITIVITY = 0.002
@@ -17,9 +18,12 @@ INCH_TO_METER = 0.0254
 MAX_MATERIAL_NUM = 5
 MAX_MATERIAL_TEXTURES = 25
 
+""" Texture constants """
+BACKGROUND_TEXTURE_FILE = "background.hdr"
+
 """ Skeleton constants """
 MAX_JOINT_NUM = 100
-LAFAN_BVH_TO_FBX = {
+LAFAN1_FBX_DICT = {
     "Hips":          "Model:Hips",
     "LeftUpLeg":     "Model:LeftUpLeg",
     "LeftLeg":       "Model:LeftLeg",
@@ -44,16 +48,16 @@ LAFAN_BVH_TO_FBX = {
     "RightHand":     "Model:RightHand",
 }
 
-LAFAN_BVH_TO_YBOT = {
+YBOT_FBX_DICT = {
     "Hips":          "mixamorig:Hips",
     "LeftUpLeg":     "mixamorig:LeftUpLeg",
     "LeftLeg":       "mixamorig:LeftLeg",
     "LeftFoot":      "mixamorig:LeftFoot",
-    "LeftToe":       "mixamorig:LeftToeBase",
+    "LeftToeBase":   "mixamorig:LeftToeBase",
     "RightUpLeg":    "mixamorig:RightUpLeg",
     "RightLeg":      "mixamorig:RightLeg",
     "RightFoot":     "mixamorig:RightFoot",
-    "RightToe":      "mixamorig:RightToeBase",
+    "RightToeBase":  "mixamorig:RightToeBase",
     "Spine":         "mixamorig:Spine",
     "Spine1":        "mixamorig:Spine1",
     "Spine2":        "mixamorig:Spine2",

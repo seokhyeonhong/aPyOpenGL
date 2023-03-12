@@ -18,14 +18,19 @@ out vec4 FragColor;
 // --------------------------------------------
 // uniform
 // --------------------------------------------
-uniform bool      uColorMode;
-uniform bool      uPBR; // true: pbr shading, false: phong shading
-uniform vec2      uvScale;
-uniform float     uDispScale;
-uniform sampler2D uShadowMap;
-uniform bool      uIsFloor;
-uniform vec2      uGridSize;
-uniform vec3      uGridColors[2];
+uniform bool        uColorMode;
+uniform bool        uPBR; // true: pbr shading, false: phong shading
+uniform vec2        uvScale;
+uniform float       uDispScale;
+uniform samplerCube uIrradianceMap; // IBL
+uniform sampler2D   uShadowMap;
+
+uniform bool        uIsFloor;
+uniform vec3        uGridColor;
+uniform float       uGridWidth;
+uniform float       uGridInterval;
+
+uniform vec3        uSkyColor;
 
 // --------------------------------------------
 // material structure
@@ -88,7 +93,7 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir, sampler2D shadowMap)
 
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
-    float bias = max(0.0001f * (1.0f - dot(fNormal, lightDir)), 0.00001f);
+    float bias = max(0.001f * (1.0f - dot(fNormal, lightDir)), 0.0001f);
 
     // if current depth from camera is greater than that of the light source,
     // then the fragment is in shadow
@@ -120,11 +125,8 @@ float GetAttenuation(Light light)
     return atten;
 }
 
-vec4 BlinnPhong(vec3 albedo, vec3 N, vec3 V, vec3 L, Light light, Material material)
+vec3 BlinnPhong(vec3 albedo, vec3 N, vec3 V, vec3 L, Light light, Material material)
 {
-    // ambient
-    vec3 ambient = albedo * 0.05f;
-
     // diffuse
     vec3 diffuse = max(dot(N, L), 0.0f) * material.diffuse * light.color;
 
@@ -136,12 +138,9 @@ vec4 BlinnPhong(vec3 albedo, vec3 N, vec3 V, vec3 L, Light light, Material mater
     // attenuation
     float atten = GetAttenuation(light);
 
-    // shadow
-    float shadow = Shadow(fPosLightSpace, L, uShadowMap);
-
     // final color
-    vec3 result = (ambient + atten * (1.0f - shadow) * (diffuse + specular)) * albedo;
-    return vec4(result, 1.0f);
+    vec3 result = (atten * (diffuse + specular)) * albedo;
+    return result;
 }
 
 // --------------------------------------------
@@ -152,29 +151,37 @@ vec3 ReinhardToneMapping(vec3 color)
     return pow(result, vec3(1.0f / gamma));
 }
 
+vec3 ACESFilm(vec3 x) 
+{
+    // Narkowicz 2015, "ACES Filmic Tone Mapping Curve"
+    const float a = 2.51f;
+    const float b = 0.03f;
+    const float c = 2.43f;
+    const float d = 0.59f;
+    const float e = 0.14f;
+
+    x = (x * (a * x + b)) / (x * (c * x + d) + e);
+    return x;
+    // return clamp(x, 0.0f, 1.0f);
+}
+
 // --------------------------------------------
-// Reference: https://iquilezles.org/articles/checkerfiltering/
-// Shadertoy: https://www.shadertoy.com/view/ss3yzr
-vec3 Grid(vec2 p)
+vec2 Filter(vec2 p, float q)
 {
-    vec2 q = sign(fract(p / uGridSize * 0.5) - 0.5f);
-    float t = 0.5f * (1.0f - q.x * q.y);
-    return t * uGridColors[1] + (1.0f - t) * uGridColors[0];
+    return floor(p) + min(fract(p) * q, 1.0f);
 }
-
-vec2 Triangular(vec2 p)
+float FilteredGrid(vec2 p)
 {
-    vec2 q = fract(p * 0.5f) - 0.5f;
-    return 1.0f - 2.0 * abs(q);
-}
+    p *= uGridInterval;
 
-vec3 FilterGrid(vec2 p)
-{
-    vec2 q = p / uGridSize;
-    vec2 w = max(abs(dFdx(q)), abs(dFdy(q))) + 0.001f;
-    vec2 i = (Triangular(q + 0.5f * w) - Triangular(q - 0.5f * w)) / w;
-    float t = 0.5f * (1.0f - i.x * i.y);
-    return t * uGridColors[1] + (1.0f - t) * uGridColors[0];
+    float _N = 200.0f / uGridWidth;
+    vec2 w = max(abs(dFdx(p)), abs(dFdy(p))) + 0.001f;
+    w *= uGridInterval;
+
+    vec2 a = p + 0.5f * w;
+    vec2 b = p - 0.5f * w;
+    vec2 i = (Filter(a, _N) - Filter(b, _N)) / (_N*w);
+    return (1.0f - i.x) * (1.0f - i.y);
 }
 
 // --------------------------------------------
@@ -276,6 +283,11 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0f - F0) * pow(1.0f - cosTheta, 5.0f);
 }
 
+vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0f - roughness), F0) - F0) * pow(max(1.0f - cosTheta, 0.0f), 5.0f);
+}
+
 // PBR
 vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, float metallic, float roughness, float ao, Light light)
 {
@@ -285,32 +297,29 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, float metalli
 
     vec3 F0 = vec3(0.04f);
     F0 = mix(F0, albedo, metallic);
-    vec3 F = FresnelSchlick(max(dot(H, V), 0.0f), F0);
 
-    float NDF = TrowbridgeReitzGGX(N, H, roughness);
-    float G = Smith(N, V, L, roughness);
+    vec3 Lo = vec3(0.0f);
+    for (int i = 0; i < 1; ++i)
+    {
+        // BRDF
+        float NDF = TrowbridgeReitzGGX(N, H, roughness);
+        float G   = Smith(N, V, L, roughness);
+        vec3  F   = FresnelSchlick(max(dot(H, V), 0.0f), F0);
 
-    vec3 num = NDF * G * F;
-    float denom = 4.0f * max(dot(N, V), 0.0f) * max(dot(N, L), 0.0f) + 0.0001f;
-    vec3 specular = num / denom;
+        vec3  numerator   = NDF * G * F;
+        float denominator = 4.0f * max(dot(N, V), 0.0f) * max(dot(N, L), 0.0f) + 0.0001f;
+        vec3  specular    = numerator / denominator;
 
-    vec3 kS = F;
-    vec3 kD = vec3(1.0f) - kS;
-    kD *= 1.0f - metallic;
+        vec3 kS = F;
+        vec3 kD = vec3(1.0f) - kS;
+        kD *= 1.0f - metallic;
 
-    float NdotL = max(dot(N, L), 0.0f);
+        float NdotL = max(dot(N, L), 0.0f);
 
-    vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;
-    // vec3 ambient = (kD * diffuse) * ao;
-    vec3 ambient = vec3(0.03f) * albedo * ao;
-
-    // shadow
-    float shadow = Shadow(fPosLightSpace, L, uShadowMap);
-
-    // final color
-    vec3 result = ((1.0f - shadow) * (Lo + ambient));
-
-    return result;
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+    }
+    
+    return Lo;
 }
 
 // --------------------------------------------
@@ -387,49 +396,62 @@ void main()
         ao = texture(uTextures[aoID], uv).r;
     }
 
+    // shadow
+    float shadow = Shadow(fPosLightSpace, L, uShadowMap);
+
     // --------------------------------------------
     // rendering
-    if (uIsFloor)
+    vec3 color = vec3(0.0f);
+    if (uColorMode)
     {
-        FragColor.rgb = FilterGrid(fPosition.xz);
-        FragColor.a = 1.0f;
-        return;
-    }
-    else if (uColorMode)
-    {
-        FragColor = vec4(albedo, 1.0f);
+        color = albedo;
     }
     else if (uPBR)
     {
-        vec3 color = vec3(0.0f);
-        for (int i = 0; i < 4; ++i)
-        {
-            color += CookTorranceBRDF(N, V, L, H, albedo, metallic, roughness, ao, uLight);
-        }
+        vec3 Lo = CookTorranceBRDF(N, V, L, H, albedo, metallic, roughness, ao, uLight);
+        
+        vec3 F0 = vec3(0.04f);
+        F0 = mix(F0, albedo, metallic);
+        vec3 kS = FresnelSchlickRoughness(max(dot(N, V), 0.0f), F0, roughness);
+        vec3 kD = 1.0f - kS;
+        kD *= 1.0f - metallic;
 
-        // FragColor.rgb = CookTorranceBRDF(N, V, L, H, albedo, uLight, uMaterial[fMaterialID]);
-        FragColor.rgb = color;
-        // FragColor.rgb = ReinhardToneMapping(FragColor.rgb);
-        FragColor.a = alpha;
+        vec3 irradiance = texture(uIrradianceMap, N).rgb;
+
+        vec3 diffuse = irradiance * albedo;
+        vec3 ambient = (kD * diffuse) * ao;
+
+        color = ambient + (1.0f - shadow) * Lo;
     }
     else
     {
-        FragColor = BlinnPhong(albedo, N, V, L, uLight, uMaterial[fMaterialID]);
-        FragColor.a = alpha;
+        vec3 ambient = vec3(0.03f) * albedo * ao;
+        vec3 Lo = BlinnPhong(albedo, N, V, L, uLight, uMaterial[fMaterialID]);
+
+        color = ambient + (1.0f - shadow) * Lo;
     }
 
-    // FragColor.rgb = ReinhardToneMapping(FragColor.rgb);
+    // floor
+    float floorWeight = 0.0f;
+    if(uIsFloor)
+    {
+        float tile = FilteredGrid(fPosition.xz);
+        tile = pow(tile, 3.0f);
 
-    // Fog
-    // float D = length(uViewPosition - fPosition);
-    // vec3 fog_color = vec3(0.5);
-    // float fog_amount = 1.0f - min(exp(-D * 0.1 + 1.5), 1.0);
-    // vec3 color = FragColor.rgb;
-    // color = mix(color, fog_color, fog_amount);
-    // FragColor.rgb = color;
-    // vec3 fogColor = vec3(0.5);
-    // float d = length(fPosition - uViewPosition);
-    // float fogFactor = clamp((d - 10.0) / 10.0, 0.0, 1.0);
-    // fogColor = fogColor * fogFactor;
-    // FragColor.rgb = GammaCorrection(FragColor.rgb, 1.0 / 2.2);// + fogColor;
+        floorWeight = 1.0f - tile;
+    }
+    color = (1.0f - floorWeight) * color + floorWeight * (1.0f - 0.95f * shadow) * uGridColor;
+    
+    // tone mapping
+    color = ReinhardToneMapping(color);
+    // color = ACESFilm(color);
+
+    // fog
+    float D = length(uViewPosition - fPosition);
+    vec3 fogColor = uSkyColor;
+    float fogFactor = 1.0f - min(exp(-D * 0.03f + 1.5f), 1.0f);
+    color = mix(color, fogColor, fogFactor);
+
+    // final color
+    FragColor = vec4(color, alpha);
 }

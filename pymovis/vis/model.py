@@ -1,7 +1,7 @@
 from OpenGL.GL import *
 
 from pymovis.vis.mesh import Mesh
-from pymovis.vis.const import LAFAN_BVH_TO_FBX
+from pymovis.vis.const import LAFAN1_FBX_DICT
 
 class Model:
     def __init__(self, gl_meshes=None, skeleton=None):
@@ -14,6 +14,6 @@ class Model:
         for mesh in self.meshes:
             mesh.set_pose_by_source(source_pose)
     
-    def set_source_skeleton(self, source, rel_dict=LAFAN_BVH_TO_FBX):
+    def set_source_skeleton(self, source, rel_dict=LAFAN1_FBX_DICT):
         for mesh in self.meshes:
             mesh.set_source_skeleton(source, rel_dict)

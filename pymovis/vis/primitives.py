@@ -15,19 +15,19 @@ def get_color_by_position(position):
  v3------v0
 """
 class Plane(VAO):
-    def __init__(self):
-        positions, normals, tex_coords, indices = self.generate_vertices()
+    def __init__(self, width=1.0, height=1.0):
+        positions, normals, tex_coords, indices = self.generate_vertices(width, height)
         vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
         vao = VAO.from_vertex_array(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
     @staticmethod
-    def generate_vertices():
+    def generate_vertices(width, height):
         positions = [
-            glm.vec3(0.5, 0.0, 0.5),   # v0
-            glm.vec3(0.5, 0.0, -0.5),  # v1
-            glm.vec3(-0.5, 0.0, -0.5), # v2
-            glm.vec3(-0.5, 0.0, 0.5),  # v3
+            glm.vec3(width, 0.0, height),   # v0
+            glm.vec3(width, 0.0, -height),  # v1
+            glm.vec3(-width, 0.0, -height), # v2
+            glm.vec3(-width, 0.0, height),  # v3
         ]
         normals = [glm.vec3(0.0, 1.0, 0.0)] * 4
         tex_coords = [

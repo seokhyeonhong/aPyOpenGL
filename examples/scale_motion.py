@@ -1,6 +1,6 @@
 import copy
 
-from pymovis.motion.data import bvh, fbx
+from pymovis.motion import BVH, FBX
 from pymovis.vis import Render, MotionApp, AppManager
 from pymovis.ops import motionops
 
@@ -29,11 +29,11 @@ if __name__ == "__main__":
     app_manager = AppManager()
 
     # load data
-    motion = bvh.load("data/motion2.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
-    model = fbx.FBX("data/character.fbx").model()
+    motion = BVH.load("data/motion2.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
+    model = FBX("data/character.fbx").model()
 
     # align and split
-    motion.align_by_frame(100)
+    motion.align_by_frame(100, origin_axes="xz")
     motion = motion.make_window(100, 1000)
 
     # create app for scaled motion

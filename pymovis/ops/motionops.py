@@ -87,6 +87,10 @@ def scaled_motion(
     right_leg_name="RightUpLeg",
     right_foot_name="RightFoot",
 ):
+    """
+    Returns a scaled motion if the scale factor is proper.
+    Otherwise, returns None.
+    """
     ret_motion = motion.copy()
     if scale_factor == 1.0:
         return ret_motion
@@ -185,3 +189,40 @@ def scaled_motion(
         raise ValueError(f"scale_effector is supposed to be either 'position' or 'velocity', but got {scale_effector_by}")
 
     return ret_motion
+
+####################################################################################
+
+def get_local_velocity(motion):
+    """
+    Base-relative velocity
+    """
+    v = np.stack([motion.poses[i+1].global_p - motion.poses[i].global_p for i in range(len(motion.poses) - 1)])
+    v = np.concatenate([v[0:1], v], axis=0) # (T, J, 3)
+
+    # local-to-global rotation matrix
+    up = np.stack([motion.poses[i].up for i in range(len(motion.poses))])
+    forward = np.stack([motion.poses[i].forward for i in range(len(motion.poses))])
+    left = np.stack([motion.poses[i].left for i in range(len(motion.poses))])
+    R = np.stack([left, up, forward], axis=-1)  # (T, 3, 3)
+
+    # global-to-local transformation
+    v = np.einsum("Trc,Tjc->Tjr", R.transpose((0, 2, 1)), v) # (T, J, 3)
+    
+    return v
+
+def get_local_position(motion):
+    """
+    Base-relative position
+    """
+    p = np.stack([motion.poses[i].global_p - motion.poses[i].base for i in range(len(motion.poses))])
+    
+    # local-to-global rotation matrix
+    up = np.stack([motion.poses[i].up for i in range(len(motion.poses))])
+    forward = np.stack([motion.poses[i].forward for i in range(len(motion.poses))])
+    left = np.stack([motion.poses[i].left for i in range(len(motion.poses))])
+    R = np.stack([left, up, forward], axis=-1)  # (T, 3, 3)
+
+    # global-to-local transformation
+    p = np.einsum("Trc,Tjc->Tjr", R.transpose((0, 2, 1)), p) # (T, J, 3)
+    
+    return p

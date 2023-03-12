@@ -3,7 +3,7 @@ from OpenGL.GL import *
 
 from pymovis.vis.app import App
 from pymovis.vis.render import Render, RenderMode
-from pymovis.vis.const import SHADOW_MAP_SIZE
+from pymovis.vis.const import SHADOW_MAP_SIZE, BACKGROUND_MAP_SIZE
 
 class AppManager:
     def __init__(
@@ -93,6 +93,12 @@ class AppManager:
             glViewport(0, 0, width, height)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             self.app.render()
+
+            # render background
+            # Render.set_render_mode(RenderMode.eBACKGROUND)
+            # glViewport(0, 0, BACKGROUND_MAP_SIZE, BACKGROUND_MAP_SIZE)
+            # glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            # self.app.render()
 
             # render text
             Render.set_render_mode(RenderMode.eTEXT)
