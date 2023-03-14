@@ -4,7 +4,7 @@ class HeightApp(App):
     def __init__(self, heightmap):
         super().__init__()
         self.heightmap = heightmap
-        self.mesh = Render.vao(heightmap.vao).set_texture("grid.png").set_uv_repeat(0.1)
+        self.mesh = Render.heightmap(heightmap).set_albedo(0.2).set_floor(True)
     
     def render(self):
         super().render()
