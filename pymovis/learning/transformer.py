@@ -39,7 +39,7 @@ class MultiHeadAttention(nn.Module):
         # attention score
         atten_score = torch.matmul(q, k.transpose(-2, -1)) * self.atten_scale # (B, n_head, T1, T2)
         if mask is not None:
-            atten_score.masked_fill_(mask, -torch.finfo(atten_score.dtype).max)
+            atten_score.masked_fill_(mask, -1e9)
         
         # attention
         attention = F.softmax(atten_score, dim=-1) # (B, n_head, T1, T2)
@@ -101,7 +101,7 @@ class RelativeMultiHeadAttention(nn.Module):
         atten_score = (atten_score + rel_atten_score) * self.atten_scale # TODO: Fix this line for atten_score and rel_atten_score are not the same shape
 
         if mask is not None:
-            atten_score.masked_fill_(mask, -torch.finfo(atten_score.dtype).max)
+            atten_score.masked_fill_(mask, -1e9)
 
         # attention
         attention = F.softmax(atten_score, dim=-1)
