@@ -146,12 +146,12 @@ vec3 BlinnPhong(vec3 albedo, vec3 N, vec3 V, vec3 L, Light light, Material mater
 // --------------------------------------------
 vec3 ReinhardToneMapping(vec3 color)
 {
-    const float gamma = 2.2f;
+    const float gamma = 1.5f;
     vec3 result = color / (color + vec3(1.0f));
     return pow(result, vec3(1.0f / gamma));
 }
 
-vec3 ACESFilm(vec3 x) 
+vec3 ACESFilmicToneMapping(vec3 x) 
 {
     // Narkowicz 2015, "ACES Filmic Tone Mapping Curve"
     const float a = 2.51f;
@@ -161,8 +161,8 @@ vec3 ACESFilm(vec3 x)
     const float e = 0.14f;
 
     x = (x * (a * x + b)) / (x * (c * x + d) + e);
-    return x;
-    // return clamp(x, 0.0f, 1.0f);
+    // return x;
+    return clamp(x, 0.0f, 1.0f);
 }
 
 // --------------------------------------------
@@ -174,7 +174,7 @@ float FilteredGrid(vec2 p)
 {
     p *= uGridInterval;
 
-    float _N = 200.0f / uGridWidth;
+    float _N = 100.0f / uGridWidth;
     vec2 w = max(abs(dFdx(p)), abs(dFdy(p))) + 0.001f;
     w *= uGridInterval;
 
@@ -444,7 +444,7 @@ void main()
     
     // tone mapping
     color = ReinhardToneMapping(color);
-    // color = ACESFilm(color);
+    color = ACESFilmicToneMapping(color);
 
     // fog
     float D = length(uViewPosition - fPosition);

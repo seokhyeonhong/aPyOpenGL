@@ -18,6 +18,6 @@ uniform mat4 uView;
 
 void main()
 {
-    fPosition = 2.0f * vPosition;
+    fPosition = vPosition;
     gl_Position = uProjection * uView * vec4(vPosition, 1.0f);
 }

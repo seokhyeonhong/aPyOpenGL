@@ -1,6 +1,6 @@
 # Python Framework for Motion Data
 ```pyvmois``` is a framework for processing and visualizing motion data based on right-hand coordinate with y-axis as an up vector.
-![teaser](teaser.png)
+<img src="teaser.gif">
 
 # How to use
 ```pyvmois``` has four main modules ```motion```, ```vis```, ```learning```, and ```ops```, and one additional auxiliary module ```utils```. Example codes are in [examples](examples/) and you can run the code you want through:
