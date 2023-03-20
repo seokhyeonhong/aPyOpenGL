@@ -70,7 +70,7 @@ def R_to_Q_torch(R):
 def R_to_Q_numpy(R):
     batch_dim = R.shape[:-2]
     R_ = R.reshape(batch_dim + (9,))
-    R00, R01, R02, R10, R11, R12, R20, R21, R22 = R_[:, 0], R_[:, 1], R_[:, 2], R_[:, 3], R_[:, 4], R_[:, 5], R_[:, 6], R_[:, 7], R_[:, 8]
+    R00, R01, R02, R10, R11, R12, R20, R21, R22 = R_[..., 0], R_[..., 1], R_[..., 2], R_[..., 3], R_[..., 4], R_[..., 5], R_[..., 6], R_[..., 7], R_[..., 8]
 
     def _to_positive_sqrt(x):
         ret = np.zeros_like(x)
