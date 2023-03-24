@@ -16,11 +16,11 @@ if __name__ == "__main__":
     motion = BVH.load("data/motion.bvh", v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
 
     # align and slice
-    motion.align_by_frame(0)
+    motion.align_by_frame(0, origin_axes="xz")
     motion = motion.make_window(0, 1000)
 
     # create app
-    app = MotionApp(motion)
+    app = MyApp(motion)
 
     # run app
     app_manager.run(app)

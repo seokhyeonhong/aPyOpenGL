@@ -6,7 +6,7 @@ from pymovis.vis import App, AppManager, Render
 class MyApp(App):
     def __init__(self):
         super().__init__()
-        self.plane = Render.plane().set_texture("grid.png").set_scale(50).set_uv_repeat(5)
+        self.plane = Render.plane(150, 150).set_floor(True).set_albedo(0.2)
         self.plane2 = Render.plane().set_texture("brickwall.jpg").set_texture("brickwall_normal.jpg", "normal").set_texture("brickwall_disp.jpg", "disp").set_position([0, 2, 0])
         self.axis = Render.axis()
         self.cube = Render.cube().set_texture("brickwall.jpg").set_texture("brickwall_normal.jpg", "normal").set_position([1, 0.35, 2]).set_scale(0.7)
