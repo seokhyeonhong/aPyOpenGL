@@ -4,3 +4,4 @@ PyGLM==2.5.7
 glfw==2.5.3
 tqdm==4.62.3
 freetype_py==2.3.0
+imageio==2.16.2

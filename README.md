@@ -34,7 +34,11 @@ FBX SDK Python Binding
 ```
 FreeImage binary can be downloaded by this command:
 ```
-imageio_download_bin freeimage
+Windows:
+$ imageio_download_bin freeimage
+
+Ubuntu:
+$ sudo apt-get install libfreeimage3 libfreeimage-dev
 ```
 All the other modules except FBX SDK Python Binding can be installed by this command:
 ```
@@ -60,7 +64,7 @@ pip install -r requirements.txt
 * F7: Capture all frames and save the video in ```captures/yyyy-mm-dd/videos```. Once F7 is entered, other commands will not be working while capturing the frames, and it will be restored after capturing all the frames.
 
 ### MotionApp
-```MotionApp``` is a class that inherits ```App``` and specialized to visualize motion data, and there are more utility commands.
+```MotionApp``` is a class that inherits ```AnimApp``` and specialized to visualize motion data, and there are more utility commands.
 * A: Switch the visualization of the axis.
 * G: Switch the visualization of the grid.
 * T: Switch the visualization of the frame.
@@ -75,7 +79,7 @@ Reference:
 [Link3](https://stackoverflow.com/questions/32054021/how-to-install-sip-pyqt-on-windows-7)
 
 ## Learning
-```learning``` module provides several neural network models in PyTorch and linear regression models in SciPy.
+```learning``` module provides several neural network models in PyTorch. New models will be updated continuously.
 
 ## Operations
 ```ops``` provides several operations for dealing with motion data. Both NumPy ndarray and PyTorch Tensor are supported.
