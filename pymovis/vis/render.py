@@ -41,9 +41,9 @@ class RenderInfo:
 
 """ Global rendering state and functions """
 class Render:
-    render_mode      = RenderMode.eDRAW
-    render_info      = RenderInfo()
-    font_texture     = None
+    render_mode  = RenderMode.eDRAW
+    render_info  = RenderInfo()
+    font_texture = None
 
     @staticmethod
     def initialize_shaders():
@@ -58,7 +58,14 @@ class Render:
         Render.equirect_shader = Shader("equirect.vs", "equirect.fs")
         TextureLoader.load_irradiance_map(BACKGROUND_TEXTURE_FILE, Render.equirect_shader)
 
-        Render.shaders          = [Render.primitive_shader, Render.lbs_shader, Render.shadow_shader, Render.text_shader, Render.cubemap_shader, Render.equirect_shader]
+        Render.shaders = [
+            Render.primitive_shader,
+            Render.lbs_shader,
+            Render.shadow_shader,
+            Render.text_shader,
+            Render.cubemap_shader,
+            Render.equirect_shader
+        ]
     
     @staticmethod
     def sky_color():
@@ -208,9 +215,12 @@ class Render:
             shader.is_texture_updated = True
         
         # set irradiance map
-        irradiance_map = TextureLoader.load_irradiance_map(BACKGROUND_TEXTURE_FILE, Render.equirect_shader)
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, irradiance_map.texture_id)
+        if option.use_background:
+            irradiance_map = TextureLoader.load_irradiance_map(BACKGROUND_TEXTURE_FILE, Render.equirect_shader)
+            glBindTexture(GL_TEXTURE_CUBE_MAP, irradiance_map.texture_id)
+        else:
+            glBindTexture(GL_TEXTURE_CUBE_MAP, 0)
 
         # set shadow map
         glActiveTexture(GL_TEXTURE1)
@@ -411,7 +421,7 @@ class Render:
         glDrawArrays(GL_TRIANGLES, 0, 36)
 
         # restore depth settings
-        glDepthFunc(GL_LEQUAL)
+        glDepthFunc(GL_LESS)
 
         # unbind vao
         glBindVertexArray(0)
@@ -469,10 +479,13 @@ class RenderOptions:
         self.disp_scale    = 0.0001
         self.text          = ""
         self.color_mode    = False
+
+        # grid and environment
         self.is_floor      = False
         self.grid_color    = glm.vec3(0.0)
         self.grid_width    = 1.0
         self.grid_interval = 1.0
+        self.use_background = True
 
         # visibility
         self.visible       = True
@@ -577,6 +590,10 @@ class RenderOptions:
         self.grid_interval = line_interval
         return self
     
+    def set_background(self, use_background):
+        self.use_background = use_background
+        return self
+    
     def set_skinning(self, use_skinning):
         self.use_skinning = use_skinning
         return self
@@ -664,6 +681,11 @@ class RenderOptionsVec:
     def set_alpha(self, alpha, material_id=0):
         for option in self.options:
             option.set_alpha(alpha, material_id)
+        return self
+    
+    def set_all_backgrounds(self, use_background):
+        for option in self.options:
+            option.set_background(use_background)
         return self
 
     def set_visible(self, visible):

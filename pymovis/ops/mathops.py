@@ -28,12 +28,12 @@ def normalize(x, dim=-1):
 
 ####################################################################################
 
-def signed_angle_torch(v1, v2, vn, dim=-1):
+def signed_angle_torch(v1, v2, vn, dim=-1, eps=1e-6):
     v1_unit = F.normalize(v1, dim=dim)
     v2_unit = F.normalize(v2, dim=dim)
 
     dot = torch.sum(v1_unit * v2_unit, dim=dim)
-    dot = torch.clamp(dot, -1, 1)
+    dot = torch.clamp(dot, -1 + eps, 1 - eps)
     angle = torch.acos(dot)
 
     cross = torch.cross(v1_unit, v2_unit, dim=dim)

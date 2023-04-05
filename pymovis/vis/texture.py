@@ -168,6 +168,14 @@ class TextureLoader:
         for texture in TextureLoader.__cubemap_texture_map.values():
             glDeleteTextures(1, np.array(texture.texture_id, dtype=np.uint32))
         TextureLoader.__cubemap_texture_map.clear()
+
+        for texture in TextureLoader.__hdr_texture_map.values():
+            glDeleteTextures(1, np.array(texture.texture_id, dtype=np.uint32))
+        TextureLoader.__hdr_texture_map.clear()
+
+        for texture in TextureLoader.__irradiance_map.values():
+            glDeleteTextures(1, np.array(texture.texture_id, dtype=np.uint32))
+        TextureLoader.__irradiance_map.clear()
     
     @staticmethod
     def generate_texture(filename, nearest=False):

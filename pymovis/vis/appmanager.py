@@ -3,13 +3,13 @@ from OpenGL.GL import *
 
 from pymovis.vis.app import App
 from pymovis.vis.render import Render, RenderMode
-from pymovis.vis.const import SHADOW_MAP_SIZE, BACKGROUND_MAP_SIZE
+from pymovis.vis.const import SHADOW_MAP_SIZE
 
 class AppManager:
     def __init__(
         self,
-        width: int  = 1920,
-        height: int = 1080,
+        width:  int = 3840,
+        height: int = 2160,
     ):
         self.do_capture = False
         self.width      = width
@@ -27,8 +27,13 @@ class AppManager:
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 4)
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        glfw.window_hint(glfw.SAMPLES, 4)
 
-        self.window = glfw.create_window(self.width, self.height, "Vis", None, None)
+        self.window = glfw.create_window(self.width, self.height, "pymovis", None, None)
+        glfw.make_context_current(self.window)
+        glfw.maximize_window(self.window)
+        self.width, self.height = glfw.get_window_size(self.window)
+
         if not self.window:
             glfw.terminate()
             raise Exception("Failed to create GLFW window")
@@ -61,6 +66,8 @@ class AppManager:
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+        glEnable(GL_MULTISAMPLE)
 
         # glEnable(GL_LINE_SMOOTH)
         # glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)

@@ -104,6 +104,10 @@ class Camera:
         self.__focus_position = glm.vec3(focus_position)
         self.update()
     
+    def set_up(self, up):
+        self.__up = glm.vec3(up)
+        self.update()
+    
     def switch_projection(self):
         self.__is_perspective = not self.__is_perspective
         self.update()

@@ -9,7 +9,7 @@ CAM_ZOOM_SENSITIVITY = 0.05
 CAM_DOLLY_SENSITIVITY = 0.2
 
 """ Text constants """
-TEXT_RESOLUTION = 64
+TEXT_RESOLUTION = 256
 
 """ Length conversion """
 INCH_TO_METER = 0.0254

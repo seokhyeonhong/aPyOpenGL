@@ -100,6 +100,7 @@ class App:
 
     def on_resize(self, window, width, height):
         glViewport(0, 0, width, height)
+        self.width, self.height = width, height
     
     """ Capture functions """
     def capture_screen(self):
@@ -144,49 +145,47 @@ class AnimApp(App):
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)
 
-        # return if no key is pressed
-        if action != glfw.PRESS:
-            return
-
-        # Space: play/pause
-        if key == glfw.KEY_SPACE:
-            self.playing = not self.playing
-        
-        # Replay when the end of the animation is reached
-        if self.playing and self.frame == self.total_frames - 1:
-            self.frame = 0
-            glfw.set_time(0)
-
-        # 0~9, []: frame control
-        if glfw.KEY_0 <= key <= glfw.KEY_9:
-            self.frame = int(self.total_frames * (key - glfw.KEY_0) * 0.1)
-            glfw.set_time(self.frame / self.fps)
+        if action == glfw.PRESS:
+            # Space: play/pause
+            if key == glfw.KEY_SPACE:
+                self.playing = not self.playing
             
-        if not self.playing:
-            if key == glfw.KEY_LEFT_BRACKET:
-                self.frame = max(self.frame - 1, 0)
-            elif key == glfw.KEY_RIGHT_BRACKET:
-                self.frame = min(self.frame + 1, self.total_frames - 1)
-            if key == glfw.KEY_LEFT:
-                self.frame = max(self.frame - 10, 0)
-            elif key == glfw.KEY_RIGHT:
-                self.frame = min(self.frame + 10, self.total_frames - 1)
+                # Replay when the end of the animation is reached
+                if self.playing and self.frame == self.total_frames - 1:
+                    self.frame = 0
+
+            # 0~9, []: frame control
+            elif glfw.KEY_0 <= key <= glfw.KEY_9:
+                self.frame = int(self.total_frames * (key - glfw.KEY_0) * 0.1)
+            
+            # F6/F7: record current/all frames
+            elif key == glfw.KEY_F6:
+                if self.record_mode == AnimApp.RecordMode.eCURRENT:
+                    self.record_end_time = time.perf_counter()
+                    self.save_video()
+                    self.captures = []
+                    self.record_mode = AnimApp.RecordMode.eNONE
+                elif self.record_mode == AnimApp.RecordMode.eNONE:
+                    self.record_start_time = time.perf_counter()
+                    self.record_mode = AnimApp.RecordMode.eCURRENT
+            elif key == glfw.KEY_F7 and self.record_mode == AnimApp.RecordMode.eNONE:
+                self.frame = 0
+                self.record_mode = AnimApp.RecordMode.eALL
+            
+            # frame control
+            if not self.playing:
+                if key == glfw.KEY_LEFT_BRACKET:
+                    self.frame = max(self.frame - 1, 0)
+                elif key == glfw.KEY_RIGHT_BRACKET:
+                    self.frame = min(self.frame + 1, self.total_frames - 1)
+                if key == glfw.KEY_LEFT:
+                    self.frame = max(self.frame - 10, 0)
+                elif key == glfw.KEY_RIGHT:
+                    self.frame = min(self.frame + 10, self.total_frames - 1)
+            
+            # set GLFW time
             glfw.set_time(self.frame / self.fps)
         
-        # F6/F7: record current/all frames
-        if key == glfw.KEY_F6:
-            if self.record_mode == AnimApp.RecordMode.eCURRENT:
-                self.record_end_time = time.perf_counter()
-                self.save_video()
-                self.captures = []
-                self.record_mode = AnimApp.RecordMode.eNONE
-            elif self.record_mode == AnimApp.RecordMode.eNONE:
-                self.record_start_time = time.perf_counter()
-                self.record_mode = AnimApp.RecordMode.eCURRENT
-        if key == glfw.KEY_F7 and self.record_mode == AnimApp.RecordMode.eNONE:
-            self.frame = 0
-            glfw.set_time(0)
-            self.record_mode = AnimApp.RecordMode.eALL
 
     def update(self):
         # time setting
@@ -255,9 +254,8 @@ class MotionApp(AnimApp):
         self.follow_root = False
         self.init_cam_pos = self.camera.position
 
-        self.grid = Render.plane(200, 200).set_albedo(0.2).set_floor(True)
-        # self.grid = Render.plane().set_floor(True)#.set_scale(50).set_uv_repeat(5).set_texture("grid.png")
-        self.axis = Render.axis()
+        self.grid = Render.plane(200, 200).set_albedo(0.15).set_floor(True)
+        self.axis = Render.axis().set_all_backgrounds(False)
         self.text = Render.text()
     
     def key_callback(self, window, key, scancode, action, mods):
@@ -290,9 +288,9 @@ class MotionApp(AnimApp):
         if self.focus_on_root:
             self.camera.set_focus_position(self.motion.poses[self.frame].root_p)
         elif self.follow_root:
-            delta_pos = self.motion.poses[self.frame].root_p - self.motion.poses[0].root_p
-            self.camera.set_position(self.init_cam_pos + delta_pos)
+            self.camera.set_position(self.motion.poses[self.frame].forward + self.init_cam_pos)
             self.camera.set_focus_position(self.motion.poses[self.frame].root_p)
+            self.camera.set_up(glm.vec3(0, 1, 0))
 
         # render the environment
         self.grid.draw()
@@ -308,7 +306,7 @@ class MotionApp(AnimApp):
         if render_xray:
             self.render_xray(self.motion.poses[self.frame], xray_color)
 
-    def render_xray(self, pose, albedo=[1, 0, 0]):
+    def render_xray(self, pose, albedo=[1, 0, 0], alpha=1.0):
         if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):
             # self.joint_sphere = Render.sphere(0.03)
             self.joint_bone   = Render.pyramid(radius=0.03, height=1, sectors=4)
@@ -329,5 +327,5 @@ class MotionApp(AnimApp):
             angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
             orientation = glm.rotate(glm.mat4(1.0), angle, axis)
             
-            self.joint_bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo(albedo).draw()
+            self.joint_bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo(albedo).set_alpha(alpha).draw()
         glEnable(GL_DEPTH_TEST)
