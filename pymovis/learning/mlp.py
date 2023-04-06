@@ -90,11 +90,11 @@ class MultiLinear(nn.Module):
         super(MultiLinear, self).__init__()
         
         self.weight = nn.Parameter(torch.Tensor(num_layers, in_features, out_features))
-        self.bias = nn.Parameter(torch.Tensor(num_layers, 1, out_features)) if bias else None
+        self.bias = nn.Parameter(torch.Tensor(num_layers, out_features)) if bias else None
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
         if self.bias is not None:
             nn.init.zeros_(self.bias)
 
     def forward(self, x):
-        x = torch.matmul(x, self.weight)
+        x = torch.einsum("...i,nio->...no", x, self.weight)
         return x + self.bias if self.bias is not None else x
