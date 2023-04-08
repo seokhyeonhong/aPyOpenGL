@@ -404,27 +404,41 @@ def A_to_Q(angle, axis):
 def Q_to_A_torch(Q, eps=1e-8):
     axis, angle = torch.empty_like(Q[..., 1:]), torch.empty_like(Q[..., 0])
 
+    # small angles
     length = torch.sqrt(torch.sum(Q[..., 1:] * Q[..., 1:], dim=-1)) # (...,)
     small_angles = length < eps
 
+    # avoid division by zero
     angle[small_angles] = 0.0
     axis[small_angles]  = torch.tensor([1.0, 0.0, 0.0], dtype=torch.float32, device=Q.device) # (..., 3)
 
+    # normal case
     angle[~small_angles] = 2.0 * torch.atan2(length[~small_angles], Q[..., 0][~small_angles]) # (...,)
     axis[~small_angles]  = Q[..., 1:][~small_angles] / length[~small_angles][..., None] # (..., 3)
+
+    # make sure angle is in [-pi, pi)
+    large_angles = angle >= torch.pi
+    angle[large_angles] = angle[large_angles] - 2 * torch.pi
     return angle, axis
 
 def Q_to_A_numpy(Q, eps=1e-8):
     axis, angle = np.empty_like(Q[..., 1:]), np.empty_like(Q[..., 0])
 
+    # small angles
     length = np.sqrt(np.sum(Q[..., 1:] * Q[..., 1:], axis=-1)) # (...,)
     small_angles = length < eps
 
+    # avoid division by zero
     angle[small_angles] = 0.0
     axis[small_angles]  = np.array([1.0, 0.0, 0.0], dtype=np.float32)
 
+    # normal case
     angle[~small_angles] = 2.0 * np.arctan2(length[~small_angles], Q[..., 0][~small_angles]) # (...,)
     axis[~small_angles]  = Q[..., 1:][~small_angles] / length[~small_angles][..., None] # (..., 3)
+
+    # make sure angle is in [-pi, pi)
+    large_angles = angle >= np.pi
+    angle[large_angles] = angle[large_angles] - 2 * np.pi
     return angle, axis
 
 def Q_to_A(Q, eps=1e-8):
@@ -432,7 +446,7 @@ def Q_to_A(Q, eps=1e-8):
     Args:
         Q: (..., 4)
     Returns:
-        angle: (...)
+        angle: (...) in radians range [-pi, pi)
         axis:  (..., 3)
     """
     if Q.shape[-1] != 4:
