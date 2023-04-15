@@ -13,10 +13,10 @@ class MyApp(MotionApp):
         self.motion = motion
         self.model = model
         self.sensor = env_sensor(1, 11) # (S, S, 3)
-        self.sensor_sphere = Render.sphere(0.05).set_albedo([0.2, 1, 0.2])
+        self.sensor_sphere = Render.sphere(0.05).set_albedo([0.2, 1, 0.2]).set_background(0.1)
 
     def render(self):
-        super().render(render_xray=True)
+        super().render(render_xray=True, model_background=0.1)
 
         # transform sensor
         forward = self.motion.poses[self.frame].forward
@@ -36,8 +36,7 @@ if __name__ == "__main__":
     model = FBX("data/character.fbx").model()
 
     # align and slice
-    motion.align_by_frame(600, origin_axes="xz")
-    motion = motion.make_window(600, 1000)
+    motion.align_by_frame(0, origin_axes="xz")
 
     # create app
     app = MyApp(motion, model)

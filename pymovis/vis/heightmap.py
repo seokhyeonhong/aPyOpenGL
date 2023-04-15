@@ -112,6 +112,9 @@ class Heightmap:
     def init_vao(self):
         positions, normals, uvs, indices = self.get_vertex_data(self.data, self.h_scale, self.v_scale, self.offset)
         self.vao = self.get_vao(positions, normals, uvs, indices)
+    
+    def sample(self, x, z):
+        return Heightmap.sample_height(self.data, x, z, self.h_scale, self.v_scale)
 
     @classmethod
     def load_from_file(cls, filename, h_scale=INCH_TO_METER, v_scale=INCH_TO_METER, offset=None):

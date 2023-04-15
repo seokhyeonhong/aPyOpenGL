@@ -255,7 +255,7 @@ class MotionApp(AnimApp):
         self.init_cam_pos = self.camera.position
 
         self.grid = Render.plane(200, 200).set_albedo(0.15).set_floor(True)
-        self.axis = Render.axis().set_all_backgrounds(False)
+        self.axis = Render.axis().set_all_backgrounds(0.0)
         self.text = Render.text()
     
     def key_callback(self, window, key, scancode, action, mods):
@@ -281,7 +281,7 @@ class MotionApp(AnimApp):
         # render the current frame
         self.text.set_text(self.frame).draw()
         
-    def render(self, render_model=True, render_xray=False, xray_color=[1, 0, 0]):
+    def render(self, render_model=True, render_xray=False, xray_color=[1, 0, 0], model_background=1.0):
         super().render()
 
         # set camera focus on the root
@@ -300,7 +300,7 @@ class MotionApp(AnimApp):
         if render_model is True:
             if self.model is not None:
                 self.model.set_pose_by_source(self.motion.poses[self.frame])
-                Render.model(self.model).draw()
+                Render.model(self.model).set_all_backgrounds(model_background).draw()
 
         # render the xray
         if render_xray:

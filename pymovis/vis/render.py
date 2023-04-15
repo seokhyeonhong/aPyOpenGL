@@ -216,11 +216,9 @@ class Render:
         
         # set irradiance map
         glActiveTexture(GL_TEXTURE0)
-        if option.use_background:
-            irradiance_map = TextureLoader.load_irradiance_map(BACKGROUND_TEXTURE_FILE, Render.equirect_shader)
-            glBindTexture(GL_TEXTURE_CUBE_MAP, irradiance_map.texture_id)
-        else:
-            glBindTexture(GL_TEXTURE_CUBE_MAP, 0)
+        irradiance_map = TextureLoader.load_irradiance_map(BACKGROUND_TEXTURE_FILE, Render.equirect_shader)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, irradiance_map.texture_id)
+        shader.set_float("uIrradianceMapIntensity", option.background_intensity)
 
         # set shadow map
         glActiveTexture(GL_TEXTURE1)
@@ -485,7 +483,7 @@ class RenderOptions:
         self.grid_color    = glm.vec3(0.0)
         self.grid_width    = 1.0
         self.grid_interval = 1.0
-        self.use_background = True
+        self.background_intensity = 1.0
 
         # visibility
         self.visible       = True
@@ -590,8 +588,8 @@ class RenderOptions:
         self.grid_interval = line_interval
         return self
     
-    def set_background(self, use_background):
-        self.use_background = use_background
+    def set_background(self, background_intensity):
+        self.background_intensity = min(max(background_intensity, 0.0), 1.0)
         return self
     
     def set_skinning(self, use_skinning):
@@ -683,9 +681,9 @@ class RenderOptionsVec:
             option.set_alpha(alpha, material_id)
         return self
     
-    def set_all_backgrounds(self, use_background):
+    def set_all_backgrounds(self, background_intensity):
         for option in self.options:
-            option.set_background(use_background)
+            option.set_background(background_intensity)
         return self
 
     def set_visible(self, visible):

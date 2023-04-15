@@ -16,7 +16,7 @@ if __name__ == "__main__":
     app_manager = AppManager()
 
     # load data
-    fbx = FBX("data/character.fbx")
+    fbx = FBX("data/ybot.fbx")
 
     # create app
     app = MyApp(fbx.model())

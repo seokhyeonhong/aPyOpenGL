@@ -4,12 +4,11 @@ class HeightApp(App):
     def __init__(self, heightmap):
         super().__init__()
         self.heightmap = heightmap
-        self.mesh = Render.heightmap(heightmap).set_albedo(0.2).set_floor(True)
+        self.mesh = Render.heightmap(heightmap).set_albedo(0.2).set_floor(True).set_background(0.0)
     
     def render(self):
         super().render()
         self.mesh.draw()
-        p = self.heightmap.sample(0, 0)
 
 def main():
     # app cycle manager

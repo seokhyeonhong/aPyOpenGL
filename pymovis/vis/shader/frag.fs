@@ -23,6 +23,7 @@ uniform bool        uPBR; // true: pbr shading, false: phong shading
 uniform vec2        uvScale;
 uniform float       uDispScale;
 uniform samplerCube uIrradianceMap; // IBL
+uniform float       uIrradianceMapIntensity;
 uniform sampler2D   uShadowMap;
 
 uniform bool        uIsFloor;
@@ -416,7 +417,7 @@ void main()
         vec3 kD = 1.0f - kS;
         kD *= 1.0f - metallic;
 
-        vec3 irradiance = texture(uIrradianceMap, N).rgb;
+        vec3 irradiance = texture(uIrradianceMap, N).rgb * uIrradianceMapIntensity;
 
         vec3 diffuse = irradiance * albedo;
         vec3 ambient = (kD * diffuse) * ao;
