@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import copy
 from enum import Enum
 
 from OpenGL.GL import *
@@ -55,6 +56,13 @@ class Texture:
 
         self.path = path
         self.texture_id = texture_id
+    
+    def __deepcopy__(self, memo):
+        res = Texture()
+        res.path = self.path
+        res.texture_id = self.texture_id
+        memo[id(self)] = res
+        return res
 
 """ All textures are loaded in this class """
 class TextureLoader:

@@ -1,6 +1,7 @@
 from OpenGL.GL import *
 import glm
 import numpy as np
+import copy
 
 from pymovis.motion.core import Pose
 from pymovis.vis.core import MeshGL
@@ -18,7 +19,14 @@ class Mesh:
         self.use_skinning = use_skinning or skeleton is not None
         self.skeleton     = skeleton
         self.buffer       = [glm.mat4(1.0)] * len(self.mesh_gl.joint_order)
-        
+    
+    def __deepcopy__(self, memo):
+        res = Mesh(self.mesh_gl, copy.deepcopy(self.materials), self.use_skinning, self.skeleton)
+        res.buffer = copy.deepcopy(self.buffer)
+        res.set_source_skeleton(self.source_skeleton, self.rel_dict)
+        memo[id(self)] = res
+        return res
+
     def set_materials(self, materials):
         self.materials = materials
     

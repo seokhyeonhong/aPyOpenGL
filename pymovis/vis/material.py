@@ -1,4 +1,5 @@
 import glm
+import copy
 
 from pymovis.vis.texture import Texture, TextureType
 
@@ -39,6 +40,30 @@ class Material:
             "roughness" : TextureType.eROUGHNESS,
             "ao"        : TextureType.eAO
         }
+    
+    def __deepcopy__(self, memo):
+        res = Material()
+
+        res.albedo        = copy.deepcopy(self.albedo)
+        res.alpha         = self.alpha
+
+        res.diffuse       = copy.deepcopy(self.diffuse)
+        res.specular      = copy.deepcopy(self.specular)
+        res.shininess     = self.shininess
+
+        res.metallic      = self.metallic
+        res.roughness     = self.roughness
+        res.ao            = self.ao
+
+        res.albedo_map    = copy.deepcopy(self.albedo_map)
+        res.normal_map    = copy.deepcopy(self.normal_map)
+        res.disp_map      = copy.deepcopy(self.disp_map)
+        res.metallic_map  = copy.deepcopy(self.metallic_map)
+        res.roughness_map = copy.deepcopy(self.roughness_map)
+        res.ao_map        = copy.deepcopy(self.ao_map)
+
+        memo[id(self)] = res
+        return res
     
     def set_texture(self, texture, texture_type):
         texture_type = self.type_dict.get(texture_type, TextureType.eUNKNOWN)
