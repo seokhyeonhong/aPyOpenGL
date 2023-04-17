@@ -17,6 +17,7 @@ class Model:
         meshes = [copy.deepcopy(mesh) for mesh in self.meshes]
         res = Model(self.gl_meshes, self.skeleton)
         res.meshes = meshes
+        memo[id(self)] = res
         return res
 
     def set_pose_by_source(self, source_pose):
