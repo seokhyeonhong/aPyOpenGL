@@ -5,3 +5,6 @@ validate
 
 *.pkl
 *.bvh
+*.fbm
+
+kmodel_final.fbx

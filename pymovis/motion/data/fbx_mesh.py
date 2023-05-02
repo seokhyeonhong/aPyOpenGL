@@ -86,8 +86,8 @@ def get_mesh_normal(fbx_mesh_, vertex_id, i, j):
 def get_mesh_uv(fbx_mesh_, i, j):
     control_point_idx = fbx_mesh_.GetPolygonVertex(i, j)
 
-    for i in range(fbx_mesh_.GetElementUVCount()):
-        le_uv = fbx_mesh_.GetElementUV(i)
+    for l in range(fbx_mesh_.GetElementUVCount()):
+        le_uv = fbx_mesh_.GetElementUV(l)
 
         if le_uv.GetMappingMode() == fbx.FbxLayerElement.eByControlPoint:
             if le_uv.GetReferenceMode() == fbx.FbxLayerElement.eDirect:

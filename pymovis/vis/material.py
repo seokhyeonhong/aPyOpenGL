@@ -66,10 +66,17 @@ class Material:
         return res
     
     def set_texture(self, texture, texture_type):
-        texture_type = self.type_dict.get(texture_type, TextureType.eUNKNOWN)
+        # type check
+        if isinstance(texture_type, str):
+            texture_type = self.type_dict.get(texture_type, TextureType.eUNKNOWN)
+        elif not isinstance(texture_type, TextureType):
+            raise Exception("Texture type not supported")
+        
+        # TextureType: Unknown
         if texture_type == TextureType.eUNKNOWN:
             raise Exception("Texture type not supported")
 
+        # TextureType
         if texture_type == TextureType.eALBEDO or texture_type == TextureType.eDIFFUSE:
             self.albedo_map = texture
         elif texture_type == TextureType.eNORMAL:

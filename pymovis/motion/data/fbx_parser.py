@@ -157,27 +157,27 @@ class TextureInfo:
         texture_use:
             "Standard", "Shadow Map", "Light Map", "Spherical Reflexion Map", "Sphere Reflexion Map", "Bump Normal Map"
         """
-        self.name                   = ""
-        self.filename               = ""
-        self.scale_u                = 1.0
-        self.scale_v                = 1.0
-        self.translation_u          = 0.0
-        self.translation_v          = 0.0
-        self.swap_uv                = False
-        self.rotation_u             = 0.0
-        self.rotation_v             = 0.0
-        self.rotation_w             = 0.0
-        self.alpha_source           = "None"
-        self.cropping_left          = 0.0
-        self.cropping_top           = 0.0
-        self.cropping_right         = 0.0
-        self.cropping_bottom        = 0.0
-        self.mapping_type           = ""
-        self.planner_mapping_normal = ""
-        self.blend_mode             = ""
-        self.alpha                  = 0.0
-        self.material_use           = ""
-        self.texture_use            = ""
+        self.name                  = ""
+        self.filename              = ""
+        self.scale_u               = 1.0
+        self.scale_v               = 1.0
+        self.translation_u         = 0.0
+        self.translation_v         = 0.0
+        self.swap_uv               = False
+        self.rotation_u            = 0.0
+        self.rotation_v            = 0.0
+        self.rotation_w            = 0.0
+        self.alpha_source          = "None"
+        self.crop_left             = 0.0
+        self.crop_top              = 0.0
+        self.crop_right            = 0.0
+        self.crop_bottom           = 0.0
+        self.mapping_type          = ""
+        self.planar_mapping_normal = ""
+        self.blend_mode            = ""
+        self.alpha                 = 0.0
+        self.material_use          = ""
+        self.texture_use           = ""
 
         """
         property

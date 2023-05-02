@@ -19,8 +19,8 @@ FBX_PROPERTY_NAMES = {
 }
 
 def find_texture_type(type_name):
-    find = FBX_PROPERTY_NAMES.get(type_name)
-    return find if find is not None else TextureType.eUNKNOWN
+    find = FBX_PROPERTY_NAMES.get(str(type_name))
+    return find if find is not None else "unknown"
 
 class Parser:
     def __init__(self, path, scale, save):
@@ -136,7 +136,7 @@ class FBX:
 
                     gl_texture = TextureLoader.load(texture_info.filename)
                     gl_texture_type = find_texture_type(texture_info.property)
-                    gl_material.set_texture(gl_texture_type, gl_texture)
+                    gl_material.set_texture(gl_texture, gl_texture_type)
                 
                 gl_materials.append(gl_material)
             
