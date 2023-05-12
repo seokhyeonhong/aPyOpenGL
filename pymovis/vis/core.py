@@ -21,7 +21,7 @@ def compute_tangent_space(vertices: list[VertexGL], indices: list[int]) -> list[
         delta_uv1 = glm.vec2(vertices[indices[i+1]].uv - vertices[indices[i]].uv)
         delta_uv2 = glm.vec2(vertices[indices[i+2]].uv - vertices[indices[i]].uv)
 
-        det = 1.0 / (delta_uv1.x * delta_uv2.y - delta_uv2.x * delta_uv1.y)
+        det = 1.0 / ((delta_uv1.x * delta_uv2.y - delta_uv2.x * delta_uv1.y) + 1e-8)
 
         tangent = glm.normalize(det * (delta_uv2.y * delta_pos1 - delta_uv1.y * delta_pos2))
         bitangent = glm.normalize(det * (-delta_uv2.x * delta_pos1 + delta_uv1.x * delta_pos2))

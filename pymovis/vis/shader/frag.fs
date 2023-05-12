@@ -182,7 +182,27 @@ float FilteredGrid(vec2 p)
     vec2 a = p + 0.5f * w;
     vec2 b = p - 0.5f * w;
     vec2 i = (Filter(a, _N) - Filter(b, _N)) / (_N*w);
+
     return (1.0f - i.x) * (1.0f - i.y);
+}
+
+vec2 Triangular(vec2 p)
+{
+    vec2 q = fract(p * 0.5f) - 0.5f;
+    return 1.0f - 2.0f * abs(q);
+}
+float FilteredChecker(vec2 p)
+{
+    p *= uGridInterval;
+
+    vec2 w = max(abs(dFdx(p)), abs(dFdy(p))) + 0.001f;
+    w *= uGridInterval;
+
+    vec2 a = p + 0.5f * w;
+    vec2 b = p - 0.5f * w;
+    vec2 i = (Triangular(p + 0.5f * w) - Triangular(p - 0.5f * w)) / w;
+
+    return 0.5f * (1.0f - i.x * i.y);
 }
 
 // --------------------------------------------
