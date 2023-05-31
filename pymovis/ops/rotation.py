@@ -643,3 +643,30 @@ def R6_to_R(R6):
         return R6_to_R_numpy(R6)
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(R6)}")
+
+# -----------------------------------------------------------------------------------
+
+def R6_to_Q_torch(R6):
+    R = R6_to_R_torch(R6)
+    return R_to_Q_torch(R)
+
+def R6_to_Q_numpy(R6):
+    R = R6_to_R_numpy(R6)
+    return R_to_Q_numpy(R)
+
+def R6_to_Q(R6):
+    """
+    Args:
+        R6: (..., 6)
+    Returns:
+        Q: (..., 4)
+    """
+    if R6.shape[-1] != 6:
+        raise ValueError(f"R6.shape must be (..., 6), but got {R6.shape}")
+
+    if isinstance(R6, torch.Tensor):
+        return R6_to_Q_torch(R6)
+    elif isinstance(R6, np.ndarray):
+        return R6_to_Q_numpy(R6)
+    else:
+        raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(R6)}")
