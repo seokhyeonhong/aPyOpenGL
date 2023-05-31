@@ -51,11 +51,13 @@ def R_fk(local_R, root_p, skeleton):
 
 def R6_fk_torch(local_R6, root_p, skeleton):
     local_R = rotation.R6_to_R(local_R6)
-    return R_fk_torch(local_R, root_p, skeleton)
+    global_R, global_p = R_fk_torch(local_R, root_p, skeleton)
+    return rotation.R_to_R6(global_R), global_p
 
 def R6_fk_numpy(local_R6, root_p, skeleton):
     local_R = rotation.R6_to_R(local_R6)
-    return R_fk_numpy(local_R, root_p, skeleton)
+    global_R, global_p = R_fk_numpy(local_R, root_p, skeleton)
+    return rotation.R_to_R6(global_R), global_p
 
 def R6_fk(local_R6, root_p, skeleton):
     """
