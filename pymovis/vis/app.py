@@ -126,9 +126,9 @@ class App:
 # TODO: refactor this class, focusing on glfw.set_time() and glfw.get_time()
 class AnimApp(App):
     class RecordMode(Enum):
-        eNONE = 0
-        eALL = 1
-        eCURRENT = 2
+        eNONE           = 0
+        eSECTION_TO_VID = 1
+        # eSECTION_TO_IMG = 3
 
     def __init__(self, total_frames, fps=30):
         super().__init__()
@@ -138,59 +138,54 @@ class AnimApp(App):
         self.frame = 0
         self.playing = True
         self.record_mode = AnimApp.RecordMode.eNONE
-        self.record_start_time = 0
-        self.record_end_time = 0
         self.captures = []
 
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)
 
-        if action == glfw.PRESS:
-            # Space: play/pause
-            if key == glfw.KEY_SPACE:
-                self.playing = not self.playing
-            
-                # Replay when the end of the animation is reached
-                if self.playing and self.frame == self.total_frames - 1:
-                    self.frame = 0
-
-            # 0~9, []: frame control
-            elif glfw.KEY_0 <= key <= glfw.KEY_9:
-                self.frame = int(self.total_frames * (key - glfw.KEY_0) * 0.1)
-            
-            # F6/F7: record current/all frames
-            elif key == glfw.KEY_F6:
-                if self.record_mode == AnimApp.RecordMode.eCURRENT:
-                    self.record_end_time = time.perf_counter()
-                    self.save_video()
-                    self.captures = []
-                    self.record_mode = AnimApp.RecordMode.eNONE
-                elif self.record_mode == AnimApp.RecordMode.eNONE:
-                    self.record_start_time = time.perf_counter()
-                    self.record_mode = AnimApp.RecordMode.eCURRENT
-            elif key == glfw.KEY_F7 and self.record_mode == AnimApp.RecordMode.eNONE:
-                self.frame = 0
-                self.record_mode = AnimApp.RecordMode.eALL
-            
-            # frame control
-            if not self.playing:
-                if key == glfw.KEY_LEFT_BRACKET:
-                    self.frame = max(self.frame - 1, 0)
-                elif key == glfw.KEY_RIGHT_BRACKET:
-                    self.frame = min(self.frame + 1, self.total_frames - 1)
-                if key == glfw.KEY_LEFT:
-                    self.frame = max(self.frame - 10, 0)
-                elif key == glfw.KEY_RIGHT:
-                    self.frame = min(self.frame + 10, self.total_frames - 1)
-            
-            # set GLFW time
-            glfw.set_time(self.frame / self.fps)
+        if action != glfw.PRESS:
+            return
         
+        # Space: play/pause
+        if key == glfw.KEY_SPACE:
+            self.playing = not self.playing
+        
+            # Replay when the end of the animation is reached
+            if self.playing and self.frame == self.total_frames - 1:
+                self.frame = 0
+
+        # 0~9, []: frame control
+        elif glfw.KEY_0 <= key <= glfw.KEY_9:
+            self.frame = int(self.total_frames * (key - glfw.KEY_0) * 0.1)
+        
+        # F6/F7/F8: record section / all frames / section to images
+        elif key == glfw.KEY_F6:
+            if self.record_mode == AnimApp.RecordMode.eSECTION_TO_VID:
+                self.save_video()
+                self.captures = []
+                self.record_mode = AnimApp.RecordMode.eNONE
+            elif self.record_mode == AnimApp.RecordMode.eNONE:
+                self.record_mode = AnimApp.RecordMode.eSECTION_TO_VID
+        
+        # frame control
+        if not self.playing:
+            if key == glfw.KEY_LEFT_BRACKET:
+                self.frame = max(self.frame - 1, 0)
+            elif key == glfw.KEY_RIGHT_BRACKET:
+                self.frame = min(self.frame + 1, self.total_frames - 1)
+            if key == glfw.KEY_LEFT:
+                self.frame = max(self.frame - 10, 0)
+            elif key == glfw.KEY_RIGHT:
+                self.frame = min(self.frame + 10, self.total_frames - 1)
+        
+        # set GLFW time
+        glfw.set_time(self.frame / self.fps)
 
     def update(self):
         # time setting
-        if self.record_mode == AnimApp.RecordMode.eALL:
-            self.frame = min(self.frame, self.total_frames - 1)
+        if self.record_mode != AnimApp.RecordMode.eNONE and self.playing:
+            self.frame = min(self.frame + 1, self.total_frames - 1)
+            glfw.set_time(self.frame / self.fps)
         elif self.playing:
             self.frame = min(int(glfw.get_time() * self.fps), self.total_frames - 1)
         else:
@@ -203,33 +198,31 @@ class AnimApp(App):
     def late_update(self):
         if self.record_mode != AnimApp.RecordMode.eNONE:
             self.captures.append(super().capture_screen())
-        if self.record_mode == AnimApp.RecordMode.eALL:
-            if self.frame == self.total_frames - 1:
-                self.save_video(self.fps)
-                self.captures = []
-                self.record_mode = AnimApp.RecordMode.eNONE
-                self.frame = 0
-                glfw.set_time(0)
-            else:
-                self.frame += 1
-                glfw.set_time(self.frame / self.fps)
 
     """ Capture functions """
-    def save_video(self, fps=None):
+    def save_video(self):
         video_dir = os.path.join(self.capture_path, "videos")
         if not os.path.exists(video_dir):
             os.makedirs(video_dir)
         
         video_path = os.path.join(video_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".mp4")
-        fps = len(self.captures) / (self.record_end_time - self.record_start_time) if fps is None else fps
         height, width, _ = self.captures[0].shape
         
-        video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
+        video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"mp4v"), self.fps, (width, height))
         for image in self.captures:
             video.write(image)
         video.release()
 
         glfw.set_time(self.frame / self.fps)
+    
+    def save_images(self):
+        image_dir = os.path.join(self.capture_path, f"images-{datetime.datetime.now().strftime('%H-%M-%S')}")
+        if not os.path.exists(image_dir):
+            os.makedirs(image_dir)
+        
+        for i, image in enumerate(self.captures):
+            image_path = os.path.join(image_dir, "{:04d}.png".format(i))
+            cv2.imwrite(image_path, image)
 
 """ Class for motion data visualization """
 class MotionApp(AnimApp):
@@ -275,6 +268,19 @@ class MotionApp(AnimApp):
         elif key == glfw.KEY_F4 and action == glfw.PRESS:
             self.follow_root = not self.follow_root
 
+    def update(self):
+        super().update()
+
+        # set camera focus on the root
+        if self.focus_on_root:
+            self.camera.set_focus_position(self.motion.poses[self.frame].root_p)
+            self.camera.set_up(glm.vec3(0, 1, 0))
+        elif self.follow_root:
+            self.camera.set_position(self.motion.poses[self.frame].root_p + glm.vec3(0, 1, 4))
+            self.camera.set_focus_position(self.motion.poses[self.frame].root_p)
+            self.camera.set_up(glm.vec3(0, 1, 0))
+        self.camera.update()
+
     def late_update(self):
         super().late_update()
 
@@ -283,14 +289,6 @@ class MotionApp(AnimApp):
         
     def render(self, render_model=True, render_xray=False, xray_color=[1, 0, 0], model_background=1.0):
         super().render()
-
-        # set camera focus on the root
-        if self.focus_on_root:
-            self.camera.set_focus_position(self.motion.poses[self.frame].root_p)
-        elif self.follow_root:
-            self.camera.set_position(self.motion.poses[self.frame].forward + self.init_cam_pos)
-            self.camera.set_focus_position(self.motion.poses[self.frame].root_p)
-            self.camera.set_up(glm.vec3(0, 1, 0))
 
         # render the environment
         self.grid.draw()

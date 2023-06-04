@@ -147,7 +147,7 @@ vec3 BlinnPhong(vec3 albedo, vec3 N, vec3 V, vec3 L, Light light, Material mater
 // --------------------------------------------
 vec3 ReinhardToneMapping(vec3 color)
 {
-    const float gamma = 1.5f;
+    const float gamma = 1.8f;
     vec3 result = color / (color + vec3(1.0f));
     return pow(result, vec3(1.0f / gamma));
 }
@@ -175,7 +175,8 @@ float FilteredGrid(vec2 p)
 {
     p *= uGridInterval;
 
-    float _N = 100.0f / uGridWidth;
+    // larger the _N, thinner the line
+    float _N = 200.0f / uGridWidth;
     vec2 w = max(abs(dFdx(p)), abs(dFdy(p))) + 0.001f;
     w *= uGridInterval;
 
