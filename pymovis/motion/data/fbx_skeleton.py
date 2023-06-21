@@ -4,22 +4,24 @@ import numpy as np
 
 from pymovis.motion.data.fbx_parser import JointData
 
+FbxEuler = fbx.FbxEuler
+
 def to_quat(x, order):
     rx = glm.angleAxis(np.deg2rad(x[0], dtype=np.float32), glm.vec3(1, 0, 0))
     ry = glm.angleAxis(np.deg2rad(x[1], dtype=np.float32), glm.vec3(0, 1, 0))
     rz = glm.angleAxis(np.deg2rad(x[2], dtype=np.float32), glm.vec3(0, 0, 1))
 
-    if order == fbx.FbxEuler.eOrderXYZ:
+    if order == FbxEuler.eOrderXYZ:
         return rz * ry * rx
-    if order == fbx.FbxEuler.eOrderXZY:
+    if order == FbxEuler.eOrderXZY:
         return ry * rz * rx
-    if order == fbx.FbxEuler.eOrderYXZ:
+    if order == FbxEuler.eOrderYXZ:
         return rz * rx * ry
-    if order == fbx.FbxEuler.eOrderYZX:
+    if order == FbxEuler.eOrderYZX:
         return rx * rz * ry
-    if order == fbx.FbxEuler.eOrderZXY:
+    if order == FbxEuler.eOrderZXY:
         return ry * rx * rz
-    if order == fbx.FbxEuler.eOrderZYX:
+    if order == FbxEuler.eOrderZYX:
         return rx * ry * rz
 
     raise ValueError("Unknown Euler order: {}".format(order))
