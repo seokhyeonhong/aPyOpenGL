@@ -23,7 +23,8 @@ class Mesh:
     def __deepcopy__(self, memo):
         res = Mesh(self.mesh_gl, copy.deepcopy(self.materials), self.use_skinning, self.skeleton)
         res.buffer = copy.deepcopy(self.buffer)
-        res.set_source_skeleton(self.source_skeleton, self.rel_dict)
+        if hasattr(self, "source_skeleton"):
+            res.set_source_skeleton(self.source_skeleton, self.rel_dict)
         memo[id(self)] = res
         return res
 

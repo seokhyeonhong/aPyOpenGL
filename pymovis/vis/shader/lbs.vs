@@ -34,16 +34,9 @@ uniform mat4 uLightSpaceMatrix;
 mat4 GetJointMatrix(ivec4 ids, vec4 weights)
 {
     mat4 m = mat4(0.0f);
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < 4 && 0 <= ids[i] && ids[i] < MAX_JOINT_NUM; ++i)
     {
-        if (0 <= ids[i] && ids[i] < MAX_JOINT_NUM)
-        {
-            m += uLbsJoints[ids[i]] * weights[i];
-        }
-        else
-        {
-            break;
-        }
+        m += uLbsJoints[ids[i]] * weights[i];
     }
     return m;
 }

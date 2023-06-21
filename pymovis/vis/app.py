@@ -183,7 +183,7 @@ class AnimApp(App):
 
     def update(self):
         # time setting
-        if self.record_mode != AnimApp.RecordMode.eNONE and self.playing:
+        if self.record_mode != AnimApp.RecordMode.eNONE:
             self.frame = min(self.frame + 1, self.total_frames - 1)
             glfw.set_time(self.frame / self.fps)
         elif self.playing:

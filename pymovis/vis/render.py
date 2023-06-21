@@ -12,6 +12,7 @@ from pymovis.vis.texture import Texture, TextureLoader
 from pymovis.vis.text import FontTexture
 from pymovis.vis.mesh import Mesh
 from pymovis.vis.model import Model
+from pymovis.vis.obj import Obj
 from pymovis.vis.const import TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES, MAX_JOINT_NUM, BACKGROUND_TEXTURE_FILE
 
 def get_draw_func(render_func):
@@ -28,7 +29,7 @@ class RenderMode(Enum):
     eTEXT   = 2
 
 class RenderInfo:
-    sky_color         = glm.vec4(1.0)
+    sky_color         = glm.vec4(0.8)
     cam_position      = glm.vec3(0.0)
     cam_projection    = glm.mat4(1.0)
     cam_view          = glm.mat4(1.0)
@@ -47,12 +48,12 @@ class Render:
 
     @staticmethod
     def initialize_shaders():
-        Render.primitive_shader = Shader("vert.vs",     "frag.fs")
-        Render.lbs_shader       = Shader("lbs.vs",      "frag.fs")
-        Render.text_shader      = Shader("text.vs",     "text.fs")
-        Render.cubemap_shader   = Shader("cubemap.vs",  "cubemap.fs")
+        Render.primitive_shader = Shader("vert.vs",    "frag.fs")
+        Render.lbs_shader       = Shader("lbs.vs",     "frag.fs")
+        Render.text_shader      = Shader("text.vs",    "text.fs")
+        Render.cubemap_shader   = Shader("cubemap.vs", "cubemap.fs")
 
-        Render.shadow_shader    = Shader("shadow.vs",   "shadow.fs")
+        Render.shadow_shader    = Shader("shadow.vs",  "shadow.fs")
         Render.shadowmap_fbo, Render.shadowmap_texture_id = TextureLoader.generate_shadow_buffer()
 
         Render.equirect_shader = Shader("equirect.vs", "equirect.fs")
@@ -114,6 +115,10 @@ class Render:
     @staticmethod
     def heightmap(heightmap, render_mode="pbr"):
         return Render.vao(heightmap.vao, render_mode)
+    
+    @staticmethod
+    def obj(filename, render_mode="pbr", scale=0.01):
+        return RenderOptions(Obj(filename, scale=scale), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def mesh(mesh: Mesh, render_mode="pbr"):
@@ -197,8 +202,7 @@ class Render:
                 print(f"Joint number exceeds the limit: {len(option.buffer_transforms)} > {MAX_JOINT_NUM}")
                 option.buffer_transforms = option.buffer_transforms[:MAX_JOINT_NUM]
                 
-            for idx, buffer in enumerate(option.buffer_transforms):
-                shader.set_mat4(f"uLbsJoints[{idx}]", buffer)
+            shader.set_mat4_array("uLbsJoints", option.buffer_transforms)
         else:
             T = glm.translate(glm.mat4(1.0), option.position)
             R = glm.mat4(option.orientation)
@@ -210,8 +214,7 @@ class Render:
         if shader.is_texture_updated is False:
             shader.set_int("uIrradianceMap", 0)
             shader.set_int("uShadowMap", 1)
-            for i in range(MAX_MATERIAL_TEXTURES):
-                shader.set_int(f"uTextures[{i}]", i + 2)
+            shader.set_int_array("uTextures", [i + 2 for i in range(MAX_MATERIAL_TEXTURES)])
             shader.is_texture_updated = True
         
         # set irradiance map
@@ -302,8 +305,7 @@ class Render:
 
         if option.use_skinning:
             shader.set_bool(f"uIsSkinned", True)
-            for idx, buffer in enumerate(option.buffer_transforms):
-                shader.set_mat4(f"uLbsJoints[{idx}]", buffer)
+            shader.set_mat4_array("uLbsJoints", option.buffer_transforms)
         else:
             shader.set_bool(f"uIsSkinned", False)
             T = glm.translate(glm.mat4(1.0), option.position)
@@ -327,7 +329,9 @@ class Render:
         if Render.render_mode != RenderMode.eTEXT:
             return
         
+
         if on_screen:
+            glDisable(GL_DEPTH_TEST)
             x = option.position.x
             y = option.position.y
             scale = option.scale.x
@@ -389,6 +393,9 @@ class Render:
         
         glBindTexture(GL_TEXTURE_2D, 0)
         glBindVertexArray(0)
+
+        if on_screen:
+            glEnable(GL_DEPTH_TEST)
 
     @staticmethod
     def draw_cubemap(option: RenderOptions, shader: Shader):
@@ -581,7 +588,7 @@ class RenderOptions:
         self.cubemap = TextureLoader.load_cubemap(dirname)
         return self
 
-    def set_floor(self, is_floor, line_width=1.0, line_interval=1.0, line_color=glm.vec3(1.0)):
+    def set_floor(self, is_floor, line_width=1.0, line_interval=1.0, line_color=glm.vec3(.0)):
         self.is_floor = is_floor
         self.grid_color = line_color
         self.grid_width = line_width
@@ -651,6 +658,11 @@ class RenderOptionsVec:
             option.switch_visible()
         return self
     
+    def set_all_positions(self, position):
+        for option in self.options:
+            option.set_position(position)
+        return self
+
     def set_all_scales(self, scale):
         for option in self.options:
             option.set_scale(scale)

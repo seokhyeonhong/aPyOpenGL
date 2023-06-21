@@ -191,6 +191,8 @@ class Pose:
         self.local_R[base_idx] = self.local_R[base_idx] @ r0 @ r2
         self.local_R[mid_idx] = self.local_R[mid_idx] @ r1
 
+        self.update()
+
 class Motion:
     """
     Motion class that contains the skeleton and its sequence of poses.
