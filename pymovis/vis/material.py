@@ -41,6 +41,26 @@ class Material:
             "ao"        : TextureType.eAO
         }
     
+    @staticmethod
+    def from_mtl_dict(d):
+        res = Material()
+
+        value = d.get("ambient", None)
+        if value is not None:
+            res.albedo = glm.vec3(value)
+        
+        value = d.get("diffuse", None)
+        if value is not None:
+            res.diffuse = glm.vec3(value)
+
+        value = d.get("specular", None)
+        if value is not None:
+            res.specular = glm.vec3(value)
+
+        value = d.get("shininess", None)
+        if value is not None:
+            res.shininess = float(value)
+
     def __deepcopy__(self, memo):
         res = Material()
 

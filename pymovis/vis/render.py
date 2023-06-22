@@ -118,7 +118,10 @@ class Render:
     
     @staticmethod
     def obj(filename, render_mode="pbr", scale=0.01):
-        return RenderOptions(Obj(filename, scale=scale), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        obj = Obj(filename, scale=scale)
+        ro = RenderOptions(obj, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        ro.set_materials(obj.materials)
+        return ro
 
     @staticmethod
     def mesh(mesh: Mesh, render_mode="pbr"):
