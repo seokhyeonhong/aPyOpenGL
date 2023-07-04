@@ -5,6 +5,7 @@ import numpy as np
 from pymovis.motion.data.fbx_parser import JointData
 
 FbxEuler = fbx.FbxEuler
+FbxNode = fbx.FbxNode
 
 def to_quat(x, order):
     rx = glm.angleAxis(np.deg2rad(x[0], dtype=np.float32), glm.vec3(1, 0, 0))
@@ -39,20 +40,20 @@ def parse_nodes_by_type(node, joints, parent_idx, type, scale):
     
     if is_type:
         name = node.GetName()
-        order = node.GetRotationOrder(fbx.FbxNode.eDestinationPivot)
+        order = node.GetRotationOrder(FbxNode.eDestinationPivot)
         local_T = to_vec3(node.LclTranslation.Get())
         local_R = to_quat(node.LclRotation.Get(), order)
         local_S = to_vec3(node.LclScaling.Get())
 
-        dest_pre_R = node.GetPreRotation(fbx.FbxNode.eDestinationPivot)
+        dest_pre_R = node.GetPreRotation(FbxNode.eDestinationPivot)
         pre_R = to_quat(dest_pre_R, order)
 
         joint = JointData()
         joint.name = name
+        joint.local_S = local_S
         joint.local_T = scale * local_T
         joint.local_R = local_R
         joint.pre_R = pre_R
-        joint.local_S = local_S
         joint.parent_idx = parent_idx
         joints.append(joint)
         parent_idx = len(joints) - 1

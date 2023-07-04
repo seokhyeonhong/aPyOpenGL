@@ -38,6 +38,13 @@ def get_mesh_data(fbx_mesh_, scale) -> MeshData:
             normal = get_mesh_normal(fbx_mesh_, vertex_id, i, j)
             data.normals.append(normal)
 
+            tangent = get_mesh_tangent(fbx_mesh_, vertex_id, i, j)
+            data.tangents.append(tangent)
+
+            bitangent = np.cross(normal, tangent)
+            bitangent = bitangent / (np.linalg.norm(bitangent) + 1e-8)
+            data.bitangents.append(bitangent)
+
             uv = get_mesh_uv(fbx_mesh_, i, j)
             data.uvs.append(uv)
 
@@ -82,6 +89,44 @@ def get_mesh_normal(fbx_mesh_, vertex_id, i, j):
             normal = np.array([normal[0], normal[1], normal[2]], dtype=np.float32)
     
     return normal / (np.linalg.norm(normal) + 1e-8)
+
+def get_mesh_tangent(fbx_mesh_, vertex_id, i, j):
+    for l in range(fbx_mesh_.GetElementTangentCount()):
+        le_tangent = fbx_mesh_.GetElementTangent(l)
+
+        if le_tangent.GetMappingMode() == fbx.FbxLayerElement.eByPolygonVertex:
+            if le_tangent.GetReferenceMode() == fbx.FbxLayerElement.eDirect:
+                tangent = le_tangent.GetDirectArray().GetAt(vertex_id)
+                if tangent[3] > 0:
+                    tangent = np.array([tangent[0], tangent[1], tangent[2]], dtype=np.float32)
+                else:
+                    tangent = np.array([-tangent[0], tangent[1], tangent[2]], dtype=np.float32)
+            elif le_tangent.GetReferenceMode() == fbx.FbxLayerElement.eIndexToDirect:
+                idx = le_tangent.GetIndexArray().GetAt(vertex_id)
+                tangent = le_tangent.GetDirectArray().GetAt(idx)
+                if tangent[3] > 0:
+                    tangent = np.array([tangent[0], tangent[1], tangent[2]], dtype=np.float32)
+                else:
+                    tangent = np.array([-tangent[0], tangent[1], tangent[2]], dtype=np.float32)
+            else:
+                raise Exception("Unknown reference mode")
+        elif le_tangent.GetMappingMode() == fbx.FbxLayerElement.eByControlPoint:
+            control_point_idx = fbx_mesh_.GetPolygonVertex(i, j)
+            tangent_idx = 0
+            if le_tangent.GetReferenceMode() == fbx.FbxLayerElement.eDirect:
+                tangent_idx = control_point_idx
+            elif le_tangent.GetReferenceMode() == fbx.FbxLayerElement.eIndexToDirect:
+                tangent_idx = le_tangent.GetIndexArray().GetAt(control_point_idx)
+            else:
+                raise Exception("Unknown reference mode")
+            
+            tangent = le_tangent.GetDirectArray().GetAt(tangent_idx)
+            if tangent[3] > 0:
+                tangent = np.array([tangent[0], tangent[1], tangent[2]], dtype=np.float32)
+            else:
+                tangent = np.array([-tangent[0], tangent[1], tangent[2]], dtype=np.float32)
+    
+    return tangent / (np.linalg.norm(tangent) + 1e-8)
 
 def get_mesh_uv(fbx_mesh_, i, j):
     control_point_idx = fbx_mesh_.GetPolygonVertex(i, j)

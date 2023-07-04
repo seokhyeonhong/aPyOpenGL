@@ -244,9 +244,9 @@ def E_to_R(E, order, radians=True):
         raise ValueError(f"Order must have 3 characters, but got {order}")
 
     if isinstance(E, torch.Tensor):
-        return E_to_R_torch(E, order, radians)
+        return E_to_R_torch(E, order, radians=radians)
     elif isinstance(E, np.ndarray):
-        return E_to_R_numpy(E, order, radians)
+        return E_to_R_numpy(E, order, radians=radians)
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(E)}")
 

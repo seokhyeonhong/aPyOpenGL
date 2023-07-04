@@ -1,5 +1,5 @@
 """ Shadow constants """
-SHADOW_MAP_SIZE = 4096
+SHADOW_MAP_SIZE = 8192
 BACKGROUND_MAP_SIZE = 512
 
 """ Camera constants """

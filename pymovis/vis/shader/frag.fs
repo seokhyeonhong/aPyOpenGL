@@ -147,7 +147,7 @@ vec3 BlinnPhong(vec3 albedo, vec3 N, vec3 V, vec3 L, Light light, Material mater
 // --------------------------------------------
 vec3 ReinhardToneMapping(vec3 color)
 {
-    const float gamma = 1.8f;
+    const float gamma = 2.2f;
     vec3 result = color / (color + vec3(1.0f));
     return pow(result, vec3(1.0f / gamma));
 }

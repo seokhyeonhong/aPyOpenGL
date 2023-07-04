@@ -40,16 +40,18 @@ class Mesh:
 
         global_R, global_p = pose.global_R, pose.global_p
         for i in range(self.source_skeleton.num_joints):
-            world_trf = np.concatenate((global_R[i], global_p[i][:, None]), axis=1)
-            world_trf = np.concatenate((world_trf, np.array([[0, 0, 0, 1]])), axis=0).astype(np.float32)
-            world_trf = glm.mat4(*world_trf.T.ravel())
-            
             source_joint_name = self.source_skeleton.joints[i].name
             target_joint_name = self.rel_dict[source_joint_name]
-            target_joint_idx  = self.mesh_gl.name_to_idx[target_joint_name]
+            target_joint_idx  = self.mesh_gl.name_to_idx.get(target_joint_name, None)
+            if target_joint_idx is None:
+                continue
+
+            world_xform = np.concatenate((global_R[i], global_p[i][:, None]), axis=1)
+            world_xform = np.concatenate((world_xform, np.array([[0, 0, 0, 1]])), axis=0).astype(np.float32)
+            world_xform = glm.mat4(*world_xform.T.ravel())
 
             bind_trf_inv = self.mesh_gl.joint_bind_trf_inv[target_joint_idx]
-            self.buffer[target_joint_idx] = world_trf * bind_trf_inv
+            self.buffer[target_joint_idx] = world_xform * bind_trf_inv
             buffer_updated[target_joint_idx] = True
 
         for i, updated in enumerate(buffer_updated):

@@ -11,13 +11,13 @@ class Joint:
     Joint of a skeleton
 
     Attributes:
-        name   (str):        Name of the joint
+        name   (str)       : Name of the joint
         offset (np.ndarray): Offset of the joint from its parent
     """
     def __init__(
         self,
         name  : str,
-        offset: np.ndarray=npconst.P_ZERO()
+        offset: np.ndarray = npconst.P_ZERO()
     ):
         self.name   = name
         self.offset = offset
@@ -36,18 +36,19 @@ class Skeleton:
     """
     def __init__(
         self,
-        joints: list[Joint]=[],
-        v_up: np.ndarray=npconst.UP(),
-        v_forward: np.ndarray=npconst.FORWARD(),
+        joints   : list[Joint] = None,
+        v_up     : np.ndarray  = npconst.UP(),
+        v_forward: np.ndarray  = npconst.FORWARD(),
     ):
-        assert v_up.shape == (3,), f"v_up.shape = {v_up.shape}"
-        assert v_forward.shape == (3,), f"v_forward.shape = {v_forward.shape}"
-
-        self.joints = joints
+        if v_up.shape != (3,):
+            raise ValueError(f"v_up.shape = {v_up.shape}")
+        if v_forward.shape != (3,):
+            raise ValueError(f"v_forward.shape = {v_forward.shape}")
+        
+        self.joints       = [] if joints is None else joints
 
         self.v_up         = np.array(v_up, dtype=np.float32)
         self.v_forward    = np.array(v_forward, dtype=np.float32)
-        self.pre_Rs       = []
         
         self.parent_idx   = []
         self.children_idx = []
@@ -65,17 +66,18 @@ class Skeleton:
                 res.append(i)
         return res
 
-    def add_joint(self, joint_name, parent_idx=None):
+    def add_joint(self, joint_name, offset=npconst.P_ZERO(), parent_idx=None):
         joint_idx = len(self.joints)
 
         if parent_idx is None or parent_idx == -1:
-            # assert len(self.joints) == 0, "Only one root joint is allowed"
+            if len(self.joints) > 0:
+                raise ValueError("Only one root joint is allowed")
             self.parent_idx.append(-1)
         else:
             self.parent_idx.append(parent_idx)
             self.children_idx[parent_idx].append(joint_idx)
 
-        joint = Joint(joint_name)
+        joint = Joint(joint_name, offset=offset)
         self.idx_by_name[joint_name] = len(self.joints)
         self.joints.append(joint)
         self.children_idx.append(list())

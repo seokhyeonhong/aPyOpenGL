@@ -1,7 +1,12 @@
 import fbx
 import glm
 
+from pymovis.motion.data import fbx_animation
+
 FbxNode = fbx.FbxNode
+FbxAnimStack = fbx.FbxAnimStack
+FbxAnimLayer = fbx.FbxAnimLayer
+FbxCriteria = fbx.FbxCriteria
 
 class FBXParser:
     def __init__(self, filepath):
@@ -26,10 +31,10 @@ class FBXParser:
         # import the contents of the file into the scene
         importer.Import(self.scene)
 
-        # time setting (30 fps)
+        # time setting to 30 fps
         time_settings = self.scene.GetGlobalSettings()
         time_mode = time_settings.GetTimeMode()
-        fbx.FbxTime.SetGlobalTimeMode(fbx.FbxTime.eFrames30)
+        time_settings.SetTimeMode(fbx.FbxTime.eFrames30)
 
         # triangulate
         fbx.FbxGeometryConverter(self.manager).Triangulate(self.scene, True)
@@ -57,7 +62,7 @@ class FBXParser:
 
         # set all these to 0 and bake them
         node.SetPostRotation(FbxNode.eDestinationPivot, zero)
-        node.SetPreRotation(FbxNode.eDestinationPivot, zero)
+        node.SetPreRotation(FbxNode.eDestinationPivot, node.GetPreRotation(FbxNode.eSourcePivot))
         node.SetRotationOffset(FbxNode.eDestinationPivot, zero)
         node.SetScalingOffset(FbxNode.eDestinationPivot, zero)
         node.SetRotationPivot(FbxNode.eDestinationPivot, zero)
@@ -78,7 +83,7 @@ class FBXParser:
         # idem for quaternions
         node.SetQuaternionInterpolation(FbxNode.eDestinationPivot, node.GetQuaternionInterpolation(FbxNode.eSourcePivot))
 
-        node.ConvertPivotAnimationRecursive(None, FbxNode.eDestinationPivot, 30, True)
+        node.ConvertPivotAnimationRecursive(None, FbxNode.eDestinationPivot, 30.0, True)
 
         for i in range(node.GetChildCount()):
             self.bake_node(node.GetChild(i))
@@ -95,6 +100,20 @@ class FBXParser:
         
         for i in range(node.GetChildCount()):
             self.check_same_name(node.GetChild(i), counter)
+    
+    def get_scene_keyframes(self, scale):
+        keyframes = []
+        criteria = FbxCriteria.ObjectType(FbxAnimStack.ClassId)
+        for i in range(self.scene.GetSrcObjectCount(criteria)):
+            anim_stack = self.scene.GetSrcObject(criteria, i)
+            
+            scene_kf = fbx_animation.get_scene_animation(anim_stack, self.scene.GetRootNode(), scale)
+            keyframes.append(scene_kf)
+        
+        return keyframes
+    
+    def get_scene_fps(self):
+        return fbx.FbxTime.GetFrameRate(self.scene.GetGlobalSettings().GetTimeMode())
 
 class SkinningData:
     def __init__(self):
@@ -114,8 +133,8 @@ class MeshData:
         self.positions                       = []
         self.normals                         = []
         self.uvs                             = []
-        # self.tangents                        = []
-        # self.bitangents                      = []
+        self.tangents                        = []
+        self.bitangents                      = []
 
         self.is_skinned                      = False
         self.skinning_data                   = SkinningData()

@@ -51,9 +51,10 @@ class VAO:
         self.indices = indices
 
     @classmethod
-    def from_vertex_array(cls, vertex_array: list[VertexGL], indices) -> VAO:
+    def from_vertex_array(cls, vertex_array: list[VertexGL], indices, compute_tangent=True) -> VAO:
         # compute tangent and bitangent
-        vertex_array = compute_tangent_space(vertex_array, indices)
+        if compute_tangent:
+            vertex_array = compute_tangent_space(vertex_array, indices)
 
         id   = glGenVertexArrays(1)
         vbos = glGenBuffers(10)
@@ -164,29 +165,43 @@ class VAO:
         return cls(id, vbos, ebo, indices)
 
 class VertexGL:
-    def __init__(self, position=glm.vec3(0), normal=glm.vec3(0), uv=glm.vec2(0), material_id=0, skinning_indices1=glm.vec4(0), skinning_weights1=glm.vec4(0), skinning_indices2=glm.vec4(0), skinning_weights2=glm.vec4(0)):
+    def __init__(
+        self,
+        position         : glm.vec3 = glm.vec3(0),
+        normal           : glm.vec3 = glm.vec3(0),
+        uv               : glm.vec2 = glm.vec2(0),
+        tangent          : glm.vec3 = glm.vec3(0),
+        bitangent        : glm.vec3 = glm.vec3(0),
+        material_id      : int      = 0,
+        skinning_indices1: glm.vec4 = glm.vec4(0),
+        skinning_weights1: glm.vec4 = glm.vec4(0),
+        skinning_indices2: glm.vec4 = glm.vec4(0),
+        skinning_weights2: glm.vec4 = glm.vec4(0)
+    ):
         self.position          = position
         self.normal            = normal
         self.uv                = uv
+        self.tangent           = tangent
+        self.bitangent         = bitangent
         self.material_id       = material_id
         self.skinning_indices1 = skinning_indices1
         self.skinning_weights1 = skinning_weights1
         self.skinning_indices2 = skinning_indices2
         self.skinning_weights2 = skinning_weights2
 
-        self.tangent           = glm.vec3(0)
-        self.bitangent         = glm.vec3(0)
-
     @staticmethod
-    def make_vertex_array(positions, normals, tex_coords, lbs_indices1=None, lbs_weights1=None, lbs_indices2=None, lbs_weights2=None) -> list[VertexGL]:
+    def make_vertex_array(positions, normals, tex_coords, tangents=None, bitangents=None, lbs_indices1=None, lbs_weights1=None, lbs_indices2=None, lbs_weights2=None) -> list[VertexGL]:
         vertex_array = []
         for i in range(len(positions)):
+            tangent = glm.vec3(0) if tangents is None else tangents[i]
+            bitangent = glm.vec3(0) if bitangents is None else bitangents[i]
+
             if lbs_indices2 is not None and lbs_weights2 is not None:
-                v = VertexGL(positions[i], normals[i], tex_coords[i], 0, lbs_indices1[i], lbs_weights1[i], lbs_indices2[i], lbs_weights2[i])
+                v = VertexGL(positions[i], normals[i], tex_coords[i], tangent, bitangent, 0, lbs_indices1[i], lbs_weights1[i], lbs_indices2[i], lbs_weights2[i])
             elif lbs_indices1 is not None and lbs_weights1 is not None:
-                v = VertexGL(positions[i], normals[i], tex_coords[i], 0, lbs_indices1[i], lbs_weights1[i])
+                v = VertexGL(positions[i], normals[i], tex_coords[i], tangent, bitangent, 0, lbs_indices1[i], lbs_weights1[i])
             else:
-                v = VertexGL(positions[i], normals[i], tex_coords[i], 0)
+                v = VertexGL(positions[i], normals[i], tex_coords[i], tangent, bitangent, 0)
             vertex_array.append(v)
         
         return vertex_array

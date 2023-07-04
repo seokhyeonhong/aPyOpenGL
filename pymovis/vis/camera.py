@@ -38,6 +38,7 @@ class Camera:
     def update(self):
         z = glm.normalize(self.__focus_position - self.__position)
         x = glm.normalize(glm.cross(self.__up, z))
+        self.__up = glm.cross(z, x)
         self.__orientation = glm.mat3(x, self.__up, z)
 
     def get_view_matrix(self):

@@ -10,18 +10,19 @@ class AppManager:
         self,
         width:  int = 3840,
         height: int = 2160,
+        maximize: bool = False,
     ):
         self.do_capture = False
         self.width      = width
         self.height     = height
-        self.initialize()
+        self.initialize(maximize)
 
     def run(self, app: App):
         self.app = app
         self.app.width, self.app.height = self.width, self.height
         self.render_loop()
 
-    def initialize(self):
+    def initialize(self, maximize: bool):
         # initialize glfw
         glfw.init()
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 4)
@@ -31,8 +32,10 @@ class AppManager:
 
         self.window = glfw.create_window(self.width, self.height, "pymovis", None, None)
         glfw.make_context_current(self.window)
-        glfw.maximize_window(self.window)
-        self.width, self.height = glfw.get_window_size(self.window)
+        
+        if maximize:
+            glfw.maximize_window(self.window)
+            self.width, self.height = glfw.get_window_size(self.window)
 
         if not self.window:
             glfw.terminate()

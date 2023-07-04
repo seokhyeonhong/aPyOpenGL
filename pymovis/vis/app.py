@@ -276,7 +276,7 @@ class MotionApp(AnimApp):
             self.camera.set_focus_position(self.motion.poses[self.frame].root_p)
             self.camera.set_up(glm.vec3(0, 1, 0))
         elif self.follow_root:
-            self.camera.set_position(self.motion.poses[self.frame].root_p + glm.vec3(0, 1, 4))
+            self.camera.set_position(self.motion.poses[self.frame].root_p + glm.vec3(0, 1.5, 5))
             self.camera.set_focus_position(self.motion.poses[self.frame].root_p)
             self.camera.set_up(glm.vec3(0, 1, 0))
         self.camera.update()
@@ -287,7 +287,7 @@ class MotionApp(AnimApp):
         # render the current frame
         self.text.set_text(self.frame).draw()
         
-    def render(self, render_model=True, render_xray=False, xray_color=[1, 0, 0], model_background=1.0):
+    def render(self, render_model=True, render_xray=False, xray_color=[1, 0, 0], model_background=0.2):
         super().render()
 
         # render the environment
@@ -306,7 +306,7 @@ class MotionApp(AnimApp):
 
     def render_xray(self, pose, albedo=[1, 0, 0], alpha=1.0):
         if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):
-            # self.joint_sphere = Render.sphere(0.03)
+            self.joint_sphere = Render.sphere(0.03)
             self.joint_bone   = Render.pyramid(radius=0.03, height=1, sectors=4)
         
         global_p = pose.global_p
