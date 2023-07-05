@@ -12,10 +12,11 @@ import glm
 from pymovis.motion.core import Motion
 
 from pymovis.vis.camera import Camera
-from pymovis.vis.light import Light, DirectionalLight, PointLight
+from pymovis.vis.light  import Light, DirectionalLight, PointLight
 from pymovis.vis.render import Render
-from pymovis.vis.model import Model
-from pymovis.vis.const import LAFAN1_FBX_DICT
+from pymovis.vis.model  import Model
+from pymovis.vis.const  import LAFAN1_FBX_DICT
+from pymovis.vis.ui     import UI
 
 """ Base class for all applications """
 class App:
@@ -29,6 +30,7 @@ class App:
         
         self.width, self.height = 1920, 1080
         self.io = self.IO()
+        self.ui = UI()
 
         self.capture_path = os.path.join("capture", str(datetime.date.today()))
 
@@ -39,6 +41,11 @@ class App:
             self.mouse_middle_down = False
             self.mouse_left_down = False
     
+    def init_window(self, window):
+        self.window = window
+        self.width, self.height = glfw.get_window_size(self.window)
+        self.ui.initialize(self.window)
+
     """ Override these methods to add custom rendering code """
     def start(self):
         pass
@@ -60,6 +67,7 @@ class App:
 
     """ Callback functions for glfw and camera control """
     def key_callback(self, window, key, scancode, action, mods):
+        self.ui.key_callback(window, key, scancode, action, mods)
         if key == glfw.KEY_V and action == glfw.PRESS:
             self.camera.switch_projection()
         elif key == glfw.KEY_F5 and action == glfw.PRESS:
@@ -88,14 +96,14 @@ class App:
         if button == glfw.MOUSE_BUTTON_MIDDLE and action == glfw.RELEASE:
             self.io.mouse_middle_down = False
 
-    def scroll_callback(self, window, xoffset, yoffset):
+    def scroll_callback(self, window, x_offset, y_offset):
         left_alt_pressed = (glfw.get_key(window, glfw.KEY_LEFT_ALT) == glfw.PRESS)
         if left_alt_pressed:
-            self.camera.dolly(yoffset)
+            self.camera.dolly(y_offset)
         else:
-            self.camera.zoom(yoffset)
+            self.camera.zoom(y_offset)
 
-    def on_error(self, error, description):
+    def on_error(self, error, desc):
         pass
 
     def on_resize(self, window, width, height):
@@ -106,11 +114,11 @@ class App:
     def capture_screen(self):
         viewport = glGetIntegerv(GL_VIEWPORT)
         x, y, *_ = viewport
-
+        
         glReadBuffer(GL_FRONT)
         data = glReadPixels(x, y, self.width, self.height, GL_RGB, GL_UNSIGNED_BYTE)
         pixels = np.frombuffer(data, dtype=np.uint8).reshape(self.height, self.width, 3)
-        pixels = np.flip(pixels, axis=0)
+        pixels = np.flip(pixels[:-self.ui.get_menu_height()], axis=0)
         image = cv2.cvtColor(pixels, cv2.COLOR_RGB2BGR)
         return image
     
@@ -121,6 +129,16 @@ class App:
         
         image_path = os.path.join(image_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".png")
         cv2.imwrite(image_path, image)
+    
+    """ UI functions """
+    def process_inputs(self):
+        self.ui.process_inputs()
+    
+    def render_ui(self):
+        self.ui.render()
+    
+    def terminate_ui(self):
+        self.ui.terminate()
 
 """ Class for general animation with a fixed number of frames """
 # TODO: refactor this class, focusing on glfw.set_time() and glfw.get_time()
@@ -248,20 +266,18 @@ class MotionApp(AnimApp):
         self.init_cam_pos = self.camera.position
 
         self.grid = Render.plane(200, 200).set_albedo(0.15).set_floor(True)
-        self.axis = Render.axis().set_all_backgrounds(0.0)
+        self.axis = Render.axis().set_background(0.0)
         self.text = Render.text()
+
+        # UI options
+        self.ui.add_menu("MotionApp")
+        self.ui.add_render_toggle("MotionApp", "Grid", self.grid, key=glfw.KEY_G, activated=True)
+        self.ui.add_render_toggle("MotionApp", "Axis", self.axis, key=glfw.KEY_A, activated=True)
+        self.ui.add_render_toggle("MotionApp", "Frame Text", self.text, key=glfw.KEY_T, activated=True)
     
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)
 
-        # render options
-        if key == glfw.KEY_G and action == glfw.PRESS:
-            self.grid.switch_visible()
-        if key == glfw.KEY_A and action == glfw.PRESS:
-            self.axis.switch_visible()
-        if key == glfw.KEY_T and action == glfw.PRESS:
-            self.text.switch_visible()
-        
         # set camera focus on the root
         if key == glfw.KEY_F3 and action == glfw.PRESS:
             self.focus_on_root = not self.focus_on_root
@@ -298,7 +314,7 @@ class MotionApp(AnimApp):
         if render_model is True:
             if self.model is not None:
                 self.model.set_pose_by_source(self.motion.poses[self.frame])
-                Render.model(self.model).set_all_backgrounds(model_background).draw()
+                Render.model(self.model).set_background(model_background).draw()
 
         # render the xray
         if render_xray:

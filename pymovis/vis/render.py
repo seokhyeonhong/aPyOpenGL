@@ -1,11 +1,14 @@
 from __future__ import annotations
 from typing import Callable
 from enum import Enum
+
+import os
 import functools
 
 from OpenGL.GL import *
 import glm
 
+from pymovis.motion.data.fbx import FBX
 from pymovis.vis.primitives import *
 from pymovis.vis.material import Material
 from pymovis.vis.shader import Shader
@@ -14,7 +17,7 @@ from pymovis.vis.text import FontTexture
 from pymovis.vis.mesh import Mesh
 from pymovis.vis.model import Model
 from pymovis.vis.obj import Obj
-from pymovis.vis.const import TEXT_RESOLUTION, MAX_MATERIAL_NUM, MAX_MATERIAL_TEXTURES, MAX_JOINT_NUM, BACKGROUND_TEXTURE_FILE
+from pymovis.vis.const import *
 
 def get_draw_func(render_func):
     if render_func is "phong":
@@ -149,14 +152,16 @@ class Render:
 
     @staticmethod
     def axis():
-        R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
-        arrow_x = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_orientation(R_x).set_albedo(glm.vec3(1, 0, 0))#.set_color_mode(True)
+        fbx_axis = FBX(AXIS_MODEL_PATH, scale=0.01).model()
+        return Render.model(fbx_axis)
+        # R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
+        # arrow_x = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_orientation(R_x).set_albedo(glm.vec3(1, 0, 0))#.set_color_mode(True)
         
-        arrow_y = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_albedo(glm.vec3(0, 1, 0))#.set_color_mode(True)
+        # arrow_y = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_albedo(glm.vec3(0, 1, 0))#.set_color_mode(True)
 
-        R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
-        arrow_z = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_orientation(R_z).set_albedo(glm.vec3(0, 0, 1))#.set_color_mode(True)
-        return RenderOptionsVec([arrow_x, arrow_y, arrow_z])
+        # R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
+        # arrow_z = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_orientation(R_z).set_albedo(glm.vec3(0, 0, 1))#.set_color_mode(True)
+        # return RenderOptionsVec([arrow_x, arrow_y, arrow_z])
 
     @staticmethod
     def text(t="", color=glm.vec3(0)):
@@ -657,7 +662,7 @@ class RenderOptions:
 class RenderOptionsVec:
     def __init__(self, options: list[RenderOptions]):
         self.options = options
-    
+
     def draw(self):
         for option in self.options:
             option.draw()
@@ -666,48 +671,49 @@ class RenderOptionsVec:
         for option in self.options:
             option.switch_visible()
         return self
-    
-    def set_all_positions(self, position):
-        for option in self.options:
-            option.set_position(position)
-        return self
-
-    def set_all_scales(self, scale):
-        for option in self.options:
-            option.set_scale(scale)
-        return self
-    
-    def set_all_alphas(self, alpha):
-        for option in self.options:
-            for material in option.materials:
-                material.set_alpha(alpha)
-        return self
-    
-    def set_all_color_modes(self, color_mode):
-        for option in self.options:
-            option.set_color_mode(color_mode)
-        return self
-    
-    def set_albedo(self, albedo, material_id=0):
-        for option in self.options:
-            option.set_albedo(albedo, material_id)
-        return self
-    
-    def set_albedo_of(self, albedo, model_id=0):
-        self.options[model_id].set_albedo(albedo)
-        return self
-    
-    def set_alpha(self, alpha, material_id=0):
-        for option in self.options:
-            option.set_alpha(alpha, material_id)
-        return self
-    
-    def set_all_backgrounds(self, background_intensity):
-        for option in self.options:
-            option.set_background(background_intensity)
-        return self
 
     def set_visible(self, visible):
         for option in self.options:
             option.set_visible(visible)
         return self
+    
+    def set_background(self, background_intensity):
+        for option in self.options:
+            option.set_background(background_intensity)
+        return self
+    
+    
+    # def set_all_positions(self, position):
+    #     for option in self.options:
+    #         option.set_position(position)
+    #     return self
+
+    # def set_all_scales(self, scale):
+    #     for option in self.options:
+    #         option.set_scale(scale)
+    #     return self
+    
+    # def set_all_alphas(self, alpha):
+    #     for option in self.options:
+    #         for material in option.materials:
+    #             material.set_alpha(alpha)
+    #     return self
+    
+    # def set_all_color_modes(self, color_mode):
+    #     for option in self.options:
+    #         option.set_color_mode(color_mode)
+    #     return self
+    
+    # def set_albedo(self, albedo, material_id=0):
+    #     for option in self.options:
+    #         option.set_albedo(albedo, material_id)
+    #     return self
+    
+    # def set_albedo_of(self, albedo, model_id=0):
+    #     self.options[model_id].set_albedo(albedo)
+    #     return self
+    
+    # def set_alpha(self, alpha, material_id=0):
+    #     for option in self.options:
+    #         option.set_alpha(alpha, material_id)
+    #     return self

@@ -10,11 +10,10 @@ from PIL import Image
 import imageio
 
 from pymovis.vis.primitives import Cube
-from pymovis.vis.const import SHADOW_MAP_SIZE, BACKGROUND_MAP_SIZE
+from pymovis.vis.const import SHADOW_MAP_SIZE, BACKGROUND_MAP_SIZE, TEXTURE_DIR_PATH
 
 def get_texture_data(filename, channels="RGBA", hdr=False):
-    curr_path = os.path.dirname(os.path.abspath(__file__))
-    texture_path = os.path.join(curr_path, "texture", filename)
+    texture_path = os.path.join(TEXTURE_DIR_PATH, filename)
 
     texture_image = imageio.imread(texture_path, format="HDR-FI" if hdr else None)
     texture_image = np.array(texture_image)
@@ -213,8 +212,7 @@ class TextureLoader:
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id)
 
         texture_faces = ["right", "left", "top", "bottom", "front", "back"]
-        curr_path = os.path.dirname(os.path.abspath(__file__))
-        texture_path = os.path.join(curr_path, "texture", dirname)
+        texture_path = os.path.join(TEXTURE_DIR_PATH, dirname)
         for i, face in enumerate(texture_faces):
             # TODO: support all file extensions, not just jpg
             texture_image = Image.open(os.path.join(texture_path, face + ".jpg"))

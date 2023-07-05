@@ -4,6 +4,7 @@ from OpenGL.GL import *
 from pymovis.vis.app import App
 from pymovis.vis.render import Render, RenderMode
 from pymovis.vis.const import SHADOW_MAP_SIZE
+from pymovis.vis.ui import UI
 
 class AppManager:
     def __init__(
@@ -19,7 +20,6 @@ class AppManager:
 
     def run(self, app: App):
         self.app = app
-        self.app.width, self.app.height = self.width, self.height
         self.render_loop()
 
     def initialize(self, maximize: bool):
@@ -44,6 +44,7 @@ class AppManager:
         glfw.make_context_current(self.window)
         glfw.swap_interval(1)
 
+        # callbacks
         glfw.set_framebuffer_size_callback(self.window, self.on_resize)
         glfw.set_key_callback(self.window, self.on_key_down)
         glfw.set_cursor_pos_callback(self.window, self.on_mouse_move)
@@ -53,11 +54,14 @@ class AppManager:
 
         # intialize shaders
         Render.initialize_shaders()
-    
+
     def render_loop(self):
         if not isinstance(self.app, App):
             raise Exception("Invalid app type")
-            
+        
+        # initialize app window
+        self.app.init_window(self.window)
+        
         # global OpenGL state
         glEnable(GL_DEPTH_TEST)
         glDepthFunc(GL_LESS)
@@ -78,8 +82,12 @@ class AppManager:
         # main loop
         glfw.set_time(0)
         while not glfw.window_should_close(self.window):
+            # update window size
             width, height = glfw.get_window_size(self.window)
             glViewport(0, 0, width, height)
+
+            # process inputs for ui
+            self.app.process_inputs()
             
             # sky color
             sky_color = Render.sky_color()
@@ -118,10 +126,14 @@ class AppManager:
             # late update
             self.app.late_update()
 
+            # render ui
+            self.app.render_ui()
+
             # event
             glfw.poll_events()
             glfw.swap_buffers(self.window)
 
+        self.app.terminate_ui()
         glfw.destroy_window(self.window)
         glfw.terminate()
         self.app.terminate()
@@ -146,8 +158,8 @@ class AppManager:
     def on_scroll(self, window, xoffset, yoffset):
         self.app.scroll_callback(window, xoffset, yoffset)
 
-    def on_error(self, error, description):
-        self.app.on_error(error, description)
+    def on_error(self, error, desc):
+        self.app.on_error(error, desc)
     
     def on_resize(self, window, width, height):
         self.width, self.height = width, height

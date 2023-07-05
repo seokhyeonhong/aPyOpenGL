@@ -7,4 +7,5 @@ validate
 *.bvh
 *.fbm
 
-kmodel_final.fbx
+data/fbx/model
+examples/

@@ -1,3 +1,5 @@
+import os
+
 """ Shadow constants """
 SHADOW_MAP_SIZE = 8192
 BACKGROUND_MAP_SIZE = 512
@@ -10,6 +12,8 @@ CAM_DOLLY_SENSITIVITY = 0.2
 
 """ Text constants """
 TEXT_RESOLUTION = 256
+FONT_DIR_PATH = os.path.join(os.path.dirname(__file__), "../../data/fonts/")
+CONSOLAS_FONT_PATH = os.path.join(FONT_DIR_PATH, "consola.ttf")
 
 """ Length conversion """
 INCH_TO_METER = 0.0254
@@ -20,6 +24,7 @@ MAX_MATERIAL_TEXTURES = 25
 
 """ Texture constants """
 BACKGROUND_TEXTURE_FILE = "background.hdr"
+TEXTURE_DIR_PATH = os.path.join(os.path.dirname(__file__), "../../data/textures/")
 
 """ Skeleton constants """
 MAX_JOINT_NUM = 100
@@ -72,3 +77,6 @@ YBOT_FBX_DICT = {
     "RightForeArm":  "mixamorig:RightForeArm",
     "RightHand":     "mixamorig:RightHand",
 }
+
+""" Model constants """
+AXIS_MODEL_PATH = os.path.join(os.path.dirname(__file__), "../../data/fbx/etc/axis.fbx")

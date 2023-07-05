@@ -4,7 +4,7 @@ import glm
 import freetype as ft
 from OpenGL.GL import *
 
-from pymovis.vis.const import TEXT_RESOLUTION
+from pymovis.vis.const import TEXT_RESOLUTION, FONT_DIR_PATH
 
 class Character:
     def __init__(self, texture_id, size, bearing, advance):
@@ -73,8 +73,7 @@ class FontTexture:
         glBindVertexArray(0)
     
     def get_font_path(self, font_filename):
-        curr_path = os.path.dirname(os.path.abspath(__file__))
-        font_path = os.path.join(curr_path, "font", font_filename)
+        font_path = os.path.join(FONT_DIR_PATH, font_filename)
         return font_path
     
     def character(self, c):

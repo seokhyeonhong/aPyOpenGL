@@ -26,11 +26,10 @@ def get_textures(geometry) -> list[TextureInfo]:
     return textures
 
 def find_and_display_texture_info_by_property(property, material_idx):
-    textures = []
-
     if not property.IsValid():
-        print("Invalid property")
-        return textures
+        return []
+    
+    textures = []
     
     criteria = FbxCriteria.ObjectType(fbx.FbxTexture.ClassId)
     texture_count = property.GetSrcObjectCount()
