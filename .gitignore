@@ -4,7 +4,6 @@ capture
 validate
 
 *.pkl
-*.bvh
 *.fbm
 
 data/fbx/model
