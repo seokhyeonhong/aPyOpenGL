@@ -1,7 +1,7 @@
+import os
+
 from pymovis.motion.data.fbx import FBX
 from pymovis.vis import App, AppManager, Render
-
-import glm, glfw
 
 class MyApp(App):
     def __init__(self, model):
@@ -16,7 +16,8 @@ if __name__ == "__main__":
     app_manager = AppManager()
 
     # load data
-    fbx = FBX("data/character.fbx")
+    filepath = os.path.join(os.path.dirname(__file__), "../data/fbx/model/ybot.fbx")
+    fbx = FBX(filepath)
 
     # create app
     app = MyApp(fbx.model())

@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from pymovis.motion import BVH, FBX
 from pymovis.vis import App, AppManager, Render
@@ -5,7 +6,8 @@ from pymovis.vis import App, AppManager, Render
 class ObjApp(App):
     def __init__(self):
         super().__init__()
-        self.character = Render.obj("data/teapot.obj", scale=0.01).set_background(0.1)
+        filepath = os.path.join(os.path.dirname(__file__), "../data/obj/teapot.obj")
+        self.character = Render.obj(filepath, scale=0.01).set_background(0.1)
 
     def render(self):
         super().render()

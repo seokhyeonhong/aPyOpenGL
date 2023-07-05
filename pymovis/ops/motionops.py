@@ -151,12 +151,12 @@ def scaled_motion(
         scaled_right_foot = copy_global_ps[:, 0] + root_to_joint(right_foot_idx)
 
         # discard if the target foot position is too far or too close
-        if too_far(scaled_left_foot, left_leg_idx, left_lower_chain_len) or too_far(scaled_right_foot, right_leg_idx, right_lower_chain_len):
-            print(f"Scale factor {scale_factor} is too large.")
-            return None
-        if too_close(scaled_left_foot, scaled_right_foot):
-            print(f"Scale factor {scale_factor} is too small.")
-            return None
+        # if too_far(scaled_left_foot, left_leg_idx, left_lower_chain_len) or too_far(scaled_right_foot, right_leg_idx, right_lower_chain_len):
+        #     print(f"Scale factor {scale_factor} is too large.")
+        #     return None
+        # if too_close(scaled_left_foot, scaled_right_foot):
+        #     print(f"Scale factor {scale_factor} is too small.")
+        #     return None
 
         # apply two-bone IK
         for i in range(len(ret_motion)):
@@ -175,12 +175,12 @@ def scaled_motion(
             right_foot_p[1] = ret_motion.poses[i].global_p[right_foot_idx][1]
 
             # discard if the target foot position is too far
-            if too_far(left_foot_p, left_leg_idx, left_lower_chain_len) or too_far(right_foot_p, right_leg_idx, right_lower_chain_len):
-                print(f"Scale factor {scale_factor} is too large.")
-                return None
-            if too_close(left_foot_p, right_foot_p):
-                print(f"Scale factor {scale_factor} is too small.")
-                return None
+            # if too_far(left_foot_p, left_leg_idx, left_lower_chain_len) or too_far(right_foot_p, right_leg_idx, right_lower_chain_len):
+            #     print(f"Scale factor {scale_factor} is too large.")
+            #     return None
+            # if too_close(left_foot_p, right_foot_p):
+            #     print(f"Scale factor {scale_factor} is too small.")
+            #     return None
             
             # apply two-bone IK
             ret_motion.poses[i].two_bone_ik(left_leg_idx,  left_foot_idx,  left_foot_p)

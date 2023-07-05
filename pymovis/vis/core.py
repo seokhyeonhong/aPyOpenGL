@@ -221,7 +221,7 @@ class MeshGL:
         self.is_skinned         = False
         self.joint_order        = []
         self.name_to_idx        = {}
-        self.joint_bind_trf_inv = []
+        self.joint_bind_xform_inv = []
     
     def generate_vertices(self):
         pass

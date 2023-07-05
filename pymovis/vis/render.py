@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Callable
 from enum import Enum
 import functools
 
@@ -21,7 +22,7 @@ def get_draw_func(render_func):
     elif render_func is "pbr":
         return functools.partial(Render.draw, pbr=True)
     else:
-        raise Exception("Unknown render function")
+        raise Exception(f"Unknown render function: {render_func}")
 
 class RenderMode(Enum):
     eDRAW   = 0
@@ -52,13 +53,16 @@ class Render:
         Render.lbs_shader       = Shader("lbs.vs",     "frag.fs")
         Render.text_shader      = Shader("text.vs",    "text.fs")
         Render.cubemap_shader   = Shader("cubemap.vs", "cubemap.fs")
-
         Render.shadow_shader    = Shader("shadow.vs",  "shadow.fs")
+        Render.equirect_shader = Shader("equirect.vs", "equirect.fs")
+
+        # shadow map
         Render.shadowmap_fbo, Render.shadowmap_texture_id = TextureLoader.generate_shadow_buffer()
 
-        Render.equirect_shader = Shader("equirect.vs", "equirect.fs")
+        # irradiance map
         TextureLoader.load_irradiance_map(BACKGROUND_TEXTURE_FILE, Render.equirect_shader)
 
+        # list of all shaders
         Render.shaders = [
             Render.primitive_shader,
             Render.lbs_shader,
@@ -127,7 +131,7 @@ class Render:
     def mesh(mesh: Mesh, render_mode="pbr"):
         if mesh.use_skinning:
             ro = RenderOptions(mesh.mesh_gl.vao, Render.lbs_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
-            ro.set_skinning(True).set_buffer_transforms(mesh.buffer)
+            ro.set_skinning(True).set_buffer_xforms(mesh.buffer)
         else:
             ro = RenderOptions(mesh.mesh_gl.vao, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
         
@@ -201,11 +205,11 @@ class Render:
 
         # update model
         if option.use_skinning:
-            if len(option.buffer_transforms) > MAX_JOINT_NUM:
-                print(f"Joint number exceeds the limit: {len(option.buffer_transforms)} > {MAX_JOINT_NUM}")
-                option.buffer_transforms = option.buffer_transforms[:MAX_JOINT_NUM]
+            if len(option.buffer_xforms) > MAX_JOINT_NUM:
+                print(f"Joint number exceeds the limit: {len(option.buffer_xforms)} > {MAX_JOINT_NUM}")
+                option.buffer_xforms = option.buffer_xforms[:MAX_JOINT_NUM]
                 
-            shader.set_mat4_array("uLbsJoints", option.buffer_transforms)
+            shader.set_mat4_array("uLbsJoints", option.buffer_xforms)
         else:
             T = glm.translate(glm.mat4(1.0), option.position)
             R = glm.mat4(option.orientation)
@@ -279,13 +283,13 @@ class Render:
                 shader.set_vec3 (f"uMaterial[{i}].specular",  option.materials[i].specular)
                 shader.set_float(f"uMaterial[{i}].shininess", option.materials[i].shininess)
 
-        shader.set_bool("uIsFloor", option.is_floor)
-        shader.set_vec3("uGridColor", option.grid_color)
-        shader.set_float("uGridWidth", option.grid_width)
+        shader.set_bool("uIsFloor",       option.is_floor)
+        shader.set_vec3("uGridColor",     option.grid_color)
+        shader.set_float("uGridWidth",    option.grid_width)
         shader.set_float("uGridInterval", option.grid_interval)
 
-        shader.set_bool("uColorMode", option.color_mode)
-        shader.set_vec2("uvScale",    option.uv_repeat)
+        shader.set_bool("uColorMode",  option.color_mode)
+        shader.set_vec2("uvScale",     option.uv_repeat)
         shader.set_float("uDispScale", option.disp_scale)
 
         # final rendering
@@ -308,7 +312,7 @@ class Render:
 
         if option.use_skinning:
             shader.set_bool(f"uIsSkinned", True)
-            shader.set_mat4_array("uLbsJoints", option.buffer_transforms)
+            shader.set_mat4_array("uLbsJoints", option.buffer_xforms)
         else:
             shader.set_bool(f"uIsSkinned", False)
             T = glm.translate(glm.mat4(1.0), option.position)
@@ -461,11 +465,11 @@ class Render:
 class RenderOptions:
     def __init__(
         self,
-        vao: VAO,
-        shader,
-        draw_func,
-        shadow_shader=None,
-        shadow_func=None,
+        vao          : VAO,
+        shader       : Shader,
+        draw_func    : Callable[[RenderOptions, Shader], None],
+        shadow_shader: Shader = None,
+        shadow_func  : Callable[[RenderOptions, Shader], None] = None,
     ):
         self.vao           = vao
         self.shader        = shader
@@ -478,7 +482,7 @@ class RenderOptions:
 
         # joint
         self.use_skinning  = False
-        self.buffer_transforms = []
+        self.buffer_xforms = []
 
         # material
         self.materials     = [Material()]
@@ -510,11 +514,13 @@ class RenderOptions:
         else:
             self.draw_func(self, self.shader)
 
-    def set_position(self, x, y=None, z=None):
-        if y is None and z is None:
-            self.position = glm.vec3(x)
-        elif y is not None and z is not None:
-            self.position = glm.vec3(x, y, z)
+    def set_position(self, *position):
+        if len(position) == 1:
+            self.position = glm.vec3(position[0])
+        elif len(position) == 3:
+            self.position = glm.vec3(position[0], position[1], position[2])
+        else:
+            raise Exception(f"Invalid position: {position}")
         return self
 
     def set_orientation(self, orientation):
@@ -606,8 +612,8 @@ class RenderOptions:
         self.use_skinning = use_skinning
         return self
     
-    def set_buffer_transforms(self, buffer_transforms):
-        self.buffer_transforms = buffer_transforms
+    def set_buffer_xforms(self, buffer_xforms):
+        self.buffer_xforms = buffer_xforms
         return self
     
     def set_uv_repeat(self, u, v=None):

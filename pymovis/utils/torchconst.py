@@ -33,3 +33,9 @@ def LEFT(device="cpu"):
 
 def P_ZERO(device="cpu"):
     return torch.zeros(3, dtype=torch.float32, device=device)
+
+def P_ONE(device="cpu"):
+    return torch.ones(3, dtype=torch.float32, device=device)
+
+def R_IDENTITY(device="cpu"):
+    return torch.eye(3, dtype=torch.float32, device=device)

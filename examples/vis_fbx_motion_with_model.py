@@ -1,3 +1,5 @@
+import os
+
 from pymovis.motion.data.fbx import FBX
 from pymovis.vis import MotionApp, AppManager
 
@@ -6,8 +8,8 @@ if __name__ == "__main__":
     app_manager = AppManager()
 
     # load data
-    model_fbx = FBX("data/ybot.fbx")
-    motion_fbx = FBX("data/capoeira.fbx")
+    model_fbx = FBX(os.path.join(os.path.dirname(__file__), "../data/fbx/model/ybot.fbx"))
+    motion_fbx = FBX(os.path.join(os.path.dirname(__file__), "../data/fbx/motion/ybot_capoeira.fbx"))
 
     # joint relation dict: identity
     joint_dict = {}

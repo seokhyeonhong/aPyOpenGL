@@ -33,3 +33,9 @@ def LEFT():
 
 def P_ZERO():
     return np.zeros(3, dtype=np.float32)
+
+def P_ONE():
+    return np.ones(3, dtype=np.float32)
+
+def R_IDENTITY():
+    return np.identity(3, dtype=np.float32)

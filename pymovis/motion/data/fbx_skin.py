@@ -97,7 +97,7 @@ def get_skinning(skinning_data: SkinningData, geometry, control_idx_to_vertex_id
             t = glm.vec3(T[0], T[1], T[2]) * scale
             s = glm.vec3(S[0], S[1], S[2])
 
-            global_transform = glm.translate(glm.mat4(1.0), t) * glm.mat4_cast(q) * glm.scale(glm.mat4(1.0), s)
+            global_xform = glm.translate(glm.mat4(1.0), t) * glm.mat4_cast(q) * glm.scale(glm.mat4(1.0), s)
 
             # joint transformations at binding pose
             matrix = cluster.GetTransformLinkMatrix(matrix)
@@ -109,9 +109,9 @@ def get_skinning(skinning_data: SkinningData, geometry, control_idx_to_vertex_id
             t = glm.vec3(T[0], T[1], T[2]) * scale
             s = glm.vec3(S[0], S[1], S[2])
 
-            transform = glm.translate(glm.mat4(1.0), t) * glm.mat4_cast(q) * glm.scale(glm.mat4(1.0), s)
+            xform = glm.translate(glm.mat4(1.0), t) * glm.mat4_cast(q) * glm.scale(glm.mat4(1.0), s)
 
-            skinning_data.offset_transform.append(glm.inverse(transform) * global_transform)
+            skinning_data.offset_xform.append(glm.inverse(xform) * global_xform)
 
             if cluster.GetAssociateModel() is not None:
                 print("Warning: Associate model is not None")

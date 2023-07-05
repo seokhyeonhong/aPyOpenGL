@@ -27,7 +27,7 @@ ordermap = {
 
 class BVH:
     @staticmethod
-    def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD(), type="default"):
+    def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD(), label="default"):
         if not filename.endswith(".bvh"):
             print(f"{filename} is not a bvh file.")
             return
@@ -52,7 +52,7 @@ class BVH:
 
                 rmatch = re.match(r"ROOT (\w+)", line)
                 if rmatch:
-                    skeleton.add_joint(rmatch.group(1), None)
+                    skeleton.add_joint(rmatch.group(1), parent_idx=None)
                     active = skeleton.num_joints - 1
                     continue
 
@@ -66,7 +66,7 @@ class BVH:
                 offmatch = re.match(r"\s*OFFSET\s+([\-\d\.e]+)\s+([\-\d\.e]+)\s+([\-\d\.e]+)", line)
                 if offmatch:
                     if not end_site:
-                        skeleton.joints[active].offset = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * to_meter
+                        skeleton.joints[active].local_p = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * to_meter
                     continue
 
                 chanmatch = re.match(r"\s*CHANNELS\s+(\d+)", line)
@@ -82,7 +82,7 @@ class BVH:
 
                 jmatch = re.match("\s*JOINT\s+(\w+)", line)
                 if jmatch:
-                    skeleton.add_joint(jmatch.group(1), active)
+                    skeleton.add_joint(jmatch.group(1), parent_idx=active)
                     active = skeleton.num_joints - 1
                     continue
 
@@ -132,7 +132,7 @@ class BVH:
 
         poses = poses[1::sampling_step]
         name = os.path.splitext(os.path.basename(filename))[0]
-        return Motion(skeleton=skeleton, poses=poses, fps=target_fps, name=name, type=type)
+        return Motion(poses, fps=target_fps, name=name, label=label)
 
     @staticmethod
     def load_with_type(file_and_type, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()):

@@ -117,14 +117,14 @@ class FBXParser:
 
 class SkinningData:
     def __init__(self):
-        self.name_to_idx      = {}
-        self.joint_order      = []
-        self.offset_transform = []
+        self.name_to_idx    = {}
+        self.joint_order    = []
+        self.offset_xform   = []
 
-        self.joint_indices1   = []
-        self.joint_weights1   = []
-        self.joint_indices2   = []
-        self.joint_weights2   = []
+        self.joint_indices1 = []
+        self.joint_weights1 = []
+        self.joint_indices2 = []
+        self.joint_weights2 = []
 
 class MeshData:
     def __init__(self):
@@ -136,8 +136,8 @@ class MeshData:
         self.tangents                        = []
         self.bitangents                      = []
 
-        self.is_skinned                      = False
-        self.skinning_data                   = SkinningData()
+        self.is_skinned: bool                = False
+        self.skinning_data: SkinningData     = SkinningData()
 
         self.materials: list[MaterialInfo]   = []
         self.textures: list[TextureInfo]     = []

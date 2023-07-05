@@ -97,7 +97,7 @@ class Parser:
         skeleton = Skeleton()
         name_to_pre_Rs = {} # name to pre-rotation matrix
         for joint in joints:
-            skeleton.add_joint(joint.name, offset=joint.local_T, parent_idx=joint.parent_idx)
+            skeleton.add_joint(joint.name, local_p=joint.local_T, parent_idx=joint.parent_idx)
             name_to_pre_Rs[joint.name] = rotation.Q_to_R(np.array(joint.pre_R, dtype=np.float32))
 
         scenes = self.parser.get_scene_keyframes(self.scale)
@@ -123,7 +123,7 @@ class Parser:
             for i in range(nof):
                 poses.append(Pose(skeleton, local_R=rotations[i], root_p=positions[i]))
 
-            motion_set.append(Motion(skeleton, poses, fps=self.parser.get_scene_fps(), name=self.parser.filepath))
+            motion_set.append(Motion(poses, fps=self.parser.get_scene_fps(), name=self.parser.filepath))
         
         return motion_set
 
@@ -154,7 +154,7 @@ class FBX:
                 )
                 mesh.joint_order = data.skinning_data.joint_order
                 mesh.name_to_idx = data.skinning_data.name_to_idx
-                mesh.joint_bind_trf_inv = data.skinning_data.offset_transform
+                mesh.joint_bind_xform_inv = data.skinning_data.offset_xform
             else:
                 mesh.is_skinned = False
                 mesh.vertices = VertexGL.make_vertex_array(data.positions, data.normals, data.uvs, data.tangents, data.bitangents)
@@ -204,7 +204,7 @@ class FBX:
         char_data = self.parser.char_data
         joints = char_data.joint_data
         for joint in joints:
-            skeleton.add_joint(joint.name, offset=joint.local_T, parent_idx=joint.parent_idx)
+            skeleton.add_joint(joint.name, local_p=joint.local_T, parent_idx=joint.parent_idx)
         return skeleton
 
     def model(self):
