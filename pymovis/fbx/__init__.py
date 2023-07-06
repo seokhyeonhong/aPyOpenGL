@@ -1,0 +1,1 @@
+from pymovis.fbx.fbx import FBX

@@ -2,7 +2,7 @@ import fbx
 import glm
 import numpy as np
 
-from pymovis.motion.data.fbx_parser import JointData
+from pymovis.fbx.fbx_parser import JointData
 
 FbxEuler = fbx.FbxEuler
 FbxNode = fbx.FbxNode

@@ -3,12 +3,12 @@ from __future__ import annotations
 import fbx
 import glm
 
-from pymovis.motion.data.keyframe import KeyInterpType, Keyframe, SceneKeyframes, NodeKeyframes
+from pymovis.fbx.keyframe import KeyInterpType, Keyframe, NodeKeyframes, SceneKeyframes
 
 FbxAnimLayer = fbx.FbxAnimLayer
-FbxCriteria = fbx.FbxCriteria
-FbxEuler = fbx.FbxEuler
-FbxNode = fbx.FbxNode
+FbxCriteria  = fbx.FbxCriteria
+FbxEuler     = fbx.FbxEuler
+FbxNode      = fbx.FbxNode
 
 def get_scene_animation(anim_stack, node, scale):
     criteria = FbxCriteria.ObjectType(FbxAnimLayer.ClassId)

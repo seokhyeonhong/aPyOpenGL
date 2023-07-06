@@ -3,14 +3,14 @@ import fbx
 import pickle
 import numpy as np
 
-from pymovis.motion.data import fbx_mesh, fbx_texture, fbx_material, fbx_skeleton, fbx_parser, fbx_skin
+from pymovis.fbx import fbx_mesh, fbx_texture, fbx_material, fbx_skeleton, fbx_parser, fbx_skin
 from pymovis.motion.core import Skeleton, Pose, Motion
 
 from pymovis.vis.core import MeshGL, VertexGL, VAO
 from pymovis.vis.material import Material
 from pymovis.vis.model import Model
 from pymovis.vis.texture import TextureType, TextureLoader
-from pymovis.motion.data import keyframe
+from pymovis.fbx import keyframe
 from pymovis.ops import rotation
 
 FBX_PROPERTY_NAMES = {

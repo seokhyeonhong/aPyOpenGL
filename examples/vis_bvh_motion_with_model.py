@@ -5,7 +5,8 @@ import glfw, glm
 import copy
 
 import torch
-from pymovis.motion import BVH, FBX
+from pymovis.fbx import FBX
+from pymovis.motion import BVH
 from pymovis.vis import Render, MotionApp, AppManager, YBOT_FBX_DICT
 
 class MyApp(MotionApp):
@@ -35,7 +36,7 @@ class MyApp(MotionApp):
         self.arrow = Render.arrow().set_albedo(glm.vec3(1, 0, 0))
 
     def render(self):
-        super().render(render_xray=False)
+        super().render(render_xray=True)
 
         bg = False
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import fbx
 import numpy as np
 
-from pymovis.motion.data.fbx_parser import MeshData
+from pymovis.fbx.fbx_parser import MeshData
 
 def get_mesh_data(fbx_mesh_, scale) -> MeshData:
     if fbx_mesh_.GetElementNormalCount() == 0:

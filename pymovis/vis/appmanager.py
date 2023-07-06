@@ -11,7 +11,7 @@ class AppManager:
         self,
         width:  int = 3840,
         height: int = 2160,
-        maximize: bool = False,
+        maximize: bool = True,
     ):
         self.do_capture = False
         self.width      = width
@@ -59,8 +59,9 @@ class AppManager:
         if not isinstance(self.app, App):
             raise Exception("Invalid app type")
         
-        # initialize app window
+        # initialize app
         self.app.init_window(self.window)
+        self.app.start()
         
         # global OpenGL state
         glEnable(GL_DEPTH_TEST)

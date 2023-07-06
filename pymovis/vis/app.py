@@ -265,15 +265,25 @@ class MotionApp(AnimApp):
         self.follow_root = False
         self.init_cam_pos = self.camera.position
 
+        # render options
         self.grid = Render.plane(200, 200).set_albedo(0.15).set_floor(True)
         self.axis = Render.axis().set_background(0.0)
-        self.text = Render.text()
+        self.text = Render.text_on_screen().set_position([50, 50, 0])
+        self.bone = Render.pyramid(radius=0.03, height=1, sectors=4).set_albedo([0, 1, 1])
+        if self.model is not None:
+            self.render_model = Render.model(self.model)
+
+    def start(self):
+        super().start()
 
         # UI options
         self.ui.add_menu("MotionApp")
-        self.ui.add_render_toggle("MotionApp", "Grid", self.grid, key=glfw.KEY_G, activated=True)
-        self.ui.add_render_toggle("MotionApp", "Axis", self.axis, key=glfw.KEY_A, activated=True)
-        self.ui.add_render_toggle("MotionApp", "Frame Text", self.text, key=glfw.KEY_T, activated=True)
+        self.ui.add_render_toggle("MotionApp", "Grid",       self.grid,         key=glfw.KEY_G, activated=True)
+        self.ui.add_render_toggle("MotionApp", "Axis",       self.axis,         key=glfw.KEY_A, activated=True)
+        self.ui.add_render_toggle("MotionApp", "Frame Text", self.text,         key=glfw.KEY_T, activated=True)
+        self.ui.add_render_toggle("MotionApp", "X-Ray",      self.bone,         key=glfw.KEY_X, activated=False)
+        if self.model is not None:
+            self.ui.add_render_toggle("MotionApp", "Model",  self.render_model, key=glfw.KEY_M, activated=True)
     
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)
@@ -301,9 +311,9 @@ class MotionApp(AnimApp):
         super().late_update()
 
         # render the current frame
-        self.text.set_text(self.frame).draw()
+        self.text.set_text(f"Frame: {self.frame}").draw()
         
-    def render(self, render_model=True, render_xray=False, xray_color=[1, 0, 0], model_background=0.2):
+    def render(self, render_xray=True, model_background=0.2):
         super().render()
 
         # render the environment
@@ -311,20 +321,16 @@ class MotionApp(AnimApp):
         self.axis.draw()
 
         # render the model
-        if render_model is True:
-            if self.model is not None:
-                self.model.set_pose_by_source(self.motion.poses[self.frame])
-                Render.model(self.model).set_background(model_background).draw()
+        if self.model is not None:
+            self.model.set_pose_by_source(self.motion.poses[self.frame])
+            self.render_model.fix_model(self.model).set_background(model_background).draw()
+            # Render.model(self.model).set_background(model_background).draw()
 
         # render the xray
         if render_xray:
-            self.render_xray(self.motion.poses[self.frame], xray_color)
+            self.render_xray(self.motion.poses[self.frame])
 
-    def render_xray(self, pose, albedo=[1, 0, 0], alpha=1.0):
-        if not hasattr(self, "joint_sphere") or not hasattr(self, "joint_bone"):
-            self.joint_sphere = Render.sphere(0.03)
-            self.joint_bone   = Render.pyramid(radius=0.03, height=1, sectors=4)
-        
+    def render_xray(self, pose):
         global_p = pose.global_p
         # for i in range(pose.skeleton.num_joints):
         #     self.joint_sphere.set_position(global_p[i]).set_albedo([0, 1, 1]).draw()
@@ -341,5 +347,5 @@ class MotionApp(AnimApp):
             angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
             orientation = glm.rotate(glm.mat4(1.0), angle, axis)
             
-            self.joint_bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).set_albedo(albedo).set_alpha(alpha).draw()
+            self.bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).draw()
         glEnable(GL_DEPTH_TEST)

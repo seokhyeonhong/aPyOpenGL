@@ -6,5 +6,5 @@ validate
 *.pkl
 *.fbm
 
-data/fbx/model
+data/
 examples/

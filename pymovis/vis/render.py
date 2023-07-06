@@ -8,7 +8,6 @@ import functools
 from OpenGL.GL import *
 import glm
 
-from pymovis.motion.data.fbx import FBX
 from pymovis.vis.primitives import *
 from pymovis.vis.material import Material
 from pymovis.vis.shader import Shader
@@ -46,9 +45,26 @@ class RenderInfo:
 
 """ Global rendering state and functions """
 class Render:
+    # rendering state
     render_mode  = RenderMode.eDRAW
     render_info  = RenderInfo()
     font_texture = None
+
+    # shaders
+    shaders          = []
+    primitive_shader = None
+    lbs_shader       = None
+    text_shader      = None
+    cubemap_shader   = None
+    shadow_shader    = None
+    equirect_shader  = None
+
+    # shadow map
+    shadowmap_fbo        = None
+    shadowmap_texture_id = None
+
+    # irradiance map
+    irradiance_map = None
 
     @staticmethod
     def initialize_shaders():
@@ -152,16 +168,9 @@ class Render:
 
     @staticmethod
     def axis():
+        from pymovis.fbx import FBX
         fbx_axis = FBX(AXIS_MODEL_PATH, scale=0.01).model()
         return Render.model(fbx_axis)
-        # R_x = glm.rotate(glm.mat4(1.0), glm.radians(-90), glm.vec3(0, 0, 1))
-        # arrow_x = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_orientation(R_x).set_albedo(glm.vec3(1, 0, 0))#.set_color_mode(True)
-        
-        # arrow_y = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_albedo(glm.vec3(0, 1, 0))#.set_color_mode(True)
-
-        # R_z = glm.rotate(glm.mat4(1.0), glm.radians(90), glm.vec3(1, 0, 0))
-        # arrow_z = RenderOptions(Arrow(), Render.primitive_shader, Render.draw).set_orientation(R_z).set_albedo(glm.vec3(0, 0, 1))#.set_color_mode(True)
-        # return RenderOptionsVec([arrow_x, arrow_y, arrow_z])
 
     @staticmethod
     def text(t="", color=glm.vec3(0)):
@@ -682,6 +691,14 @@ class RenderOptionsVec:
             option.set_background(background_intensity)
         return self
     
+    def fix_model(self, model: Model):
+        if len(self.options) != len(model.meshes):
+            raise Exception(f"Number of options and meshes must be same, but len(self.options) = {len(self.options)} and len(meshes) = {len(model.meshes)}")
+        
+        for i in range(len(self.options)):
+            self.options[i].set_buffer_xforms(model.meshes[i].buffer)
+
+        return self
     
     # def set_all_positions(self, position):
     #     for option in self.options:

@@ -8,7 +8,7 @@ class MyApp(MotionApp):
         super().__init__(motion)
     
     def render(self):
-        super().render(render_model=False, render_xray=True)
+        super().render(render_xray=True)
 
 if __name__ == "__main__":
     # app cycle manager

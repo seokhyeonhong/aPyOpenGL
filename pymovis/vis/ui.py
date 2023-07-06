@@ -9,7 +9,7 @@ from pymovis.vis.const import CONSOLAS_FONT_PATH
 class UI:
     def __init__(self):
         self.window = None
-        self.menu_to_items = {} # {menu_name: list of [item_name, RenderOptions or RenderOptionsVec, hotkey, activated]}
+        self.menu_to_items = {} # {menu_name: {item_name: RenderOptions or RenderOptionsVec, hotkey, activated}}
         self.hotkey_to_render_options = {} # {hotkey: list of RenderOptions}
 
     def initialize(self, window):
@@ -38,21 +38,19 @@ class UI:
                     glfw.set_window_should_close(self.window, True)
 
                 imgui.end_menu()
-            imgui.separator()
 
             # custom menus
             for menu_name, items in self.menu_to_items.items():
+                imgui.separator()
                 if imgui.begin_menu(menu_name, True):
                     max_len = 0
-                    for item_name, _, hotkey, _ in items:
+                    for item_name in items.keys():
                         max_len = max(max_len, imgui.calc_text_size(item_name)[0] + imgui.calc_text_size(item_name)[1] * 2 + imgui.get_style().item_spacing.x)
                     
-                    for i in range(len(items)):
-                        item_name, render_option, hotkey, activated = items[i]
-
+                    for item_name, (render_option, hotkey, activated) in items.items():
                         clicked, activated = imgui.checkbox(item_name, activated)
                         render_option.set_visible(activated)
-                        items[i][3] = activated
+                        items[item_name][2] = activated
 
                         if hotkey is not None:
                             hotkey = glfw.get_key_name(hotkey, 0).upper()
@@ -60,7 +58,6 @@ class UI:
                             imgui.text_disabled(hotkey)
                         
                     imgui.end_menu()
-                imgui.separator()
             imgui.end_main_menu_bar()
 
     def render(self):
@@ -76,14 +73,14 @@ class UI:
         return int(imgui.get_frame_height_with_spacing())
     
     def add_menu(self, menu_name):
-        self.menu_to_items[menu_name] = []
+        self.menu_to_items[menu_name] = {}
 
     def add_render_toggle(self, menu_name, item_name, render_option, key=None, activated=False):
         if self.menu_to_items.get(menu_name, None) is None:
             self.add_menu(menu_name)
 
-        item = [item_name, render_option, key, activated]
-        self.menu_to_items[menu_name].append(item)
+        item = [render_option, key, activated]
+        self.menu_to_items[menu_name][item_name] = item
 
         if key is not None:
             self.hotkey_to_render_options.setdefault(key, [])

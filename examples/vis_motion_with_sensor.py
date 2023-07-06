@@ -3,7 +3,8 @@ import numpy as np
 import glfw
 from OpenGL.GL import *
 
-from pymovis.motion import BVH, FBX
+from pymovis.motion import BVH
+from pymovis.fbx import FBX
 from pymovis.vis import MotionApp, AppManager, Render, YBOT_FBX_DICT
 
 def env_sensor(radius, num):
