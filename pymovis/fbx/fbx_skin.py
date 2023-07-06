@@ -2,7 +2,7 @@ import fbx
 import glm
 import numpy as np
 
-from pymovis.fbx.fbx_parser import SkinningData
+from .fbx_parser import SkinningData
 
 def get_skinning(skinning_data: SkinningData, geometry, control_idx_to_vertex_idx, vertex_num, scale):
     skin_count = geometry.GetDeformerCount(fbx.FbxDeformer.eSkin)

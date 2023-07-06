@@ -1,7 +1,7 @@
 import fbx
 import glm
 
-from pymovis.fbx import fbx_animation
+from . import fbx_animation
 
 FbxNode = fbx.FbxNode
 FbxAnimStack = fbx.FbxAnimStack

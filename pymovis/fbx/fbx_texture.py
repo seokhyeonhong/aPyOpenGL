@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import fbx
-from pymovis.fbx.fbx_parser import TextureInfo
+from .fbx_parser import TextureInfo
 
 FbxCriteria = fbx.FbxCriteria
 

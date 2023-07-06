@@ -3,7 +3,7 @@ from __future__ import annotations
 import fbx
 import glm
 
-from pymovis.fbx.fbx_parser import MaterialInfo
+from .fbx_parser import MaterialInfo
 
 def get_materials(geometry) -> list[MaterialInfo]:
     materials = []
