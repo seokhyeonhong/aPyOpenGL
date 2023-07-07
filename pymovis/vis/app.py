@@ -3,7 +3,6 @@ from OpenGL.GL import *
 
 import glfw
 import os
-import time
 import datetime
 import cv2
 import numpy as np
@@ -15,7 +14,7 @@ from pymovis.vis.camera import Camera
 from pymovis.vis.light  import Light, DirectionalLight, PointLight
 from pymovis.vis.render import Render
 from pymovis.vis.model  import Model
-from pymovis.vis.const  import LAFAN1_FBX_DICT
+from pymovis.vis.const  import YBOT_FBX_DICT
 from pymovis.vis.ui     import UI
 
 """ Base class for all applications """
@@ -244,7 +243,7 @@ class AnimApp(App):
 
 """ Class for motion data visualization """
 class MotionApp(AnimApp):
-    def __init__(self, motion: Motion, model: Model=None, skeleton_dict=LAFAN1_FBX_DICT):
+    def __init__(self, motion: Motion, model: Model=None, skeleton_dict=YBOT_FBX_DICT):
         super().__init__(len(motion), motion.fps)
         self.motion = motion
         self.model = model

@@ -1,7 +1,6 @@
 import os
 
-from pymovis.fbx import FBX
-from pymovis.vis import MotionApp, AppManager
+from pymovis import AppManager, MotionApp, FBX
 
 if __name__ == "__main__":
     # app cycle manager

@@ -5,7 +5,7 @@ import numpy as np
 from .fbx_parser import JointData
 
 FbxEuler = fbx.FbxEuler
-FbxNode = fbx.FbxNode
+FbxNode  = fbx.FbxNode
 
 def to_quat(x, order):
     rx = glm.angleAxis(np.deg2rad(x[0], dtype=np.float32), glm.vec3(1, 0, 0))

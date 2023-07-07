@@ -1,7 +1,7 @@
 import os
 import numpy as np
-from pymovis.motion import BVH, FBX
-from pymovis.vis import App, AppManager, Render
+
+from pymovis import App, AppManager, Render
 
 class ObjApp(App):
     def __init__(self):

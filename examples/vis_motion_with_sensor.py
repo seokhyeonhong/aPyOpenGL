@@ -3,9 +3,8 @@ import numpy as np
 import glfw
 from OpenGL.GL import *
 
-from pymovis.motion import BVH
-from pymovis.fbx import FBX
-from pymovis.vis import MotionApp, AppManager, Render, YBOT_FBX_DICT
+from pymovis import AppManager, MotionApp, Render
+from pymovis import FBX, BVH, YBOT_FBX_DICT
 
 def env_sensor(radius, num):
     x, z = np.meshgrid(np.linspace(-radius, radius, num), np.linspace(-radius, radius, num))

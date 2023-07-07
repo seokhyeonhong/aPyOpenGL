@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import copy
 from enum import Enum
 
 from OpenGL.GL import *

@@ -3,10 +3,10 @@ import glm
 
 from . import fbx_animation
 
-FbxNode = fbx.FbxNode
+FbxNode      = fbx.FbxNode
 FbxAnimStack = fbx.FbxAnimStack
 FbxAnimLayer = fbx.FbxAnimLayer
-FbxCriteria = fbx.FbxCriteria
+FbxCriteria  = fbx.FbxCriteria
 
 class FBXParser:
     def __init__(self, filepath):

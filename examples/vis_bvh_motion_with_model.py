@@ -4,10 +4,7 @@ from OpenGL.GL import *
 import glfw, glm
 import copy
 
-import torch
-from pymovis.fbx import FBX
-from pymovis.motion import BVH
-from pymovis.vis import Render, MotionApp, AppManager, YBOT_FBX_DICT
+from pymovis import FBX, BVH, Render, MotionApp, AppManager, YBOT_FBX_DICT
 
 class MyApp(MotionApp):
     def __init__(self, motion, model):

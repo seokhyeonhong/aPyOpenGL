@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import fbx
 import numpy as np
 

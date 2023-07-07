@@ -9,14 +9,15 @@ from OpenGL.GL import *
 import glm
 
 from pymovis.vis.primitives import *
-from pymovis.vis.material import Material
-from pymovis.vis.shader import Shader
-from pymovis.vis.texture import Texture, TextureLoader
-from pymovis.vis.text import FontTexture
-from pymovis.vis.mesh import Mesh
-from pymovis.vis.model import Model
-from pymovis.vis.obj import Obj
-from pymovis.vis.const import *
+from pymovis.vis.material   import Material
+from pymovis.vis.shader     import Shader
+from pymovis.vis.texture    import Texture, TextureLoader
+from pymovis.vis.text       import FontTexture
+from pymovis.vis.mesh       import Mesh
+from pymovis.vis.model      import Model
+from pymovis.vis.obj        import Obj
+from pymovis.vis.const      import *
+from pymovis.fbx.fbx        import FBX
 
 def get_draw_func(render_func):
     if render_func is "phong":
@@ -168,7 +169,7 @@ class Render:
 
     @staticmethod
     def axis():
-        from pymovis.fbx import FBX
+        # from pymovis._fbx import FBX
         fbx_axis = FBX(AXIS_MODEL_PATH, scale=0.01).model()
         return Render.model(fbx_axis)
 

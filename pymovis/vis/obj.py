@@ -7,7 +7,6 @@ import glm
 
 from pymovis.vis.core import VAO, VertexGL
 from pymovis.vis.material import Material
-from pymovis.utils.util import run_parallel_async, run_parallel_sync
 
 def parse_obj(path, scale):
     if not path.endswith(".obj"):

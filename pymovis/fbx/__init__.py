@@ -1,1 +1,0 @@
-from .fbx import FBX
