@@ -1,7 +1,7 @@
 import time
 import glm
 
-from pymovis import App, AppManager, Render
+from pymovis.vis import App, AppManager, Render
 
 class MyApp(App):
     def __init__(self):

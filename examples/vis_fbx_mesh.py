@@ -1,6 +1,6 @@
 import os
 
-from pymovis import AppManager, App, Render, FBX
+from pymovis.vis import AppManager, App, Render, FBX
 
 class MyApp(App):
     def __init__(self, model):

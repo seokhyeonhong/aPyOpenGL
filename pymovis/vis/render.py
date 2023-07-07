@@ -8,16 +8,16 @@ import functools
 from OpenGL.GL import *
 import glm
 
-from pymovis.vis.primitives import *
-from pymovis.vis.material   import Material
-from pymovis.vis.shader     import Shader
-from pymovis.vis.texture    import Texture, TextureLoader
-from pymovis.vis.text       import FontTexture
-from pymovis.vis.mesh       import Mesh
-from pymovis.vis.model      import Model
-from pymovis.vis.obj        import Obj
-from pymovis.vis.const      import *
-from pymovis.fbx.fbx        import FBX
+from .primitives import *
+from .material   import Material
+from .shader     import Shader
+from .texture    import Texture, TextureLoader
+from .text       import FontTexture
+from .mesh       import Mesh
+from .model      import Model
+from .obj        import Obj
+from .const      import *
+from .fbx.fbx    import FBX
 
 def get_draw_func(render_func):
     if render_func is "phong":
@@ -168,10 +168,14 @@ class Render:
         return RenderOptionsVec(rov)
 
     @staticmethod
-    def axis():
-        # from pymovis._fbx import FBX
+    def axis(render_mode="pbr"):
         fbx_axis = FBX(AXIS_MODEL_PATH, scale=0.01).model()
-        return Render.model(fbx_axis)
+        rov = []
+        for mesh in fbx_axis.meshes:
+            ro = RenderOptions(mesh.mesh_gl.vao, Render.primitive_shader, get_draw_func(render_mode), None, None)
+            ro.set_materials(mesh.materials)
+            rov.append(ro)
+        return RenderOptionsVec(rov)
 
     @staticmethod
     def text(t="", color=glm.vec3(0)):

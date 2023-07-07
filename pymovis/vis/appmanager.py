@@ -1,10 +1,10 @@
 import glfw
 from OpenGL.GL import *
 
-from pymovis.vis.app    import App
-from pymovis.vis.render import Render, RenderMode
-from pymovis.vis.const  import SHADOW_MAP_SIZE
-from pymovis.vis.ui     import UI
+from .app    import App
+from .render import Render, RenderMode
+from .const  import SHADOW_MAP_SIZE
+from .ui     import UI
 
 class AppManager:
     def __init__(

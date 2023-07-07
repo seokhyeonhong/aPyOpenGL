@@ -1,6 +1,6 @@
 import os
 
-from pymovis import AppManager, MotionApp, FBX
+from pymovis.vis import AppManager, MotionApp, FBX
 
 if __name__ == "__main__":
     # app cycle manager
@@ -16,7 +16,7 @@ if __name__ == "__main__":
         joint_dict[joint.name] = joint.name
 
     # create app
-    app = MotionApp(motion_fbx.motion()[0], model_fbx.model(), joint_dict)
+    app = MotionApp(motion_fbx.motions()[0], model_fbx.model(), joint_dict)
 
     # run app
     app_manager.run(app)

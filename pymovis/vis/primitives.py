@@ -1,7 +1,7 @@
 import glm
 import numpy as np
 
-from pymovis.vis.core import VAO, VertexGL
+from .core import VAO, VertexGL
 
 def get_color_by_position(position):
     colors = []

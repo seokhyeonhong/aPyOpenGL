@@ -1,7 +1,7 @@
 import glm
 import copy
 
-from pymovis.vis.texture import Texture, TextureType
+from .texture import Texture, TextureType
 
 class Material:
     def __init__(self,

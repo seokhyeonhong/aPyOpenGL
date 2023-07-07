@@ -4,7 +4,7 @@ import glm
 import freetype as ft
 from OpenGL.GL import *
 
-from pymovis.vis.const import TEXT_RESOLUTION, FONT_DIR_PATH
+from .const import TEXT_RESOLUTION, FONT_DIR_PATH
 
 class Character:
     def __init__(self, texture_id, size, bearing, advance):

@@ -1,6 +1,6 @@
 import os
 
-from pymovis import AppManager, MotionApp, BVH
+from pymovis.vis import AppManager, MotionApp, BVH
 
 class MyApp(MotionApp):
     def __init__(self, motion):
@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     # load data
     filepath = os.path.join(os.path.dirname(__file__), "../data/bvh/ybot_capoeira.bvh")
-    motion = BVH.load(filepath, v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01)
+    motion = BVH(filepath, v_forward=[0, 1, 0], v_up=[1, 0, 0], to_meter=0.01).motion()
 
     # align and slice
     motion.align_by_frame(0, origin_axes="xz")

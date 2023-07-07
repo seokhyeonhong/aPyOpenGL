@@ -8,14 +8,13 @@ import cv2
 import numpy as np
 import glm
 
-from pymovis.motion.core import Motion
-
-from pymovis.vis.camera import Camera
-from pymovis.vis.light  import Light, DirectionalLight, PointLight
-from pymovis.vis.render import Render
-from pymovis.vis.model  import Model
-from pymovis.vis.const  import YBOT_FBX_DICT
-from pymovis.vis.ui     import UI
+from .motion import Motion
+from .camera      import Camera
+from .light       import Light, DirectionalLight, PointLight
+from .render      import Render
+from .model       import Model
+from .const       import YBOT_FBX_DICT
+from .ui          import UI
 
 """ Base class for all applications """
 class App:

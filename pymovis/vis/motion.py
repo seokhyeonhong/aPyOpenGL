@@ -229,12 +229,10 @@ class Motion:
         poses : list[Pose],
         fps   : float = 30.0,
         name  : str   = "default",
-        label : str   = "default"
     ):
         self.poses : list[Pose] = poses
         self.fps   : float      = fps
         self.name  : str        = name
-        self.label : str        = label
 
     def __len__(self):
         return len(self.poses)
@@ -262,16 +260,8 @@ class Motion:
             copy.deepcopy(self.poses[start:end]),
             self.fps,
             self.name,
-            self.label
         )
     
-    def get_pose_by_frame(self, frame):
-        return self.poses[frame]
-
-    def get_pose_by_time(self, time):
-        frame = int(time * self.fps)
-        return self.poses[frame]
-
     def copy(self):
         return copy.deepcopy(self)
 

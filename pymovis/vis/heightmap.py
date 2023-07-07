@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 
-from pymovis.vis.core  import VertexGL, VAO
-from pymovis.vis.const import INCH_TO_METER
+from .core  import VertexGL, VAO
+from .const import INCH_TO_METER
 
 def sample_height_numpy(heightmap, x, z, h_scale, v_scale):
     H, W = heightmap.shape[-2:]

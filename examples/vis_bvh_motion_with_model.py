@@ -4,7 +4,7 @@ from OpenGL.GL import *
 import glfw, glm
 import copy
 
-from pymovis import FBX, BVH, Render, MotionApp, AppManager, YBOT_FBX_DICT
+from pymovis.vis import FBX, BVH, Render, MotionApp, AppManager, YBOT_FBX_DICT
 
 class MyApp(MotionApp):
     def __init__(self, motion, model):
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     motion_path = os.path.join(os.path.dirname(__file__), "../data/bvh/ybot_capoeira.bvh")
     model_path  = os.path.join(os.path.dirname(__file__), "../data/fbx/model/ybot.fbx")
 
-    motion = BVH.load(motion_path, to_meter=0.01, v_forward=[-1, 0, 0])
+    motion = BVH(motion_path, to_meter=0.01, v_forward=[-1, 0, 0]).motion()
     model = FBX(model_path).model()
 
     # create app

@@ -3,8 +3,8 @@ import glm
 import numpy as np
 import copy
 
-from pymovis.motion.core import Pose
-from pymovis.vis.core import MeshGL
+from .motion import Pose
+from .core        import MeshGL
 
 class Mesh:
     def __init__(

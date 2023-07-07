@@ -5,8 +5,8 @@ import numpy as np
 from OpenGL.GL import *
 import glm
 
-from pymovis.vis.core import VAO, VertexGL
-from pymovis.vis.material import Material
+from .core import VAO, VertexGL
+from .material import Material
 
 def parse_obj(path, scale):
     if not path.endswith(".obj"):

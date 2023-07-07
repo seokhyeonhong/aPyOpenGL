@@ -1,8 +1,8 @@
 import copy
 from OpenGL.GL import *
 
-from pymovis.vis.mesh import Mesh
-from pymovis.vis.const import LAFAN1_FBX_DICT
+from .mesh import Mesh
+from .const import LAFAN1_FBX_DICT
 
 class Model:
     def __init__(self, gl_meshes=None, skeleton=None):

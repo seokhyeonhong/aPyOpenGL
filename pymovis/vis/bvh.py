@@ -3,7 +3,7 @@ import re
 import numpy as np
 import multiprocessing as mp
 
-from pymovis.motion.core import Skeleton, Pose, Motion
+from .motion import Skeleton, Pose, Motion
 from pymovis.utils import npconst, util
 
 channelmap = {
@@ -25,14 +25,23 @@ ordermap = {
 }
 
 class BVH:
-    @staticmethod
-    def load(filename, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD(), label="default"):
-        if not filename.endswith(".bvh"):
-            print(f"{filename} is not a bvh file.")
+    def __init__(self, filename: str, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()):
+        self.filename = filename
+        self.target_fps = target_fps
+        self.to_meter = to_meter
+        self.v_up = v_up
+        self.v_forward = v_forward
+
+        self.poses = []
+        self._load()
+    
+    def _load(self):
+        if not self.filename.endswith(".bvh"):
+            print(f"{self.filename} is not a bvh file.")
             return
         
-        v_up = np.array(v_up)
-        v_forward = np.array(v_forward)
+        v_up = np.array(self.v_up)
+        v_forward = np.array(self.v_forward)
 
         assert v_up.shape == (3,) and v_forward.shape == (3,), f"v_up and v_forward must be 3D vectors, but got {v_up.shape} and {v_forward.shape}."
 
@@ -41,9 +50,8 @@ class BVH:
         end_site = False
 
         skeleton = Skeleton(joints=[], v_up=v_up, v_forward=v_forward)
-        poses = []
 
-        with open(filename, "r") as f:
+        with open(self.filename, "r") as f:
             for line in f:
                 if "HIERARCHY" in line: continue
                 if "MOTION" in line: continue
@@ -65,7 +73,7 @@ class BVH:
                 offmatch = re.match(r"\s*OFFSET\s+([\-\d\.e]+)\s+([\-\d\.e]+)\s+([\-\d\.e]+)", line)
                 if offmatch:
                     if not end_site:
-                        skeleton.joints[active].local_p = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * to_meter
+                        skeleton.joints[active].local_p = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * self.to_meter
                     continue
 
                 chanmatch = re.match(r"\s*CHANNELS\s+(\d+)", line)
@@ -100,10 +108,10 @@ class BVH:
                 if fmatch:
                     frametime = float(fmatch.group(1))
                     fps = round(1. / frametime)
-                    if fps % target_fps != 0:
-                        raise Exception(f"Invalid target fps for {filename}: {target_fps} (fps: {fps})")
+                    if fps % self.target_fps != 0:
+                        raise Exception(f"Invalid target fps for {self.filename}: {self.target_fps} (fps: {fps})")
 
-                    sampling_step = fps // target_fps
+                    sampling_step = fps // self.target_fps
                     continue
 
                 dmatch = line.strip().split(' ')
@@ -112,32 +120,26 @@ class BVH:
                     N = skeleton.num_joints
                     fi = i
                     if channels == 3:
-                        positions[fi, 0:1] = data_block[0:3] * to_meter
+                        positions[fi, 0:1] = data_block[0:3] * self.to_meter
                         rotations[fi, :]   = data_block[3:].reshape(N, 3)
                     elif channels == 6:
                         data_block         = data_block.reshape(N, 6)
-                        positions[fi, :]   = data_block[:, 0:3] * to_meter
+                        positions[fi, :]   = data_block[:, 0:3] * self.to_meter
                         rotations[fi, :]   = data_block[:, 3:6]
                     elif channels == 9: 
-                        positions[fi, 0]   = data_block[0:3] * to_meter
+                        positions[fi, 0]   = data_block[0:3] * self.to_meter
                         data_block         = data_block[3:].reshape(N - 1, 9)
                         rotations[fi, 1:]  = data_block[:, 3:6]
                         positions[fi, 1:]  += data_block[:, 0:3] * data_block[:, 6:9]
                     else:
                         raise Exception(f"Invalid channels: {channels}")
 
-                    poses.append(Pose.from_bvh(skeleton, rotations[fi], order, positions[fi, 0]))
+                    self.poses.append(Pose.from_bvh(skeleton, rotations[fi], order, positions[fi, 0]))
                     i += 1
 
-        poses = poses[1::sampling_step]
-        name = os.path.splitext(os.path.basename(filename))[0]
-        return Motion(poses, fps=target_fps, name=name, label=label)
-
-    @staticmethod
-    def load_with_type(file_and_type, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()):
-        file, type = file_and_type
-        return BVH.load(file, target_fps, to_meter, v_up, v_forward, type=type)
-
-    @staticmethod
-    def load_parallel(files, cpus=mp.cpu_count(), **kwargs):
-        return util.run_parallel_sync(BVH.load, files, cpus, desc=f"Loading {len(files)} BVH files", **kwargs)
+        self.poses = self.poses[1::sampling_step]
+    
+    def motion(self):
+        name = os.path.splitext(os.path.basename(self.filename))[0]
+        res = Motion(self.poses, fps=self.target_fps, name=name)
+        return res

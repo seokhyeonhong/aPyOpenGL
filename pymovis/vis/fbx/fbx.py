@@ -3,12 +3,12 @@ import numpy as np
 
 from . import fbx_mesh, fbx_texture, fbx_material, fbx_skeleton, fbx_parser, fbx_skin, keyframe
 
-from pymovis.motion.core  import Skeleton, Pose, Motion
-from pymovis.vis.core     import MeshGL, VertexGL, VAO
-from pymovis.vis.material import Material
-from pymovis.vis.model    import Model
-from pymovis.vis.texture  import TextureType, TextureLoader
-from pymovis.ops          import rotation
+from ..motion  import Skeleton, Pose, Motion
+from ..core         import MeshGL, VertexGL, VAO
+from ..material     import Material
+from ..model        import Model
+from ..texture      import TextureType, TextureLoader
+from pymovis.ops    import rotation
 
 FBX_PROPERTY_NAMES = {
     "DiffuseColor":      TextureType.eDIFFUSE,
@@ -90,7 +90,7 @@ class Parser:
         for i in range(node.GetChildCount()):
             self.__load_mesh_recursive(node.GetChild(i), mesh_nodes)
     
-    def motion(self, joints):
+    def motions(self, joints):
         skeleton = Skeleton()
         name_to_pre_Rs = {} # name to pre-rotation matrix
         for joint in joints:
@@ -220,5 +220,5 @@ class FBX:
         else:
             raise Exception("No mesh or skeleton data")
     
-    def motion(self):
-        return self.parser.motion(self.parser.char_data.joint_data)
+    def motions(self):
+        return self.parser.motions(self.parser.char_data.joint_data)

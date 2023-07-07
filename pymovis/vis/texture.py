@@ -4,12 +4,11 @@ from enum import Enum
 
 from OpenGL.GL import *
 import glm
-
 from PIL import Image
 import imageio
 
-from pymovis.vis.primitives import Cube
-from pymovis.vis.const import SHADOW_MAP_SIZE, BACKGROUND_MAP_SIZE, TEXTURE_DIR_PATH
+from .primitives import Cube
+from .const import SHADOW_MAP_SIZE, BACKGROUND_MAP_SIZE, TEXTURE_DIR_PATH
 
 def get_texture_data(filename, channels="RGBA", hdr=False):
     texture_path = os.path.join(TEXTURE_DIR_PATH, filename)
