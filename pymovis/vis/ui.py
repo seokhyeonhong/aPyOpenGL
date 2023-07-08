@@ -9,8 +9,8 @@ from pymovis.vis.const import CONSOLAS_FONT_PATH
 class UI:
     def __init__(self):
         self.window = None
-        self.menu_to_items = {} # {menu_name: {item_name: RenderOptions or RenderOptionsVec, hotkey, activated}}
-        self.hotkey_to_render_options = {} # {hotkey: list of RenderOptions}
+        self.menu_to_items = {} # {menu_name: list[(item_name, func, key=None)]}
+        self.key_to_func = {} # {key: list[func]}
 
     def initialize(self, window):
         self.window = window
@@ -44,18 +44,23 @@ class UI:
                 imgui.separator()
                 if imgui.begin_menu(menu_name, True):
                     max_len = 0
-                    for item_name in items.keys():
+                    for item_name, _, _ in items:
                         max_len = max(max_len, imgui.calc_text_size(item_name)[0] + imgui.calc_text_size(item_name)[1] * 2 + imgui.get_style().item_spacing.x)
                     
-                    for item_name, (render_option, hotkey, activated) in items.items():
-                        clicked, activated = imgui.checkbox(item_name, activated)
-                        render_option.set_visible(activated)
-                        items[item_name][2] = activated
+                    for item_name, func, key in items:
+                        clicked, activated = imgui.menu_item(item_name, "")
+                        if key is not None:
+                            text_key = glfw.get_key_name(key, 0)
+                            if text_key is not None:
+                                text_key = text_key.upper()
+                            elif key is glfw.KEY_SPACE:
+                                text_key = "Space"
 
-                        if hotkey is not None:
-                            hotkey = glfw.get_key_name(hotkey, 0).upper()
                             imgui.same_line(max_len)
-                            imgui.text_disabled(hotkey)
+                            imgui.text_disabled(text_key)
+
+                        if clicked:
+                            func()
                         
                     imgui.end_menu()
             imgui.end_main_menu_bar()
@@ -73,24 +78,34 @@ class UI:
         return int(imgui.get_frame_height_with_spacing())
     
     def add_menu(self, menu_name):
-        self.menu_to_items[menu_name] = {}
-
-    def add_render_toggle(self, menu_name, item_name, render_option, key=None, activated=False):
+        self.menu_to_items[menu_name] = []
+    
+    def add_menu_item(self, menu_name, item_name, func, key=None):
         if self.menu_to_items.get(menu_name, None) is None:
             self.add_menu(menu_name)
 
-        item = [render_option, key, activated]
-        self.menu_to_items[menu_name][item_name] = item
-
+        self.menu_to_items[menu_name].append([item_name, func, key])
         if key is not None:
-            self.hotkey_to_render_options.setdefault(key, [])
-            self.hotkey_to_render_options[key].append(render_option)
+            if self.key_to_func.get(key, None) is None:
+                self.key_to_func[key] = []
+            self.key_to_func[key].append(func)
+
+    # def add_render_toggle(self, menu_name, item_name, render_option, key=None, activated=False):
+    #     if self.menu_to_items.get(menu_name, None) is None:
+    #         self.add_menu(menu_name)
+
+    #     item = [render_option, key, activated]
+    #     self.menu_to_items[menu_name][item_name] = item
+
+    #     if key is not None:
+    #         self.hotkey_to_render_options.setdefault(key, [])
+    #         self.hotkey_to_render_options[key].append(render_option)
     
     def key_callback(self, window, key, scancode, action, mods):
         if not action == glfw.PRESS:
             return
         
-        for hotkey, render_options in self.hotkey_to_render_options.items():
-            if key == hotkey:
-                for render_option in render_options:
-                    render_option.switch_visible()
+        funcs = self.key_to_func.get(key, None)
+        if funcs is not None:
+            for func in funcs:
+                func()
