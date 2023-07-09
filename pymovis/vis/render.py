@@ -2,17 +2,16 @@ from __future__ import annotations
 from typing import Callable
 from enum import Enum
 
-import os
-import functools
-
 from OpenGL.GL import *
 import glm
+import functools
 
 from .primitives import *
 from .material   import Material
 from .shader     import Shader
-from .texture    import Texture, TextureLoader
+from .texture    import Texture, TextureLoader, TextureType
 from .text       import FontTexture
+from .motion     import Pose
 from .mesh       import Mesh
 from .model      import Model
 from .obj        import Obj
@@ -74,7 +73,7 @@ class Render:
         Render.text_shader      = Shader("text.vs",    "text.fs")
         Render.cubemap_shader   = Shader("cubemap.vs", "cubemap.fs")
         Render.shadow_shader    = Shader("shadow.vs",  "shadow.fs")
-        Render.equirect_shader = Shader("equirect.vs", "equirect.fs")
+        Render.equirect_shader  = Shader("equirect.vs", "equirect.fs")
 
         # shadow map
         Render.shadowmap_fbo, Render.shadowmap_texture_id = TextureLoader.generate_shadow_buffer()
@@ -133,29 +132,25 @@ class Render:
         return RenderOptions(Pyramid(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
-    def vao(vao, render_mode="pbr"):
-        return RenderOptions(vao, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
-    
-    @staticmethod
     def heightmap(heightmap, render_mode="pbr"):
-        return Render.vao(heightmap.vao, render_mode)
+        return RenderOptions(heightmap.vao, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
     
     @staticmethod
     def obj(filename, render_mode="pbr", scale=0.01):
         obj = Obj(filename, scale=scale)
         ro = RenderOptions(obj, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
-        ro.set_materials(obj.materials)
+        ro.materials(obj.materials)
         return ro
 
     @staticmethod
     def mesh(mesh: Mesh, render_mode="pbr"):
         if mesh.use_skinning:
             ro = RenderOptions(mesh.mesh_gl.vao, Render.lbs_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
-            ro.set_skinning(True).set_buffer_xforms(mesh.buffer)
+            ro.skinning(True).buffer_xforms(mesh.buffer)
         else:
             ro = RenderOptions(mesh.mesh_gl.vao, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
         
-        ro.set_materials(mesh.materials)
+        ro.materials(mesh.materials)
         return ro
 
     @staticmethod
@@ -166,6 +161,20 @@ class Render:
             rov.append(Render.mesh(mesh, render_mode))
 
         return RenderOptionsVec(rov)
+    
+    @staticmethod
+    def skeleton(model: Model, render_mode="pbr"):
+        rov = []
+        for idx, joint in enumerate(model.pose.skeleton.joints[1:]):
+            skeleton_xform = model.pose.skeleton_xforms[idx]
+            position = glm.vec3(skeleton_xform[:3, 3].ravel())
+            orientation = glm.mat3(*skeleton_xform[:3, :3].T.ravel())
+            bone_len = np.linalg.norm(joint.local_p)
+
+            ro = Render.pyramid(radius=bone_len*0.1, height=bone_len, render_mode=render_mode)
+            ro.transform(position, orientation).albedo([0, 1, 0]).color_mode(True)
+            rov.append(ro)
+        return RenderOptionsVec(rov)
 
     @staticmethod
     def axis(render_mode="pbr"):
@@ -173,7 +182,7 @@ class Render:
         rov = []
         for mesh in fbx_axis.meshes:
             ro = RenderOptions(mesh.mesh_gl.vao, Render.primitive_shader, get_draw_func(render_mode), None, None)
-            ro.set_materials(mesh.materials)
+            ro.materials(mesh.materials)
             rov.append(ro)
         return RenderOptionsVec(rov)
 
@@ -183,7 +192,7 @@ class Render:
             Render.font_texture = FontTexture()
 
         res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=False))
-        return res.set_text(str(t)).set_albedo(color)
+        return res.text(str(t)).albedo(color)
 
     @staticmethod
     def text_on_screen(t="", color=glm.vec3(0)):
@@ -191,12 +200,12 @@ class Render:
             Render.font_texture = FontTexture()
 
         res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=True))
-        return res.set_text(str(t)).set_albedo(color)
+        return res.text(str(t)).albedo(color)
 
     @staticmethod
     def cubemap(dirname):
         ro = RenderOptions(Cubemap(), Render.cubemap_shader, Render.draw_cubemap)
-        ro.set_cubemap(dirname)
+        ro.cubemap(dirname)
         return ro
 
     @staticmethod
@@ -223,16 +232,16 @@ class Render:
             shader.is_view_updated = True
 
         # update model
-        if option.use_skinning:
-            if len(option.buffer_xforms) > MAX_JOINT_NUM:
-                print(f"Joint number exceeds the limit: {len(option.buffer_xforms)} > {MAX_JOINT_NUM}")
-                option.buffer_xforms = option.buffer_xforms[:MAX_JOINT_NUM]
+        if option._use_skinning:
+            if len(option._buffer_xforms) > MAX_JOINT_NUM:
+                print(f"Joint number exceeds the limit: {len(option._buffer_xforms)} > {MAX_JOINT_NUM}")
+                option._buffer_xforms = option._buffer_xforms[:MAX_JOINT_NUM]
                 
-            shader.set_mat4_array("uLbsJoints", option.buffer_xforms)
+            shader.set_mat4_array("uLbsJoints", option._buffer_xforms)
         else:
-            T = glm.translate(glm.mat4(1.0), option.position)
-            R = glm.mat4(option.orientation)
-            S = glm.scale(glm.mat4(1.0), option.scale)
+            T = glm.translate(glm.mat4(1.0), option._position)
+            R = glm.mat4(option._orientation)
+            S = glm.scale(glm.mat4(1.0), option._scale)
             transform = T * R * S
             shader.set_mat4("M", transform)
 
@@ -247,7 +256,7 @@ class Render:
         glActiveTexture(GL_TEXTURE0)
         irradiance_map = TextureLoader.load_irradiance_map(BACKGROUND_TEXTURE_FILE, Render.equirect_shader)
         glBindTexture(GL_TEXTURE_CUBE_MAP, irradiance_map.texture_id)
-        shader.set_float("uIrradianceMapIntensity", option.background_intensity)
+        shader.set_float("uIrradianceMapIntensity", option._background_intensity)
 
         # set shadow map
         glActiveTexture(GL_TEXTURE1)
@@ -275,8 +284,8 @@ class Render:
             return idx_on_shader
         
         texture_count = [0] # use list to pass by reference
-        for i in range(min(len(option.materials), MAX_MATERIAL_NUM)):
-            material = option.materials[i]
+        for i in range(min(len(option._materials), MAX_MATERIAL_NUM)):
+            material = option._materials[i]
             rgba[i] = glm.vec4(material.albedo, material.alpha)
             
             texture_id[i].x = gl_set_texture(material.albedo_map.texture_id, texture_count)
@@ -288,32 +297,32 @@ class Render:
                 pbr_texture_id[i].y = gl_set_texture(material.roughness_map.texture_id, texture_count)
                 pbr_texture_id[i].z = gl_set_texture(material.ao_map.texture_id, texture_count)
         
-        for i in range(min(len(option.materials), MAX_MATERIAL_NUM)):
+        for i in range(min(len(option._materials), MAX_MATERIAL_NUM)):
             shader.set_vec4 (f"uMaterial[{i}].albedo",       rgba[i])
             shader.set_ivec3(f"uMaterial[{i}].textureID",    texture_id[i])
             shader.set_ivec3(f"uMaterial[{i}].pbrTextureID", pbr_texture_id[i])
 
             if pbr:
-                shader.set_float(f"uMaterial[{i}].metallic",  option.materials[i].metallic)
-                shader.set_float(f"uMaterial[{i}].roughness", option.materials[i].roughness)
-                shader.set_float(f"uMaterial[{i}].ao",        option.materials[i].ao)
+                shader.set_float(f"uMaterial[{i}].metallic",  option._materials[i].metallic)
+                shader.set_float(f"uMaterial[{i}].roughness", option._materials[i].roughness)
+                shader.set_float(f"uMaterial[{i}].ao",        option._materials[i].ao)
             else:
-                shader.set_vec3 (f"uMaterial[{i}].diffuse",   option.materials[i].diffuse)
-                shader.set_vec3 (f"uMaterial[{i}].specular",  option.materials[i].specular)
-                shader.set_float(f"uMaterial[{i}].shininess", option.materials[i].shininess)
+                shader.set_vec3 (f"uMaterial[{i}].diffuse",   option._materials[i].diffuse)
+                shader.set_vec3 (f"uMaterial[{i}].specular",  option._materials[i].specular)
+                shader.set_float(f"uMaterial[{i}].shininess", option._materials[i].shininess)
 
-        shader.set_bool("uIsFloor",       option.is_floor)
-        shader.set_vec3("uGridColor",     option.grid_color)
-        shader.set_float("uGridWidth",    option.grid_width)
-        shader.set_float("uGridInterval", option.grid_interval)
+        shader.set_bool("uIsFloor",       option._is_floor)
+        shader.set_vec3("uGridColor",     option._grid_color)
+        shader.set_float("uGridWidth",    option._grid_width)
+        shader.set_float("uGridInterval", option._grid_interval)
 
-        shader.set_bool("uColorMode",  option.color_mode)
-        shader.set_vec2("uvScale",     option.uv_repeat)
-        shader.set_float("uDispScale", option.disp_scale)
+        shader.set_bool("uColorMode",  option._color_mode)
+        shader.set_vec2("uvScale",     option._uv_repeat)
+        shader.set_float("uDispScale", option._disp_scale)
 
         # final rendering
-        glBindVertexArray(option.vao.id)
-        glDrawElements(GL_TRIANGLES, len(option.vao.indices), GL_UNSIGNED_INT, None)
+        glBindVertexArray(option._vao.id)
+        glDrawElements(GL_TRIANGLES, len(option._vao.indices), GL_UNSIGNED_INT, None)
 
         # unbind vao
         glBindVertexArray(0)
@@ -329,20 +338,20 @@ class Render:
 
         shader.set_mat4("uLightSpaceMatrix", Render.render_info.light_matrix)
 
-        if option.use_skinning:
+        if option._use_skinning:
             shader.set_bool(f"uIsSkinned", True)
-            shader.set_mat4_array("uLbsJoints", option.buffer_xforms)
+            shader.set_mat4_array("uLbsJoints", option._buffer_xforms)
         else:
             shader.set_bool(f"uIsSkinned", False)
-            T = glm.translate(glm.mat4(1.0), option.position)
-            R = glm.mat4(option.orientation)
-            S = glm.scale(glm.mat4(1.0), option.scale)
+            T = glm.translate(glm.mat4(1.0), option._position)
+            R = glm.mat4(option._orientation)
+            S = glm.scale(glm.mat4(1.0), option._scale)
             shader.set_mat4("M", T * R * S)
 
         # final rendering
         glCullFace(GL_FRONT)
-        glBindVertexArray(option.vao.id)
-        glDrawElements(GL_TRIANGLES, len(option.vao.indices), GL_UNSIGNED_INT, None)
+        glBindVertexArray(option._vao.id)
+        glDrawElements(GL_TRIANGLES, len(option._vao.indices), GL_UNSIGNED_INT, None)
         glCullFace(GL_BACK)
 
         # unbind vao
@@ -358,13 +367,13 @@ class Render:
 
         if on_screen:
             glDisable(GL_DEPTH_TEST)
-            x = option.position.x
-            y = option.position.y
-            scale = option.scale.x
+            x = option._position.x
+            y = option._position.y
+            scale = option._scale.x
         else:
             x = 0
             y = 0
-            scale = option.scale.x / TEXT_RESOLUTION
+            scale = option._scale.x / TEXT_RESOLUTION
 
         # shader settings
         shader.use()
@@ -374,18 +383,18 @@ class Render:
             M  = glm.mat4(1.0)
         else:
             PV = Render.render_info.cam_projection * Render.render_info.cam_view
-            M = glm.translate(glm.mat4(1.0), option.position)\
-                * glm.mat4(option.orientation)\
-                * glm.scale(glm.mat4(1.0), option.scale) # translation * rotation * scale
+            M = glm.translate(glm.mat4(1.0), option._position)\
+                * glm.mat4(option._orientation)\
+                * glm.scale(glm.mat4(1.0), option._scale) # translation * rotation * scale
 
         shader.set_mat4("uPVM", PV * M)
         shader.set_int("uFontTexture", 0)
-        shader.set_vec3("uTextColor", option.materials[0].albedo.xyz)
+        shader.set_vec3("uTextColor", option._materials[0].albedo.xyz)
 
         glActiveTexture(GL_TEXTURE0)
         glBindVertexArray(Render.font_texture.vao)
 
-        for c in option.text:
+        for c in option._text:
             ch = Render.font_texture.character(c)
 
             xpos = x + ch.bearing.x * scale
@@ -429,13 +438,10 @@ class Render:
             return
         if Render.render_mode != RenderMode.eDRAW:
             return
-        if option.cubemap.texture_id == 0:
+        if option._cubemap.texture_id == 0:
             return
         
         shader.use()
-
-        # adjust depth settings for optimized rendering
-        glDepthFunc(GL_LEQUAL)
 
         # update view
         P = Render.render_info.cam_projection
@@ -445,14 +451,11 @@ class Render:
         # set textures
         shader.set_int("uSkybox", 0)
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_CUBE_MAP, option.cubemap.texture_id)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, option._cubemap.texture_id)
 
         # final rendering
-        glBindVertexArray(option.vao.id)
+        glBindVertexArray(option._vao.id)
         glDrawArrays(GL_TRIANGLES, 0, 36)
-
-        # restore depth settings
-        glDepthFunc(GL_LESS)
 
         # unbind vao
         glBindVertexArray(0)
@@ -484,192 +487,189 @@ class Render:
 class RenderOptions:
     def __init__(
         self,
-        vao          : VAO,
-        shader       : Shader,
-        draw_func    : Callable[[RenderOptions, Shader], None],
+        vao: VAO,
+        shader: Shader,
+        draw_func: Callable[[RenderOptions, Shader], None],
         shadow_shader: Shader = None,
-        shadow_func  : Callable[[RenderOptions, Shader], None] = None,
+        shadow_func: Callable[[RenderOptions, Shader], None] = None,
     ):
-        self.vao           = vao
-        self.shader        = shader
-        self.shadow_shader = shadow_shader
+        self._vao           = vao
+        self._shader        = shader
+        self._shadow_shader = shadow_shader
 
         # transformation
-        self.position      = glm.vec3(0.0)
-        self.orientation   = glm.mat3(1.0)
-        self.scale         = glm.vec3(1.0)
+        self._position      = glm.vec3(0.0)
+        self._orientation   = glm.mat3(1.0)
+        self._scale         = glm.vec3(1.0)
 
         # joint
-        self.use_skinning  = False
-        self.buffer_xforms = []
+        self._use_skinning  = False
+        self._buffer_xforms = []
 
         # material
-        self.materials     = [Material()]
-        self.cubemap       = Texture()
-        self.uv_repeat     = glm.vec2(1.0)
-        self.disp_scale    = 0.0001
-        self.text          = ""
-        self.color_mode    = False
+        self._materials     = [Material()]
+        self._cubemap       = Texture()
+        self._uv_repeat     = glm.vec2(1.0)
+        self._disp_scale    = 0.0001
+        self._text          = ""
+        self._color_mode    = False
 
         # grid and environment
-        self.is_floor      = False
-        self.grid_color    = glm.vec3(0.0)
-        self.grid_width    = 1.0
-        self.grid_interval = 1.0
-        self.background_intensity = 1.0
+        self._is_floor      = False
+        self._grid_color    = glm.vec3(0.0)
+        self._grid_width    = 1.0
+        self._grid_interval = 1.0
+        self._background_intensity = 1.0
 
         # visibility
-        self.visible       = True
-        self.draw_func     = draw_func
-        self.shadow_func   = shadow_func
+        self._visible       = True
+        self._draw_func     = draw_func
+        self._shadow_func   = shadow_func
 
     def draw(self):
-        if not self.visible:
+        if not self._visible:
             return
         
         if Render.render_mode == RenderMode.eSHADOW:
-            if self.shadow_func is not None:
-                self.shadow_func(self, self.shadow_shader)
+            if self._shadow_func is not None:
+                self._shadow_func(self, self._shadow_shader)
         else:
-            self.draw_func(self, self.shader)
+            self._draw_func(self, self._shader)
 
-    def set_position(self, *position):
-        if len(position) == 1:
-            self.position = glm.vec3(position[0])
-        elif len(position) == 3:
-            self.position = glm.vec3(position[0], position[1], position[2])
-        else:
-            raise Exception(f"Invalid position: {position}")
+    def position(self, position):
+        self._position = glm.vec3(position)
         return self
 
-    def set_orientation(self, orientation):
-        self.orientation = glm.mat3(orientation)
+    def orientation(self, orientation):
+        self._orientation = glm.mat3(orientation)
         return self
     
-    def set_scale(self, x, y=None, z=None):
-        if y is None and z is None:
-            self.scale = glm.vec3(x)
-        elif y != None and z != None:
-            self.scale = glm.vec3(x, y, z)
+    def transform(self, position, orientation):
+        self._position = glm.vec3(position)
+        self._orientation = glm.mat3(orientation)
         return self
-
-    def set_albedo(self, color, material_id=0):
-        if len(self.materials) == 0:
-            self.materials.append(Material())
+    
+    def scale(self, scale):
+        self._scale = glm.vec3(scale)
+        return self
+    
+    def albedo(self, color, material_id=0):
+        if len(self._materials) == 0:
+            self._materials.append(Material())
             material_id = 0
         
-        if material_id < len(self.materials):
-            self.materials[material_id].albedo = glm.vec3(color)
-            self.materials[material_id].albedo_map.texture_id = 0
+        if material_id < len(self._materials):
+            self._materials[material_id].albedo = glm.vec3(color)
+            self._materials[material_id].albedo_map.texture_id = 0
 
         return self
     
-    def set_metallic(self, metallic, material_id=0):
-        if len(self.materials) == 0:
-            self.materials.append(Material())
+    def metallic(self, metallic, material_id=0):
+        if len(self._materials) == 0:
+            self._materials.append(Material())
             material_id = 0
         
-        if material_id < len(self.materials):
-            self.materials[material_id].metallic = metallic
+        if material_id < len(self._materials):
+            self._materials[material_id].metallic = metallic
 
         return self
     
-    def set_roughness(self, roughness, material_id=0):
-        if len(self.materials) == 0:
-            self.materials.append(Material())
+    def roughness(self, roughness, material_id=0):
+        if len(self._materials) == 0:
+            self._materials.append(Material())
             material_id = 0
         
-        if material_id < len(self.materials):
-            self.materials[material_id].roughness = roughness
+        if material_id < len(self._materials):
+            self._materials[material_id].roughness = roughness
 
         return self
 
-    def set_material(self, material, material_id=0):
-        if len(self.materials) == 0:
-            self.materials.append(Material())
+    def material(self, material, material_id=0):
+        if len(self._materials) == 0:
+            self._materials.append(Material())
             material_id = 0
         
-        if material_id < len(self.materials):
-            self.materials[material_id] = material
+        if material_id < len(self._materials):
+            self._materials[material_id] = material
 
         return self
     
-    def set_materials(self, materials):
-        self.materials = materials
+    def materials(self, materials):
+        self._materials = materials
         return self
     
-    def set_text_color(self, color):
-        self.materials[0].set_albedo(glm.vec3(color))
+    def text_color(self, color):
+        self._materials[0].albedo(glm.vec3(color))
         return self
 
-    def set_texture(self, filename, texture_type="albedo", material_id=0):
-        if len(self.materials) == 0:
-            self.materials.append(Material())
+    def texture(self, filename, texture_type=TextureType.eALBEDO, material_id=0):
+        if len(self._materials) == 0:
+            self._materials.append(Material())
             material_id = 0
         
-        if material_id < len(self.materials):
-            self.materials[material_id].set_texture(TextureLoader.load(filename), texture_type)
+        if material_id < len(self._materials):
+            self._materials[material_id].set_texture(TextureLoader.load(filename), texture_type)
 
         return self
     
-    def set_cubemap(self, dirname):
-        self.cubemap = TextureLoader.load_cubemap(dirname)
+    def cubemap(self, dirname):
+        self._cubemap = TextureLoader.load_cubemap(dirname)
         return self
 
-    def set_floor(self, is_floor, line_width=1.0, line_interval=1.0, line_color=glm.vec3(.0)):
-        self.is_floor = is_floor
-        self.grid_color = line_color
-        self.grid_width = line_width
-        self.grid_interval = line_interval
+    def floor(self, is_floor, line_width=1.0, line_interval=1.0, line_color=glm.vec3(.0)):
+        self._is_floor = is_floor
+        self._grid_color = line_color
+        self._grid_width = line_width
+        self._grid_interval = line_interval
         return self
     
-    def set_background(self, background_intensity):
-        self.background_intensity = min(max(background_intensity, 0.0), 1.0)
+    def background(self, background_intensity):
+        self._background_intensity = min(max(background_intensity, 0.0), 1.0)
         return self
     
-    def set_skinning(self, use_skinning):
-        self.use_skinning = use_skinning
+    def skinning(self, use_skinning):
+        self._use_skinning = use_skinning
         return self
     
-    def set_buffer_xforms(self, buffer_xforms):
-        self.buffer_xforms = buffer_xforms
+    def buffer_xforms(self, buffer_xforms):
+        self._buffer_xforms = buffer_xforms
         return self
     
-    def set_uv_repeat(self, u, v=None):
+    def uv_repeat(self, u, v=None):
         if v is None:
-            self.uv_repeat = glm.vec2(u)
+            self._uv_repeat = glm.vec2(u)
         else:
-            self.uv_repeat = glm.vec2(u, v)
+            self._uv_repeat = glm.vec2(u, v)
         return self
 
-    def set_disp_scale(self, scale):
-        self.disp_scale = scale
+    def disp_scale(self, scale):
+        self._disp_scale = scale
         return self
     
-    def set_text(self, text):
-        self.text = str(text)
+    def text(self, text):
+        self._text = str(text)
         return self
     
-    def set_alpha(self, alpha, material_id=0):
-        if len(self.materials) == 0:
-            self.materials.append(Material())
+    def alpha(self, alpha, material_id=0):
+        if len(self._materials) == 0:
+            self._materials.append(Material())
             material_id = 0
 
-        if material_id < len(self.materials):
-            self.materials[material_id].set_alpha(alpha)
+        if material_id < len(self._materials):
+            self._materials[material_id].alpha(alpha)
 
         return self
     
-    def set_color_mode(self, color_mode):
-        self.color_mode = color_mode
+    def color_mode(self, color_mode):
+        self._color_mode = color_mode
         return self
 
     def switch_visible(self):
-        self.visible = not self.visible
+        self._visible = not self._visible
         return self
     
-    def set_visible(self, visible):
-        self.visible = visible
+    def visible(self, visible):
+        self._visible = visible
         return self
 
 """ Multiple rendering options for a primitive """
@@ -686,23 +686,54 @@ class RenderOptionsVec:
             option.switch_visible()
         return self
 
-    def set_visible(self, visible):
+    def visible(self, visible):
         for option in self.options:
-            option.set_visible(visible)
+            option.visible(visible)
         return self
     
-    def set_background(self, background_intensity):
+    def background(self, background_intensity):
         for option in self.options:
-            option.set_background(background_intensity)
+            option.background(background_intensity)
         return self
     
-    def fix_model(self, model: Model):
-        if len(self.options) != len(model.meshes):
-            raise Exception(f"Number of options and meshes must be same, but len(self.options) = {len(self.options)} and len(meshes) = {len(model.meshes)}")
-        
+    def buffer_xforms(self, model: Model):
         for i in range(len(self.options)):
-            self.options[i].set_buffer_xforms(model.meshes[i].buffer)
+            self.options[i].buffer_xforms(model.meshes[i].buffer)
+        return self
+    
+    def position(self, position):
+        for option in self.options:
+            option.position(position)
+        return self
+    
+    def position_of(self, index, position):
+        self.options[index].position(position)
+        return self
 
+    def orientation(self, orientation):
+        for option in self.options:
+            option.orientation(orientation)
+        return self
+    
+    def orientation_of(self, index, orientation):
+        self.options[index].orientation(orientation)
+        return self
+    
+    def transform(self, position, orientation):
+        for option in self.options:
+            option.transform(position, orientation)
+        return self
+    
+    def transform_of(self, index, transform):
+        self.options[index].transform(transform)
+        return self
+    
+    def pose(self, pose: Pose):
+        for idx, option in enumerate(self.options):
+            xform = pose.skeleton_xforms[idx]
+            position = glm.vec3(*xform[:3, 3].ravel())
+            orientation = glm.mat3(*xform[:3, :3].T.ravel())
+            option.transform(position, orientation)
         return self
     
     # def set_all_positions(self, position):

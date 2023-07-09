@@ -1,4 +1,3 @@
-import os
 import imgui
 from imgui.integrations.glfw import GlfwRenderer
 import glfw
@@ -55,6 +54,10 @@ class UI:
                                 text_key = text_key.upper()
                             elif key is glfw.KEY_SPACE:
                                 text_key = "Space"
+                            elif key is glfw.KEY_LEFT:
+                                text_key = "Left"
+                            elif key is glfw.KEY_RIGHT:
+                                text_key = "Right"
 
                             imgui.same_line(max_len)
                             imgui.text_disabled(text_key)

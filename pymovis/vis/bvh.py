@@ -4,7 +4,7 @@ import numpy as np
 import multiprocessing as mp
 
 from .motion import Skeleton, Pose, Motion
-from pymovis.utils import npconst, util
+from .model  import Model
 
 channelmap = {
     'Xrotation': 'x',
@@ -25,12 +25,10 @@ ordermap = {
 }
 
 class BVH:
-    def __init__(self, filename: str, target_fps=30, to_meter=0.01, v_up=npconst.UP(), v_forward=npconst.FORWARD()):
+    def __init__(self, filename: str, target_fps=30, to_meter=0.01):
         self.filename = filename
         self.target_fps = target_fps
         self.to_meter = to_meter
-        self.v_up = v_up
-        self.v_forward = v_forward
 
         self.poses = []
         self._load()
@@ -40,16 +38,11 @@ class BVH:
             print(f"{self.filename} is not a bvh file.")
             return
         
-        v_up = np.array(self.v_up)
-        v_forward = np.array(self.v_forward)
-
-        assert v_up.shape == (3,) and v_forward.shape == (3,), f"v_up and v_forward must be 3D vectors, but got {v_up.shape} and {v_forward.shape}."
-
         i = 0
         active = -1
         end_site = False
 
-        skeleton = Skeleton(joints=[], v_up=v_up, v_forward=v_forward)
+        skeleton = Skeleton(joints=[])
 
         with open(self.filename, "r") as f:
             for line in f:
@@ -143,3 +136,6 @@ class BVH:
         name = os.path.splitext(os.path.basename(self.filename))[0]
         res = Motion(self.poses, fps=self.target_fps, name=name)
         return res
+    
+    def model(self):
+        return Model(meshes=None, skeleton=self.poses[0].skeleton)

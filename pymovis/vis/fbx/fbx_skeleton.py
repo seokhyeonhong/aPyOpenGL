@@ -46,14 +46,14 @@ def parse_nodes_by_type(node, joints, parent_idx, type, scale):
         local_S = to_vec3(node.LclScaling.Get())
 
         dest_pre_R = node.GetPreRotation(FbxNode.eDestinationPivot)
-        pre_R = to_quat(dest_pre_R, order)
+        pre_Q = to_quat(dest_pre_R, order)
 
         joint = JointData()
-        joint.name = name
-        joint.local_S = local_S
-        joint.local_T = scale * local_T
-        joint.local_R = local_R
-        joint.pre_R = pre_R
+        joint.name       = name
+        joint.local_S    = local_S
+        joint.local_T    = scale * local_T
+        joint.local_R    = local_R
+        joint.pre_Q      = pre_Q
         joint.parent_idx = parent_idx
         joints.append(joint)
         parent_idx = len(joints) - 1

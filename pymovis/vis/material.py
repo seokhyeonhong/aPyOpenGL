@@ -86,12 +86,9 @@ class Material:
         return res
     
     def set_texture(self, texture, texture_type):
-        # type check
-        if isinstance(texture_type, str):
+        if not isinstance(texture_type, TextureType):
             texture_type = self.type_dict.get(texture_type, TextureType.eUNKNOWN)
-        elif not isinstance(texture_type, TextureType):
-            raise Exception("Texture type not supported")
-        
+
         # TextureType: Unknown
         if texture_type == TextureType.eUNKNOWN:
             raise Exception("Texture type not supported")

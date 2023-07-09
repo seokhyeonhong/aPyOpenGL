@@ -1,29 +1,28 @@
-import copy
+from __future__ import annotations
 from OpenGL.GL import *
 
+from .core import MeshGL
+from .material import Material
+from .motion import Skeleton, Pose
 from .mesh import Mesh
-from .const import LAFAN1_FBX_DICT
 
 class Model:
-    def __init__(self, gl_meshes=None, skeleton=None):
-        self.gl_meshes = gl_meshes
-        self.skeleton = skeleton
-        if gl_meshes is not None:
-            self.meshes = [Mesh(gl_meshes[i][0], gl_meshes[i][1], skeleton=skeleton) for i in range(len(gl_meshes))]
+    def __init__(
+        self,
+        meshes: list[tuple[MeshGL, Material]] = None,
+        skeleton: Skeleton = None
+    ):
+        if meshes is None and skeleton is None:
+            raise ValueError("Both meshes and skeleton cannot be None")
+        
+        self.pose = Pose(skeleton) if skeleton is not None else None
+        self.meshes = [Mesh(meshes[i][0], meshes[i][1], skeleton=skeleton) for i in range(len(meshes))] if meshes is not None else []
+        
+    def set_pose(self, pose):
+        if isinstance(pose, Pose):
+            self.pose = pose
+        # elif isinstance(pose, KinPose):
         else:
-            raise ValueError("Mesh must be provided")
-    
-    def __deepcopy__(self, memo):
-        meshes = [copy.deepcopy(mesh) for mesh in self.meshes]
-        res = Model(self.gl_meshes, self.skeleton)
-        res.meshes = meshes
-        memo[id(self)] = res
-        return res
-
-    def set_pose_by_source(self, source_pose):
+            raise ValueError(f"pose must be Pose or KinPose, not {type(pose)}")
         for mesh in self.meshes:
-            mesh.set_pose_by_source(source_pose)
-    
-    def set_source_skeleton(self, source, rel_dict=LAFAN1_FBX_DICT):
-        for mesh in self.meshes:
-            mesh.set_source_skeleton(source, rel_dict)
+            mesh.update_mesh(pose)

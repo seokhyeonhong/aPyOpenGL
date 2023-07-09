@@ -7,3 +7,4 @@ from .render      import Render
 from .const       import *
 from .heightmap   import Heightmap
 from .fbx.fbx     import FBX
+from .texture     import TextureType

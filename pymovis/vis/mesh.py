@@ -1,69 +1,45 @@
 from OpenGL.GL import *
 import glm
-import numpy as np
 import copy
 
-from .motion import Pose
-from .core        import MeshGL
+from .motion import Skeleton, Pose
+from .core   import MeshGL
 
 class Mesh:
     def __init__(
         self,
-        mesh_gl      : MeshGL,
+        mesh_gl: MeshGL,
         materials    = None,
-        use_skinning = False,
-        skeleton     = None
+        skeleton: Skeleton = None
     ):
         self.mesh_gl      = mesh_gl
         self.materials    = materials
-        self.use_skinning = use_skinning or skeleton is not None
+
+        # skinning
         self.skeleton     = skeleton
+        self.use_skinning = (skeleton is not None)
         self.buffer       = [glm.mat4(1.0)] * len(self.mesh_gl.joint_order)
+        self.joint_buffer_idx = []
+        for j in range(len(mesh_gl.joint_order)):
+            jidx = skeleton.idx_by_name[mesh_gl.joint_order[j]]
+            self.joint_buffer_idx.append(jidx)
     
     def __deepcopy__(self, memo):
         res = Mesh(self.mesh_gl, copy.deepcopy(self.materials), self.use_skinning, self.skeleton)
         res.buffer = copy.deepcopy(self.buffer)
-        if hasattr(self, "source_skeleton"):
-            res.set_source_skeleton(self.source_skeleton, self.rel_dict)
         memo[id(self)] = res
         return res
 
     def set_materials(self, materials):
         self.materials = materials
     
-    def set_pose_by_source(self, pose: Pose):
+    def update_mesh(self, pose: Pose):
         if self.skeleton is None:
             return
         
-        buffer_updated = [False] * len(self.mesh_gl.joint_order)
         self.buffer = [glm.mat4(1.0)] * len(self.mesh_gl.joint_order)
-        
-        global_R, global_p = pose.global_R, pose.global_p
-        for i in range(self.source_skeleton.num_joints):
-            source_joint_name = self.source_skeleton.joints[i].name
-            target_joint_name = self.rel_dict.get(source_joint_name, None)
-            if target_joint_name is None:
-                continue
-            target_joint_idx  = self.mesh_gl.name_to_idx.get(target_joint_name, None)
-            if target_joint_idx is None:
-                continue
-
-            world_xform = np.concatenate((global_R[i], global_p[i][:, None]), axis=1)
-            world_xform = np.concatenate((world_xform, np.array([[0, 0, 0, 1]])), axis=0).astype(np.float32)
-            world_xform = glm.mat4(*world_xform.T.ravel())
-
-            bind_xform_inv = self.mesh_gl.joint_bind_xform_inv[target_joint_idx]
-            self.buffer[target_joint_idx] = world_xform * bind_xform_inv
-            buffer_updated[target_joint_idx] = True
-
-        for i, updated in enumerate(buffer_updated):
-            if not updated:
-                name = self.mesh_gl.joint_order[i]
-                self.buffer[i] = self.buffer[self.mesh_gl.name_to_idx[name]-1]
-
-    def set_source_skeleton(self, source, rel_dict):
-        if self.skeleton is None:
-            return
-            
-        self.source_skeleton = source
-        self.rel_dict = rel_dict
+        for i in range(len(self.joint_buffer_idx)):
+            jidx = self.joint_buffer_idx[i]
+            global_xform = glm.mat4(*pose.global_xforms[jidx].T.ravel())
+            bind_xform_inv = self.mesh_gl.joint_bind_xform_inv[i]
+            self.buffer[i] = global_xform * bind_xform_inv

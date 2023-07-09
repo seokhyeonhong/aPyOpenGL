@@ -1,13 +1,14 @@
+from __future__ import annotations
 import fbx
 import numpy as np
 
 from . import fbx_mesh, fbx_texture, fbx_material, fbx_skeleton, fbx_parser, fbx_skin, keyframe
 
-from ..motion  import Skeleton, Pose, Motion
-from ..core         import MeshGL, VertexGL, VAO
-from ..material     import Material
-from ..model        import Model
-from ..texture      import TextureType, TextureLoader
+from ..motion   import Skeleton, Pose, Motion
+from ..core     import MeshGL, VertexGL, VAO
+from ..material import Material
+from ..model    import Model
+from ..texture  import TextureType, TextureLoader
 from pymovis.ops    import rotation
 
 FBX_PROPERTY_NAMES = {
@@ -90,12 +91,10 @@ class Parser:
         for i in range(node.GetChildCount()):
             self.__load_mesh_recursive(node.GetChild(i), mesh_nodes)
     
-    def motions(self, joints):
+    def motions(self, joints: list[fbx_parser.JointData]):
         skeleton = Skeleton()
-        name_to_pre_Rs = {} # name to pre-rotation matrix
         for joint in joints:
-            skeleton.add_joint(joint.name, local_p=joint.local_T, parent_idx=joint.parent_idx)
-            name_to_pre_Rs[joint.name] = rotation.Q_to_R(np.array(joint.pre_R, dtype=np.float32))
+            skeleton.add_joint(joint.name, local_p=joint.local_T, pre_Q=joint.pre_Q, parent_idx=joint.parent_idx)
 
         scenes = self.parser.get_scene_keyframes(self.scale)
         names = [joint.name for joint in joints]
@@ -113,12 +112,12 @@ class Parser:
             scene = resampled_scenes[i]
             nof = len(frame_set[i])
             
-            rotations = keyframe.get_rotations_from_resampled(names, scene, nof, name_to_pre_Rs)
+            rotations = keyframe.get_rotations_from_resampled(names, scene, nof)
             positions = keyframe.get_positions_from_resampled(root_name, scene, nof)
 
             poses = []
             for i in range(nof):
-                poses.append(Pose(skeleton, local_R=rotations[i], root_p=positions[i]))
+                poses.append(Pose(skeleton, local_Qs=rotations[i], root_p=positions[i]))
 
             motion_set.append(Motion(poses, fps=self.parser.get_scene_fps(), name=self.parser.filepath))
         
@@ -129,7 +128,7 @@ class FBX:
         self.parser = Parser(filename, scale, save)
         self.scale = scale
 
-    def meshes_and_materials(self):
+    def meshes_and_materials(self) -> list[tuple[MeshGL, Material]]:
         mesh_data = self.parser.mesh_data
 
         results = []
@@ -158,13 +157,13 @@ class FBX:
             
             # set materials and texture
             id_to_material_idx = {}
-            gl_materials = []
+            materials = []
             for i in range(len(data.materials)):
                 material_info = data.materials[i]
                 id_to_material_idx[material_info.material_id] = i
 
-                gl_material = Material()
-                gl_material.albedo = material_info.diffuse
+                material = Material()
+                material.albedo = material_info.diffuse
 
                 for j in range(len(material_info.texture_ids)):
                     texture_id = material_info.texture_ids[j]
@@ -172,9 +171,9 @@ class FBX:
 
                     gl_texture = TextureLoader.load(texture_info.filename)
                     gl_texture_type = find_texture_type(texture_info.property)
-                    gl_material.set_texture(gl_texture, gl_texture_type)
+                    material.set_texture(gl_texture, gl_texture_type)
                 
-                gl_materials.append(gl_material)
+                materials.append(material)
             
             # set vertex material connection
             for i in range(len(data.polygon_material_connection)):
@@ -192,33 +191,26 @@ class FBX:
             mesh.indices = data.indices
             mesh.vao = VAO.from_vertex_array(mesh.vertices, mesh.indices, compute_tangent=False)
 
-            results.append((mesh, gl_materials))
+            results.append((mesh, materials))
     
         return results
     
-    def skeleton(self):
+    def skeleton(self) -> Skeleton:
         skeleton = Skeleton()
         char_data = self.parser.char_data
         joints = char_data.joint_data
         for joint in joints:
-            skeleton.add_joint(joint.name, local_p=joint.local_T, parent_idx=joint.parent_idx)
+            skeleton.add_joint(joint.name, local_p=joint.local_T, pre_Q=joint.pre_Q, parent_idx=joint.parent_idx)
         return skeleton
 
     def model(self):
-        gl_meshes = self.meshes_and_materials()
-        skeleton  = self.skeleton()
+        meshes   = self.meshes_and_materials()
+        skeleton = self.skeleton()
 
-        mesh_exist     = (len(gl_meshes) > 0)
-        skeleton_exist = (skeleton.num_joints > 0)
+        meshes   = meshes if len(meshes) > 0 else None
+        skeleton = skeleton if skeleton.num_joints > 0 else None
 
-        if mesh_exist and skeleton_exist:
-            return Model(gl_meshes=gl_meshes, skeleton=skeleton)
-        elif mesh_exist:
-            return Model(gl_meshes=gl_meshes)
-        elif skeleton_exist:
-            return Model(skeleton=skeleton)
-        else:
-            raise Exception("No mesh or skeleton data")
+        return Model(meshes=meshes, skeleton=skeleton)
     
     def motions(self):
         return self.parser.motions(self.parser.char_data.joint_data)

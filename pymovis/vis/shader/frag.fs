@@ -30,6 +30,7 @@ uniform bool        uIsFloor;
 uniform vec3        uGridColor;
 uniform float       uGridWidth;
 uniform float       uGridInterval;
+uniform bool        uDebug;
 
 uniform vec3        uSkyColor;
 
@@ -94,7 +95,7 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir, sampler2D shadowMap)
 
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
-    float bias = max(0.001f * (1.0f - dot(fNormal, lightDir)), 0.0001f);
+    float bias = max(0.0001f * (1.0f - dot(fNormal, lightDir)), 0.00001f);
 
     // if current depth from camera is greater than that of the light source,
     // then the fragment is in shadow

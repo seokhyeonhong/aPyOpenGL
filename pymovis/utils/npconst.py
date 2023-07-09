@@ -39,3 +39,6 @@ def P_ONE():
 
 def R_IDENTITY():
     return np.identity(3, dtype=np.float32)
+
+def Q_IDENTITY():
+    return np.array([1, 0, 0, 0], dtype=np.float32)

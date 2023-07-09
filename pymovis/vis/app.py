@@ -13,7 +13,6 @@ from .camera import Camera
 from .light  import Light, DirectionalLight, PointLight
 from .render import Render
 from .model  import Model
-from .const  import YBOT_FBX_DICT
 from .ui     import UI
 
 """ Base class for all applications """
@@ -29,8 +28,8 @@ class App:
         self.width, self.height = 1920, 1080
         self.io = self.IO()
         self.ui = UI()
-
         self.capture_path = os.path.join("capture", str(datetime.date.today()))
+        self.window = self.init_glfw()
 
     class IO:
         def __init__(self):
@@ -38,6 +37,50 @@ class App:
             self.last_mouse_y = 0
             self.mouse_middle_down = False
             self.mouse_left_down = False
+    
+    def init_glfw(self):
+        glfw.init()
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 4)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        glfw.window_hint(glfw.SAMPLES, 4)
+
+        # create window
+        window = glfw.create_window(self.width, self.height, "pymovis", None, None)
+        glfw.make_context_current(window)
+
+        if not window:
+            glfw.terminate()
+            raise Exception("Failed to create GLFW window")
+        
+        glfw.make_context_current(window)
+        glfw.swap_interval(1)
+
+        # callbacks
+        glfw.set_framebuffer_size_callback(window, self.on_resize)
+        glfw.set_key_callback(window, self.key_callback)
+        glfw.set_cursor_pos_callback(window, self.mouse_callback)
+        glfw.set_mouse_button_callback(window, self.mouse_button_callback)
+        glfw.set_scroll_callback(window, self.scroll_callback)
+        glfw.set_error_callback(self.on_error)
+        
+        # global OpenGL state
+        glEnable(GL_DEPTH_TEST)
+        glEnable(GL_CULL_FACE)
+        glEnable(GL_BLEND)
+        glEnable(GL_MULTISAMPLE)
+        glEnable(GL_LINE_SMOOTH)
+
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glDepthFunc(GL_LEQUAL)
+        glCullFace(GL_BACK)
+        # glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
+
+        # intialize shaders
+        Render.initialize_shaders()
+        glViewport(0, 0, self.width, self.height)
+
+        return window
 
     """ Override these methods to add custom rendering code """
     def start(self):
@@ -63,6 +106,14 @@ class App:
 
     """ Callback functions for glfw and camera control """
     def key_callback(self, window, key, scancode, action, mods):
+        if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
+            glfw.set_window_should_close(window, True)
+            Render.clear()
+        elif key == glfw.KEY_F1 and action == glfw.PRESS:
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+        elif key == glfw.KEY_F2 and action == glfw.PRESS:
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+
         self.ui.key_callback(window, key, scancode, action, mods)
         if key == glfw.KEY_V and action == glfw.PRESS:
             self.camera.switch_projection()
@@ -130,8 +181,8 @@ class App:
     def process_inputs(self):
         self.ui.process_inputs()
 
-    def initialize_ui(self, window):
-        self.ui.initialize(window)
+    def initialize_ui(self):
+        self.ui.initialize(self.window)
     
     def render_ui(self):
         self.ui.render()
@@ -150,28 +201,30 @@ class AnimApp(App):
     def __init__(self):
         super().__init__()
         self.total_frames = 0
-        self.fps          = 0
-
+        self.fps          = 30
         self.curr_frame   = 0
+        self.prev_frame   = 0
         self.playing      = True
         self.record_mode  = AnimApp.RecordMode.eNONE
         self.captures     = []
 
-    def start(self, total_frames, fps):
+    def start(self):
         super().start()
 
-        self.total_frames = total_frames
-        self.fps          = fps
-        if total_frames == 0 or self.fps == 0:
-            raise ValueError(f"total_frames and fps must be greater than 0, but got total_frames={total_frames} and fps={fps}")
-
         # render options
-        self.text = Render.text_on_screen().set_position([50, 50, 0])
+        self.axis = Render.axis()
+        self.grid = Render.plane(200, 200).albedo(0.15).floor(True)
+        self.text = Render.text_on_screen().position([50, 50, 0])
 
         # UI options
         self.ui.add_menu("AnimApp")
-        self.ui.add_menu_item("AnimApp", "Play/Pause", self.toggle_play,         key=glfw.KEY_SPACE)
-        self.ui.add_menu_item("AnimApp", "Show Text",  self.text.switch_visible, key=glfw.KEY_T)
+        self.ui.add_menu_item("AnimApp", "Axis", self.axis.switch_visible, key=glfw.KEY_A)
+        self.ui.add_menu_item("AnimApp", "Grid", self.grid.switch_visible, key=glfw.KEY_G)
+        self.ui.add_menu_item("AnimApp", "Text", self.text.switch_visible, key=glfw.KEY_T)
+        self.ui.add_menu_item("AnimApp", "Play/Pause", self.toggle_play, key=glfw.KEY_SPACE)
+
+        # glfw
+        glfw.set_time(0)
     
     def toggle_play(self):
         self.playing = not self.playing
@@ -179,6 +232,11 @@ class AnimApp(App):
         # Replay when the end of the animation is reached
         if self.playing and self.curr_frame == self.total_frames - 1:
             self.curr_frame = 0
+            glfw.set_time(0)
+    
+    def move_frame(self, offset):
+        self.curr_frame = max(0, min(self.curr_frame + offset, self.total_frames - 1))
+        glfw.set_time(self.curr_frame / self.fps)
 
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)
@@ -200,49 +258,57 @@ class AnimApp(App):
                 self.record_mode = AnimApp.RecordMode.eSECTION_TO_VID
         
         # frame control
-        if not self.playing:
-            if key == glfw.KEY_LEFT_BRACKET:
-                self.curr_frame = max(self.curr_frame - 1, 0)
-            elif key == glfw.KEY_RIGHT_BRACKET:
-                self.curr_frame = min(self.curr_frame + 1, self.total_frames - 1)
-            if key == glfw.KEY_LEFT:
-                self.curr_frame = max(self.curr_frame - 10, 0)
-            elif key == glfw.KEY_RIGHT:
-                self.curr_frame = min(self.curr_frame + 10, self.total_frames - 1)
-        
-        # set GLFW time
-        glfw.set_time(self.curr_frame / self.fps)
+        elif key == glfw.KEY_LEFT_BRACKET:
+            self.move_frame(-1)
+        elif key == glfw.KEY_RIGHT_BRACKET:
+            self.move_frame(+1)
+        elif key == glfw.KEY_LEFT:
+            self.move_frame(-10)
+        elif key == glfw.KEY_RIGHT:
+            self.move_frame(+10)
 
     def update(self):
-        self.text.set_text(f"Frame: {self.curr_frame + 1} / {self.total_frames}")
+        super().update()
 
         # time setting
-        if self.record_mode != AnimApp.RecordMode.eNONE:
-            self.curr_frame = min(self.curr_frame + 1, self.total_frames - 1)
-            glfw.set_time(self.curr_frame / self.fps)
-        elif self.playing:
-            self.curr_frame = min(int(glfw.get_time() * self.fps), self.total_frames - 1)
+        if self.record_mode == AnimApp.RecordMode.eNONE:
+            if self.playing:
+                self.curr_frame = min(int(glfw.get_time() * self.fps), self.total_frames - 1)
+            else:
+                glfw.set_time(self.curr_frame / self.fps)
         else:
-            glfw.set_time(self.curr_frame / self.fps)
-
+            self.curr_frame = min(int(glfw.get_time() * self.fps), self.total_frames - 1)
+            if self.curr_frame - self.prev_frame > 1:
+                self.curr_frame = self.prev_frame + 1
+                glfw.set_time(self.curr_frame / self.fps)
+                
         # stop playing at the end of the motion
         if self.playing and self.curr_frame == self.total_frames - 1:
             self.playing = False
     
+    def render(self):
+        super().render()
+        self.grid.draw()
+        self.axis.draw()
+    
     def render_text(self):
         super().render_text()
-        self.text.draw()
+        self.text.text(f"Frame: {self.curr_frame + 1} / {self.total_frames}").draw()
 
     def late_update(self):
         super().late_update()
-        if self.record_mode != AnimApp.RecordMode.eNONE:
-            self.captures.append(super().capture_screen())
 
+        # capture video
+        if self.record_mode != AnimApp.RecordMode.eNONE:
+            if (self.curr_frame - self.prev_frame) == 1:
+                self.captures.append(super().capture_screen())
             if self.record_mode == AnimApp.RecordMode.eSECTION_TO_VID and self.curr_frame == self.total_frames - 1:
-                print(self.curr_frame, len(self.captures))
                 self.save_video()
                 self.captures = []
                 self.record_mode = AnimApp.RecordMode.eNONE
+
+        # update previous frame
+        self.prev_frame = self.curr_frame
 
     """ Capture functions """
     def save_video(self):
@@ -270,109 +336,76 @@ class AnimApp(App):
             cv2.imwrite(image_path, image)
 
 """ Class for motion data visualization """
-# class MotionApp(AnimApp):
-#     def __init__(self, motion: Motion, model: Model=None, skeleton_dict=YBOT_FBX_DICT):
-#         super().__init__(len(motion), motion.fps)
-#         self.motion = motion
-#         self.model = model
-#         if self.model is not None:
-#             if skeleton_dict is None:
-#                 raise ValueError("skeleton_dict must be provided if model is provided")
-#             self.model.set_source_skeleton(self.motion.skeleton, skeleton_dict)
+class MotionApp(AnimApp):
+    def __init__(self):
+        super().__init__()
 
-#         # play options
-#         self.playing = True
-#         self.recording = False
-#         self.record_start_time = 0
-#         self.record_end_time = 0
-#         self.captures = []
+        # motion data
+        self.motion: Motion = None
+        self.model: Model = None
 
-#         # camera options
-#         self.focus_on_root = False
-#         self.follow_root = False
-#         self.init_cam_pos = self.camera.position
+        # camera options
+        self.focus_on_root = False
+        self.follow_root = False
+        self.init_cam_pos = self.camera.position
 
-#         # render options
-#         self.grid = Render.plane(200, 200).set_albedo(0.15).set_floor(True)
-#         self.axis = Render.axis().set_background(0.0)
-#         self.text = Render.text_on_screen().set_position([50, 50, 0])
-#         self.bone = Render.pyramid(radius=0.03, height=1, sectors=4).set_albedo([0, 1, 1])
-#         if self.model is not None:
-#             self.render_model = Render.model(self.model)
+    def start(self):
+        super().start()
 
-#     def start(self):
-#         super().start()
-
-#         # UI options
-#         self.ui.add_menu("MotionApp")
-#         self.ui.add_render_toggle("MotionApp", "Grid",       self.grid, key=glfw.KEY_G, activated=True)
-#         self.ui.add_render_toggle("MotionApp", "Axis",       self.axis, key=glfw.KEY_A, activated=True)
-#         self.ui.add_render_toggle("MotionApp", "Frame Text", self.text, key=glfw.KEY_T, activated=True)
-#         self.ui.add_render_toggle("MotionApp", "X-Ray",      self.bone, key=glfw.KEY_X, activated=False)
-#         if self.model is not None:
-#             self.ui.add_render_toggle("MotionApp", "Model",  self.render_model, key=glfw.KEY_M, activated=True)
-    
-#     def key_callback(self, window, key, scancode, action, mods):
-#         super().key_callback(window, key, scancode, action, mods)
-
-#         # set camera focus on the root
-#         if key == glfw.KEY_F3 and action == glfw.PRESS:
-#             self.focus_on_root = not self.focus_on_root
-#         elif key == glfw.KEY_F4 and action == glfw.PRESS:
-#             self.follow_root = not self.follow_root
-
-#     def update(self):
-#         super().update()
-
-#         # set camera focus on the root
-#         if self.focus_on_root:
-#             self.camera.set_focus_position(self.motion.poses[self.frame].root_p)
-#             self.camera.set_up(glm.vec3(0, 1, 0))
-#         elif self.follow_root:
-#             self.camera.set_position(self.motion.poses[self.frame].root_p + glm.vec3(0, 1.5, 5))
-#             self.camera.set_focus_position(self.motion.poses[self.frame].root_p)
-#             self.camera.set_up(glm.vec3(0, 1, 0))
-#         self.camera.update()
-
-#     def late_update(self):
-#         super().late_update()
-
-#         # render the current frame
-#         self.text.set_text(f"Frame: {self.frame}").draw()
+        if self.motion is None:
+            raise ValueError("Motion data is not loaded.")
         
-#     def render(self, render_xray=True, model_background=0.2):
-#         super().render()
+        if self.model is None:
+            self.model = Model(meshes=None, skeleton=self.motion.poses[0].skeleton)
 
-#         # render the environment
-#         self.grid.draw()
-#         self.axis.draw()
+        self.total_frames = self.motion.num_frames
 
-#         # render the model
-#         if self.model is not None:
-#             self.model.set_pose_by_source(self.motion.poses[self.frame])
-#             self.render_model.fix_model(self.model).set_background(model_background).draw()
-#             # Render.model(self.model).set_background(model_background).draw()
+        # render options
+        self.render_model    = Render.model(self.model)
+        self.render_skeleton = Render.skeleton(self.model)
+        
+        # UI options
+        self.ui.add_menu("MotionApp")
+        self.ui.add_menu_item("MotionApp", "X-Ray", self.render_skeleton.switch_visible, key=glfw.KEY_X)
+        if self.render_model is not None:
+            self.ui.add_menu_item("MotionApp", "Model", self.render_model.switch_visible, key=glfw.KEY_M)
+    
+    def key_callback(self, window, key, scancode, action, mods):
+        super().key_callback(window, key, scancode, action, mods)
 
-#         # render the xray
-#         if render_xray:
-#             self.render_xray(self.motion.poses[self.frame])
+        # set camera focus on the root
+        if key == glfw.KEY_F3 and action == glfw.PRESS:
+            self.focus_on_root = not self.focus_on_root
+        elif key == glfw.KEY_F4 and action == glfw.PRESS:
+            self.follow_root = not self.follow_root
 
-#     def render_xray(self, pose):
-#         global_p = pose.global_p
-#         # for i in range(pose.skeleton.num_joints):
-#         #     self.joint_sphere.set_position(global_p[i]).set_albedo([0, 1, 1]).draw()
+    def update(self):
+        super().update()
 
-#         glDisable(GL_DEPTH_TEST)
-#         for i in range(1, self.motion.skeleton.num_joints):
-#             parent_pos = global_p[pose.skeleton.parent_idx[i]]
+        # set camera focus on the root
+        if self.focus_on_root:
+            self.camera.set_focus_position(self.motion.poses[self.curr_frame].root_p)
+            self.camera.set_up(glm.vec3(0, 1, 0))
+        elif self.follow_root:
+            self.camera.set_position(self.motion.poses[self.curr_frame].root_p + glm.vec3(0, 1.5, 5))
+            self.camera.set_focus_position(self.motion.poses[self.curr_frame].root_p)
+            self.camera.set_up(glm.vec3(0, 1, 0))
+        self.camera.update()
+        
+        # set pose
+        self.model.set_pose(self.motion.poses[self.curr_frame])
 
-#             center = glm.vec3((parent_pos + global_p[i]) / 2)
-#             dist = np.linalg.norm(parent_pos - global_p[i])
-#             dir = glm.vec3((global_p[i] - parent_pos) / (dist + 1e-8))
+    def render(self):
+        super().render()
 
-#             axis = glm.cross(glm.vec3(0, 1, 0), dir)
-#             angle = glm.acos(glm.dot(glm.vec3(0, 1, 0), dir))
-#             orientation = glm.rotate(glm.mat4(1.0), angle, axis)
-            
-#             self.bone.set_position(center).set_orientation(orientation).set_scale(glm.vec3(1.0, dist, 1.0)).draw()
-#         glEnable(GL_DEPTH_TEST)
+        # render the environment
+        self.grid.draw()
+        self.axis.draw()
+
+        # render the model
+        if self.model is not None:
+            self.render_model.buffer_xforms(self.model).draw()
+
+    def render_xray(self):
+        super().render_xray()
+        self.render_skeleton.pose(self.model.pose).draw()

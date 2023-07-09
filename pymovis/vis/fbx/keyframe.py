@@ -5,6 +5,7 @@ import glm
 import numpy as np
 
 from pymovis.ops import rotation
+from pymovis.utils import npconst
 
 class KeyInterpType(Enum):
     eUNKNOWN = 0
@@ -128,7 +129,7 @@ def get_values(keys: list[Keyframe], nof, scale=1.0):
 
     return values
 
-def get_rotations_from_resampled(names: list[str], scene: SceneKeyframes, nof, pre_Rs):
+def get_rotations_from_resampled(names: list[str], scene: SceneKeyframes, nof):
     resampled_rotations = []
 
     # name to node index
@@ -140,7 +141,7 @@ def get_rotations_from_resampled(names: list[str], scene: SceneKeyframes, nof, p
     for i in range(len(names)):
         idx = name_to_idx.get(names[i], None)
         if idx is None:
-            rotations = np.stack([np.identity(3)] * nof, axis=0)
+            rotations = np.stack([npconst.Q_IDENTITY()] * nof, axis=0)
             print(f"Warning: node {names[i]} not found in the scene.")
         else:
             node = scene.node_keyframes[idx]
@@ -155,9 +156,8 @@ def get_rotations_from_resampled(names: list[str], scene: SceneKeyframes, nof, p
             # E2 * E1 * E0
             xyz = "xyz"
             order = xyz[order.z] + xyz[order.y] + xyz[order.x]
-            rotations = rotation.E_to_R(E, order, radians=True)
+            rotations = rotation.E_to_Q(E, order, radians=True)
         
-        rotations = np.matmul(pre_Rs[names[i]], rotations)
         resampled_rotations.append(rotations)
 
     resampled_rotations = np.stack(resampled_rotations, axis=1)
