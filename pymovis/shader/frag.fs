@@ -38,7 +38,8 @@ uniform vec3        uSkyColor;
 // material structure
 // --------------------------------------------
 #define MAX_MATERIAL_NUM 5
-struct Material {
+struct Material
+{
     ivec3 textureID; // albedo, normal, displacement
     ivec3 pbrTextureID; // metallic, roughness, ao
     vec4  albedo; // RGBA
@@ -64,7 +65,8 @@ uniform sampler2D uTextures[MAX_MATERIAL_TEXTURE];
 // --------------------------------------------
 // light structure
 // --------------------------------------------
-struct Light {
+struct Light
+{
     vec4 vector; // point light if w == 1, directional light if w == 0
     vec3 color;
     vec3 attenuation; // attenuation coefficients

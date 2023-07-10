@@ -1,11 +1,11 @@
 import os
 
-from pymovis.vis import App, AppManager, Render, FBX
+from pymovis import vis
 
-class MyApp(App):
+class MyApp(vis.App):
     def __init__(self, filename):
         super().__init__()
-        self.model = Render.model(FBX(filename).model())
+        self.model = vis.Render.model(vis.FBX(filename).model())
     
     def render(self):
         super().render()
@@ -13,4 +13,4 @@ class MyApp(App):
 
 if __name__ == "__main__":
     filename  = os.path.join(os.path.dirname(__file__), "../data/fbx/model/ybot.fbx")
-    AppManager.start(MyApp(filename))
+    vis.AppManager.start(MyApp(filename))

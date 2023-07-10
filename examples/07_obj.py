@@ -1,12 +1,12 @@
 import os
 import glm
 
-from pymovis.vis import App, AppManager, Render
+from pymovis import vis
 
-class MyApp(App):
+class MyApp(vis.App):
     def __init__(self, filename):
         super().__init__()
-        self.obj = Render.obj(filename)
+        self.obj = vis.Render.obj(filename)
 
     def render(self):
         super().render()
@@ -14,4 +14,4 @@ class MyApp(App):
 
 if __name__ == "__main__":
     filename = os.path.join(os.path.dirname(__file__), "../data/obj/teapot.obj")
-    AppManager.start(MyApp(filename))
+    vis.AppManager.start(MyApp(filename))

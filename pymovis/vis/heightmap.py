@@ -1,8 +1,9 @@
 import numpy as np
 import torch
 
-from .core  import VertexGL, VAO
-from .const import INCH_TO_METER
+from . import core
+
+INCH_TO_METER = 0.0254
 
 def sample_height_numpy(heightmap, x, z, h_scale, v_scale):
     H, W = heightmap.shape[-2:]
@@ -165,8 +166,8 @@ class Heightmap:
 
     @staticmethod
     def get_vao(positions, normals, uvs, indices):
-        vertices = VertexGL.make_vertex_array(positions.reshape(-1, 3), normals.reshape(-1, 3), uvs.reshape(-1, 2))
-        return VAO.from_vertex_array(vertices, indices)
+        vertices = core.to_vertex_array(positions.reshape(-1, 3), normals.reshape(-1, 3), uvs.reshape(-1, 2))
+        return core.bind_mesh(vertices, indices)
     
     @staticmethod
     def sample_height(heightmap, x, z, h_scale, v_scale):

@@ -3,7 +3,7 @@ from imgui.integrations.glfw import GlfwRenderer
 import glfw
 from OpenGL.GL import *
 
-from pymovis.vis.const import CONSOLAS_FONT_PATH
+from .const import CONSOLAS_FONT_PATH
 
 class UI:
     def __init__(self):

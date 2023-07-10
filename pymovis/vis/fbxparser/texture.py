@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import fbx
-from .fbx_parser import TextureInfo
+from .parser import TextureInfo
 
 FbxCriteria = fbx.FbxCriteria
 

@@ -108,10 +108,10 @@ def _resample_by_scene_keyframes(scene: SceneKeyframes, frame_idx: list[int]):
 def resample(value, frame_idx) -> SceneKeyframes:
     if isinstance(value, SceneKeyframes):
         return _resample_by_scene_keyframes(value, frame_idx)
-    # elif isinstance(value, NodeKeyframes):
-    #     return _resample_by_node_keyframes(value, frame_idx)
-    # elif isinstance(value, list):
-    #     return _resample_by_keyframes(value, frame_idx)
+    elif isinstance(value, NodeKeyframes):
+        return _resample_by_node_keyframes(value, frame_idx)
+    elif isinstance(value, list):
+        return _resample_by_keyframes(value, frame_idx)
     else:
         raise ValueError(f"Unsupported type {type(value)}")
 

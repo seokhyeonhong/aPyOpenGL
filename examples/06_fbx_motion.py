@@ -1,14 +1,14 @@
 import os
 
-from pymovis.vis import MotionApp, AppManager, FBX
+from pymovis import vis
 
-class MyApp(MotionApp):
+class MyApp(vis.MotionApp):
     def __init__(self, motion_filename, model_filename):
         super().__init__()
-        self.motion = FBX(motion_filename).motions()[0]
-        self.model = FBX(model_filename).model()
+        self.motion = vis.FBX(motion_filename).motions()[0]
+        self.model  = vis.FBX(model_filename).model()
 
 if __name__ == "__main__":
     motion_filename = os.path.join(os.path.dirname(__file__), "../data/fbx/motion/ybot_capoeira.fbx")
     model_filename  = os.path.join(os.path.dirname(__file__), "../data/fbx/model/ybot.fbx")
-    AppManager.start(MyApp(motion_filename, model_filename))
+    vis.AppManager.start(MyApp(motion_filename, model_filename))

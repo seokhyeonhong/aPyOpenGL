@@ -1,12 +1,12 @@
 import os
 
-from pymovis.vis import App, AppManager, Render, Heightmap
+from pymovis import vis
 
-class MyApp(App):
+class MyApp(vis.App):
     def __init__(self, filepath):
         super().__init__()
-        self.heightmap = Heightmap.load_from_file(filepath)
-        self.heightmap = Render.heightmap(self.heightmap).albedo(0.2).floor(True)
+        self.heightmap = vis.Heightmap.load_from_file(filepath)
+        self.heightmap = vis.Render.heightmap(self.heightmap).albedo(0.2).floor(True)
 
     def render(self):
         super().render()
@@ -14,4 +14,4 @@ class MyApp(App):
 
 if __name__ == "__main__":
     filepath = os.path.join(os.path.dirname(__file__), "../data/txt/heightmap.txt")
-    AppManager.start(MyApp(filepath))
+    vis.AppManager.start(MyApp(filepath))

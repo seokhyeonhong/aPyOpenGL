@@ -1,7 +1,7 @@
 import glm
 import numpy as np
 
-from .core import VAO, VertexGL
+from .mesh import *
 
 def get_color_by_position(position):
     colors = []
@@ -17,8 +17,8 @@ def get_color_by_position(position):
 class Plane(VAO):
     def __init__(self, width=1.0, height=1.0):
         positions, normals, tex_coords, indices = self.generate_vertices(width, height)
-        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
-        vao = VAO.from_vertex_array(vertices, indices)
+        vertices = to_vertex_array(positions, normals, tex_coords)
+        vao = bind_mesh(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
     @staticmethod
@@ -50,8 +50,8 @@ class Plane(VAO):
 class Cube(VAO):
     def __init__(self):
         positions, normals, tex_coords, indices = self.generate_vertices()
-        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
-        vao = VAO.from_vertex_array(vertices, indices)
+        vertices = to_vertex_array(positions, normals, tex_coords)
+        vao = bind_mesh(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
     @staticmethod
@@ -122,8 +122,8 @@ class Sphere(VAO):
         sectors=16
     ):
         positions, normals, tex_coords, indices = self.generate_vertices(radius, stacks, sectors)
-        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
-        vao = VAO.from_vertex_array(vertices, indices)
+        vertices = to_vertex_array(positions, normals, tex_coords)
+        vao = bind_mesh(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
     @staticmethod
@@ -176,8 +176,8 @@ class Cone(VAO):
         sectors=16
     ):
         positions, normals, tex_coords, indices = self.generate_vertices(radius, height, sectors)
-        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
-        vao = VAO.from_vertex_array(vertices, indices)
+        vertices = to_vertex_array(positions, normals, tex_coords)
+        vao = bind_mesh(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
     
     @staticmethod
@@ -231,8 +231,8 @@ class Cylinder(VAO):
         sectors=16
     ):
         positions, normals, tex_coords, indices = self.generate_vertices(radius, height, sectors)
-        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
-        vao = VAO.from_vertex_array(vertices, indices)
+        vertices = to_vertex_array(positions, normals, tex_coords)
+        vao = bind_mesh(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
     
     @staticmethod
@@ -302,8 +302,8 @@ class Cylinder(VAO):
 class Pyramid(VAO):
     def __init__(self, radius, height, sectors=16):
         positions, normals, tex_coords, indices = self.generate_vertices(radius, height, sectors)
-        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
-        vao = VAO.from_vertex_array(vertices, indices)
+        vertices = to_vertex_array(positions, normals, tex_coords)
+        vao = bind_mesh(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
     @staticmethod
@@ -368,8 +368,8 @@ class Arrow(VAO):
         tex_coords = cone_tex_coords + cylinder_tex_coords
         indices = cone_indices + [i + len(cone_positions) for i in cylinder_indices]
 
-        vertices = VertexGL.make_vertex_array(positions, normals, tex_coords)
-        vao = VAO.from_vertex_array(vertices, indices)
+        vertices = to_vertex_array(positions, normals, tex_coords)
+        vao = bind_mesh(vertices, indices)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
 class Cubemap(VAO):
@@ -379,7 +379,7 @@ class Cubemap(VAO):
     def __init__(self, scale=100):
         positions = self.generate_vertices()
         positions = np.array(positions, dtype=np.float32) * scale
-        vao = VAO.from_positions(positions)
+        vao = positions_to_vao(positions)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
     
     @staticmethod

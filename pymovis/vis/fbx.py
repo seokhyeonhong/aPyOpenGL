@@ -2,13 +2,12 @@ from __future__ import annotations
 import fbx
 import numpy as np
 
-from . import fbx_mesh, fbx_texture, fbx_material, fbx_skeleton, fbx_parser, fbx_skin, keyframe
+from . import core, fbxparser, keyframe
 
-from ..motion   import Skeleton, Pose, Motion
-from ..core     import MeshGL, VertexGL, VAO
-from ..material import Material
-from ..model    import Model
-from ..texture  import TextureType, TextureLoader
+from .motion   import Skeleton, Pose, Motion
+from .material import Material
+from .model    import Model
+from .texture  import TextureType, TextureLoader
 from pymovis.ops    import rotation
 
 FBX_PROPERTY_NAMES = {
@@ -28,16 +27,16 @@ class Parser:
         self.path = path
         self.scale = scale
         self.save = save
-        self.parser = fbx_parser.FBXParser(path)
+        self.parser = fbxparser.FBXParser(path)
         self.init_character_data(scale)
         self.init_mesh_data(scale)
 
     def init_character_data(self, scale):
-        self.char_data = fbx_parser.CharacterData()
+        self.char_data = fbxparser.CharacterData()
         root = self.parser.scene.GetRootNode()
         self.char_data.name = root.GetName()
         for i in range(root.GetChildCount()):
-            fbx_skeleton.parse_nodes_by_type(root.GetChild(i), self.char_data.joint_data, -1, fbx.FbxNodeAttribute.eSkeleton, scale)
+            fbxparser.parse_nodes_by_type(root.GetChild(i), self.char_data.joint_data, -1, fbx.FbxNodeAttribute.eSkeleton, scale)
 
     def init_mesh_data(self, scale):
         mesh_nodes = []
@@ -51,9 +50,9 @@ class Parser:
             fbx_mesh_ = node.GetMesh()
 
             # read materials and textures
-            textures = fbx_texture.get_textures(fbx_mesh_)
-            materials = fbx_material.get_materials(fbx_mesh_)
-            material_connection = fbx_material.get_polygon_material_connection(fbx_mesh_)
+            textures = fbxparser.get_textures(fbx_mesh_)
+            materials = fbxparser.get_materials(fbx_mesh_)
+            material_connection = fbxparser.get_polygon_material_connection(fbx_mesh_)
 
             for i in range(len(textures)):
                 texture_set = False
@@ -67,12 +66,12 @@ class Parser:
                     print(f"Texture is NOT used {textures[i].filename}")
                 textures[i].is_used = texture_set
 
-            mesh_data = fbx_mesh.get_mesh_data(fbx_mesh_, scale)
+            mesh_data = fbxparser.get_mesh_data(fbx_mesh_, scale)
             mesh_data.textures = textures
             mesh_data.materials = materials
             mesh_data.polygon_material_connection = material_connection
 
-            mesh_data.is_skinned = fbx_skin.get_skinning(
+            mesh_data.is_skinned = fbxparser.get_skinning(
                 mesh_data.skinning_data,
                 fbx_mesh_,
                 mesh_data.control_point_idx_to_vertex_idx,
@@ -91,7 +90,7 @@ class Parser:
         for i in range(node.GetChildCount()):
             self.__load_mesh_recursive(node.GetChild(i), mesh_nodes)
     
-    def motions(self, joints: list[fbx_parser.JointData]):
+    def motions(self, joints: list[fbxparser.JointData]):
         skeleton = Skeleton()
         for joint in joints:
             skeleton.add_joint(joint.name, local_p=joint.local_T, pre_Q=joint.pre_Q, parent_idx=joint.parent_idx)
@@ -128,16 +127,16 @@ class FBX:
         self.parser = Parser(filename, scale, save)
         self.scale = scale
 
-    def meshes_and_materials(self) -> list[tuple[MeshGL, Material]]:
+    def meshes_and_materials(self) -> list[tuple[core.MeshGL, Material]]:
         mesh_data = self.parser.mesh_data
 
         results = []
         for data in mesh_data:
-            mesh = MeshGL()
+            mesh = core.MeshGL()
 
             if data.is_skinned:
                 mesh.is_skinned = True
-                mesh.vertices = VertexGL.make_vertex_array(
+                mesh.vertices = core.to_vertex_array(
                     data.positions,
                     data.normals,
                     data.uvs,
@@ -148,12 +147,12 @@ class FBX:
                     data.skinning_data.joint_indices2,
                     data.skinning_data.joint_weights2
                 )
-                mesh.joint_order = data.skinning_data.joint_order
+                mesh.joint_names = data.skinning_data.joint_names
                 mesh.name_to_idx = data.skinning_data.name_to_idx
                 mesh.joint_bind_xform_inv = data.skinning_data.offset_xform
             else:
                 mesh.is_skinned = False
-                mesh.vertices = VertexGL.make_vertex_array(data.positions, data.normals, data.uvs, data.tangents, data.bitangents)
+                mesh.vertices = core.to_vertex_array(data.positions, data.normals, data.uvs, data.tangents, data.bitangents)
             
             # set materials and texture
             id_to_material_idx = {}
@@ -189,7 +188,7 @@ class FBX:
                 mesh.vertices[idx2].material_id = material_id
             
             mesh.indices = data.indices
-            mesh.vao = VAO.from_vertex_array(mesh.vertices, mesh.indices, compute_tangent=False)
+            mesh.vao = core.bind_mesh(mesh.vertices, mesh.indices, compute_tangent=False)
 
             results.append((mesh, materials))
     

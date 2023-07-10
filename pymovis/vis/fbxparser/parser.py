@@ -1,7 +1,7 @@
 import fbx
 import glm
 
-from . import fbx_animation
+from .animation import get_scene_animation
 
 FbxNode      = fbx.FbxNode
 FbxAnimStack = fbx.FbxAnimStack
@@ -107,7 +107,7 @@ class FBXParser:
         for i in range(self.scene.GetSrcObjectCount(criteria)):
             anim_stack = self.scene.GetSrcObject(criteria, i)
             
-            scene_kf = fbx_animation.get_scene_animation(anim_stack, self.scene.GetRootNode(), scale)
+            scene_kf = get_scene_animation(anim_stack, self.scene.GetRootNode(), scale)
             keyframes.append(scene_kf)
         
         return keyframes
@@ -118,7 +118,7 @@ class FBXParser:
 class SkinningData:
     def __init__(self):
         self.name_to_idx    = {}
-        self.joint_order    = []
+        self.joint_names    = []
         self.offset_xform   = []
 
         self.joint_indices1 = []

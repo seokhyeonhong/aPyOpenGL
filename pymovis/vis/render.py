@@ -5,10 +5,11 @@ from enum import Enum
 from OpenGL.GL import *
 import glm
 import functools
+import numpy as np
 
-from .primitives import *
+from . import core
 from .material   import Material
-from .shader     import Shader
+# from .shader     import Shader
 from .texture    import Texture, TextureLoader, TextureType
 from .text       import FontTexture
 from .motion     import Pose
@@ -16,7 +17,7 @@ from .mesh       import Mesh
 from .model      import Model
 from .obj        import Obj
 from .const      import *
-from .fbx.fbx    import FBX
+from .fbx        import FBX
 
 def get_draw_func(render_func):
     if render_func is "phong":
@@ -51,13 +52,13 @@ class Render:
     font_texture = None
 
     # shaders
-    shaders          = []
-    primitive_shader = None
-    lbs_shader       = None
-    text_shader      = None
-    cubemap_shader   = None
-    shadow_shader    = None
-    equirect_shader  = None
+    primitive_shader: core.Shader = None
+    lbs_shader: core.Shader       = None
+    text_shader: core.Shader      = None
+    cubemap_shader: core.Shader   = None
+    shadow_shader: core.Shader    = None
+    equirect_shader: core.Shader  = None
+    shaders: list[core.Shader]    = []
 
     # shadow map
     shadowmap_fbo        = None
@@ -68,12 +69,12 @@ class Render:
 
     @staticmethod
     def initialize_shaders():
-        Render.primitive_shader = Shader("vert.vs",    "frag.fs")
-        Render.lbs_shader       = Shader("lbs.vs",     "frag.fs")
-        Render.text_shader      = Shader("text.vs",    "text.fs")
-        Render.cubemap_shader   = Shader("cubemap.vs", "cubemap.fs")
-        Render.shadow_shader    = Shader("shadow.vs",  "shadow.fs")
-        Render.equirect_shader  = Shader("equirect.vs", "equirect.fs")
+        Render.primitive_shader = core.Shader("vert.vs", "frag.fs")
+        Render.lbs_shader       = core.Shader("lbs.vs", "frag.fs")
+        Render.text_shader      = core.Shader("text.vs", "text.fs")
+        Render.cubemap_shader   = core.Shader("cubemap.vs", "cubemap.fs")
+        Render.shadow_shader    = core.Shader("shadow.vs", "shadow.fs")
+        Render.equirect_shader  = core.Shader("equirect.vs", "equirect.fs")
 
         # shadow map
         Render.shadowmap_fbo, Render.shadowmap_texture_id = TextureLoader.generate_shadow_buffer()
@@ -105,31 +106,31 @@ class Render:
 
     @staticmethod
     def cube(render_mode="pbr"):
-        return RenderOptions(Cube(), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        return RenderOptions(core.Cube(), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def sphere(radius=0.5, stacks=16, sectors=16, render_mode="pbr"):
-        return RenderOptions(Sphere(radius, stacks, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        return RenderOptions(core.Sphere(radius, stacks, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
     
     @staticmethod
     def cone(radius=0.5, height=1, sectors=16, render_mode="pbr"):
-        return RenderOptions(Cone(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        return RenderOptions(core.Cone(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def plane(width=1.0, height=1.0, render_mode="pbr"):
-        return RenderOptions(Plane(width, height), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        return RenderOptions(core.Plane(width, height), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
     
     @staticmethod
     def cylinder(radius=0.5, height=1, sectors=16, render_mode="pbr"):
-        return RenderOptions(Cylinder(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        return RenderOptions(core.Cylinder(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def arrow(render_mode="pbr"):
-        return RenderOptions(Arrow(), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        return RenderOptions(core.Arrow(), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def pyramid(radius=0.5, height=1.0, sectors=4, render_mode="pbr"):
-        return RenderOptions(Pyramid(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        return RenderOptions(core.Pyramid(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def heightmap(heightmap, render_mode="pbr"):
@@ -171,7 +172,7 @@ class Render:
             orientation = glm.mat3(*skeleton_xform[:3, :3].T.ravel())
             bone_len = np.linalg.norm(joint.local_p)
 
-            ro = Render.pyramid(radius=bone_len*0.1, height=bone_len, render_mode=render_mode)
+            ro = Render.pyramid(radius=0.01, height=bone_len, render_mode=render_mode)
             ro.transform(position, orientation).albedo([0, 1, 0]).color_mode(True)
             rov.append(ro)
         return RenderOptionsVec(rov)
@@ -191,7 +192,7 @@ class Render:
         if Render.font_texture is None:
             Render.font_texture = FontTexture()
 
-        res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=False))
+        res = RenderOptions(core.VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=False))
         return res.text(str(t)).albedo(color)
 
     @staticmethod
@@ -199,17 +200,17 @@ class Render:
         if Render.font_texture is None:
             Render.font_texture = FontTexture()
 
-        res = RenderOptions(VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=True))
+        res = RenderOptions(core.VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=True))
         return res.text(str(t)).albedo(color)
 
     @staticmethod
     def cubemap(dirname):
-        ro = RenderOptions(Cubemap(), Render.cubemap_shader, Render.draw_cubemap)
+        ro = RenderOptions(core.Cubemap(), Render.cubemap_shader, Render.draw_cubemap)
         ro.cubemap(dirname)
         return ro
 
     @staticmethod
-    def draw(option: RenderOptions, shader: Shader, pbr=True):
+    def draw(option: RenderOptions, shader: core.Shader, pbr=True):
         if option is None or shader is None:
             return
         if Render.render_mode != RenderMode.eDRAW:
@@ -328,7 +329,7 @@ class Render:
         glBindVertexArray(0)
 
     @staticmethod
-    def draw_shadow(option: RenderOptions, shader: Shader):
+    def draw_shadow(option: RenderOptions, shader: core.Shader):
         if option is None or shader is None:
             return
         if Render.render_mode != RenderMode.eSHADOW:
@@ -358,7 +359,7 @@ class Render:
         glBindVertexArray(0)
 
     @staticmethod
-    def draw_text(option: RenderOptions, shader: Shader, on_screen=False):
+    def draw_text(option: RenderOptions, shader: core.Shader, on_screen=False):
         if option is None or shader is None:
             return
         if Render.render_mode != RenderMode.eTEXT:
@@ -367,9 +368,9 @@ class Render:
 
         if on_screen:
             glDisable(GL_DEPTH_TEST)
-            x = option._position.x
-            y = option._position.y
-            scale = option._scale.x
+            x = option._position.x * (Render.render_info.width / 3840)
+            y = option._position.y * (Render.render_info.width / 3840)
+            scale = option._scale.x * (Render.render_info.width / 3840)
         else:
             x = 0
             y = 0
@@ -433,7 +434,7 @@ class Render:
             glEnable(GL_DEPTH_TEST)
 
     @staticmethod
-    def draw_cubemap(option: RenderOptions, shader: Shader):
+    def draw_cubemap(option: RenderOptions, shader: core.Shader):
         if option is None or shader is None:
             return
         if Render.render_mode != RenderMode.eDRAW:
@@ -487,11 +488,11 @@ class Render:
 class RenderOptions:
     def __init__(
         self,
-        vao: VAO,
-        shader: Shader,
-        draw_func: Callable[[RenderOptions, Shader], None],
-        shadow_shader: Shader = None,
-        shadow_func: Callable[[RenderOptions, Shader], None] = None,
+        vao: core.VAO,
+        shader: core.Shader,
+        draw_func: Callable[[RenderOptions, core.Shader], None],
+        shadow_shader: core.Shader = None,
+        shadow_func: Callable[[RenderOptions, core.Shader], None] = None,
     ):
         self._vao           = vao
         self._shader        = shader
@@ -616,7 +617,7 @@ class RenderOptions:
         self._cubemap = TextureLoader.load_cubemap(dirname)
         return self
 
-    def floor(self, is_floor, line_width=1.0, line_interval=1.0, line_color=glm.vec3(.0)):
+    def floor(self, is_floor, line_width=1.0, line_interval=1.0, line_color=glm.vec3(0.0)):
         self._is_floor = is_floor
         self._grid_color = line_color
         self._grid_width = line_width

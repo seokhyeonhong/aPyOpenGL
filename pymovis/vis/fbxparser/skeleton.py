@@ -2,7 +2,7 @@ import fbx
 import glm
 import numpy as np
 
-from .fbx_parser import JointData
+from .parser import JointData
 
 FbxEuler = fbx.FbxEuler
 FbxNode  = fbx.FbxNode

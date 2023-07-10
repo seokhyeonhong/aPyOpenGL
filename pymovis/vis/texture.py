@@ -7,7 +7,7 @@ import glm
 from PIL import Image
 import imageio
 
-from .primitives import Cube
+from . import core
 from .const import SHADOW_MAP_SIZE, BACKGROUND_MAP_SIZE, TEXTURE_DIR_PATH
 
 def get_texture_data(filename, channels="RGBA", hdr=False):
@@ -27,7 +27,7 @@ def get_texture_data(filename, channels="RGBA", hdr=False):
     return texture_data, height, width
 
 def render_cube():
-    vao = Cube()
+    vao = core.Cube()
     glBindVertexArray(vao.id)
     glDrawElements(GL_TRIANGLES, len(vao.indices), GL_UNSIGNED_INT, None)
     glBindVertexArray(0)
@@ -155,7 +155,7 @@ class TextureLoader:
         return TextureLoader.__hdr_texture_map[path]
     
     @staticmethod
-    def load_irradiance_map(path, equirect_to_cubemap_shader) -> Texture:
+    def load_irradiance_map(path, equirect_to_cubemap_shader: core.Shader) -> Texture:
         if path not in TextureLoader.__irradiance_map:
             hdr_texture = TextureLoader.load_hdr(path)
             texture_id = TextureLoader.generate_irradiance_map(hdr_texture, equirect_to_cubemap_shader)
@@ -246,7 +246,7 @@ class TextureLoader:
         return hdr_texture
     
     @staticmethod
-    def generate_irradiance_map(hdr_texture, equirect_to_cubemap_shader):
+    def generate_irradiance_map(hdr_texture: Texture, equirect_to_cubemap_shader: core.Shader):
         # configure capture framebuffer
         capture_fbo = glGenFramebuffers(1)
         capture_rbo = glGenRenderbuffers(1)

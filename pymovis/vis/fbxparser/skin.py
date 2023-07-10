@@ -1,7 +1,7 @@
 import fbx
 import glm
 
-from .fbx_parser import SkinningData
+from .parser import SkinningData
 
 def get_skinning(skinning_data: SkinningData, geometry, control_idx_to_vertex_idx, vertex_num, scale):
     skin_count = geometry.GetDeformerCount(fbx.FbxDeformer.eSkin)
@@ -33,8 +33,8 @@ def get_skinning(skinning_data: SkinningData, geometry, control_idx_to_vertex_id
             if cluster.GetLink() is not None:
                 joint_name = cluster.GetLink().GetName()
                 if joint_name not in skinning_data.name_to_idx:
-                    skinning_data.joint_order.append(joint_name)
-                    joint_idx = len(skinning_data.joint_order) - 1
+                    skinning_data.joint_names.append(joint_name)
+                    joint_idx = len(skinning_data.joint_names) - 1
                     skinning_data.name_to_idx[joint_name] = joint_idx
                 else:
                     joint_idx = skinning_data.name_to_idx[joint_name]

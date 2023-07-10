@@ -1,7 +1,7 @@
 import fbx
 import numpy as np
 
-from .fbx_parser import MeshData
+from .parser import MeshData
 
 def get_mesh_data(fbx_mesh_, scale) -> MeshData:
     if fbx_mesh_.GetElementNormalCount() == 0:
