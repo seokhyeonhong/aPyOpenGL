@@ -1,6 +1,8 @@
 from __future__ import annotations
 import fbx
 import numpy as np
+import os
+import pickle
 
 from . import core, fbxparser, keyframe
 
@@ -106,7 +108,7 @@ class Parser:
             resampled_scenes.append(keyframe.resample(scene, frame_idx))
 
         motion_set = []
-        root_name = skeleton.get_joints()[0].get_name()
+        root_name = skeleton.joints[0].name
         for i in range(len(resampled_scenes)):
             scene = resampled_scenes[i]
             nof = len(frame_set[i])
@@ -124,6 +126,7 @@ class Parser:
 
 class FBX:
     def __init__(self, filename, scale=0.01, save=True):
+        self.filename = os.path.basename(filename).split(".")[0]
         self.parser = Parser(filename, scale, save)
         self.scale = scale
 

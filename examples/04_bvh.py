@@ -13,7 +13,7 @@ class MotionApp(vis.AnimApp):
         self.motion = bvh.motion()
         self.model = bvh.model()
         self.total_frames = self.motion.num_frames()
-        self.fps = self.motion.get_fps()
+        self.fps = self.motion.fps
 
         # camera options
         self.focus_on_root = False
@@ -35,16 +35,16 @@ class MotionApp(vis.AnimApp):
 
         # set camera focus on the root
         if self.focus_on_root:
-            self.camera.set_focus_position(self.motion.get_pose_at(self.curr_frame).get_root_p())
+            self.camera.set_focus_position(self.motion.poses[self.curr_frame].root_p)
             self.camera.set_up(glm.vec3(0, 1, 0))
         elif self.follow_root:
-            self.camera.set_position(self.motion.get_pose_at(self.curr_frame).get_root_p() + glm.vec3(0, 1.5, 5))
-            self.camera.set_focus_position(self.motion.get_pose_at(self.curr_frame).get_root_p())
+            self.camera.set_position(self.motion.poses[self.curr_frame].root_p + glm.vec3(0, 1.5, 5))
+            self.camera.set_focus_position(self.motion.poses[self.curr_frame].root_p)
             self.camera.set_up(glm.vec3(0, 1, 0))
         self.camera.update()
         
         # set pose
-        self.model.set_pose(self.motion.get_pose_at(self.curr_frame))
+        self.model.set_pose(self.motion.poses[self.curr_frame])
 
     def render(self):
         super().render()
@@ -55,7 +55,7 @@ class MotionApp(vis.AnimApp):
 
     def render_xray(self):
         super().render_xray()
-        self.render_skeleton.skeleton(self.model).draw()
+        self.render_skeleton.update_skeleton(self.model).draw()
 
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)
@@ -68,4 +68,4 @@ class MotionApp(vis.AnimApp):
             
 if __name__ == "__main__":
     bvh_filename = os.path.join(os.path.dirname(__file__), "../data/bvh/ybot_capoeira.bvh")
-    vis.AppManager.start(MyApp(bvh_filename))
+    vis.AppManager.start(MotionApp(bvh_filename))

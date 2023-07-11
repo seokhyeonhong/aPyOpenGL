@@ -13,6 +13,7 @@ Glossary:
 - R: Rotation matrix
 - R6: 6D rotation vector [Zhou et al. 2018]
 - Q: Quaternion (order in (w, x, y, z), where w is real value)
+- T: Transformation matrix
 - v: Vector
 - p: Position
 """
@@ -29,6 +30,28 @@ def R_to_R6(R):
         return R_to_R6_torch(R)
     elif isinstance(R, np.ndarray):
         return R_to_R6_numpy(R)
+    else:
+        raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(R)}")
+
+# -----------------------------------------------------------------------------------
+
+def R_to_T_torch(R):
+    batch_dim = R.shape[:-2]
+    T = torch.eye(4, device=R.device, dtype=R.dtype).unsqueeze(0).repeat(batch_dim + (1, 1))
+    T[..., :3, :3] = R
+    return T
+
+def R_to_T_numpy(R):
+    batch_dim = R.shape[:-2]
+    T = np.eye(4, dtype=R.dtype).reshape((1, 4, 4)).repeat(batch_dim, axis=0)
+    T[..., :3, :3] = R
+    return T
+
+def R_to_T(R):
+    if isinstance(R, torch.Tensor):
+        return R_to_T_torch(R)
+    elif isinstance(R, np.ndarray):
+        return R_to_T_numpy(R)
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(R)}")
 
@@ -184,6 +207,53 @@ def R_between_vectors(v1, v2):
         return R_between_vectors_numpy(v1, v2)
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(v1)}")
+
+# -----------------------------------------------------------------------------------
+
+def Rp_to_T_torch(R, p):
+    """
+    R: (..., 3, 3)
+    p: (..., 3)
+    return T: (..., 4, 4)
+    """
+    T = torch.cat([
+        torch.cat([R, p[..., None]], dim=-1),
+        torch.tile(torch.tensor([0, 0, 0, 1], dtype=torch.float32), (*R.shape[:-2], 1, 1))
+    ], dim=-2)
+    return T
+
+def Rp_to_T_numpy(R, p):
+    """
+    R: (..., 3, 3)
+    p: (..., 3)
+    return T: (..., 4, 4)
+    """
+    T = np.concatenate([
+        np.concatenate([R, p[..., None]], axis=-1),
+        np.tile(np.array([0, 0, 0, 1]), (*R.shape[:-2], 1, 1))
+    ], axis=-2)
+    return T
+
+    
+def Rp_to_T(R, p):
+    """
+    Args:
+        R: (..., 3, 3) rotation matrix
+        p: (..., 3) translation vector
+    Returns:
+        T: (..., 4, 4) transformation matrix
+    """
+    if R.shape[-2:] != (3, 3):
+        raise ValueError(f"R.shape must be (..., 3, 3), but got {R.shape}")
+    if p.shape[-1:] != (3,):
+        raise ValueError(f"p.shape must be (..., 3), but got {p.shape}")
+
+    if isinstance(R, torch.Tensor):
+        return Rp_to_T_torch(R, p)
+    elif isinstance(R, np.ndarray):
+        return Rp_to_T_numpy(R, p)
+    else:
+        raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(R)}")
 
 """ Operations with E """
 def E_to_R_torch(E, order, radians=True):
@@ -537,6 +607,19 @@ def Q_to_R6(Q):
         return Q_to_R6_torch(Q)
     elif isinstance(Q, np.ndarray):
         return Q_to_R6_numpy(Q)
+    else:
+        raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(Q)}")
+
+# -----------------------------------------------------------------------------------
+
+def Q_to_T(Q):
+    if Q.shape[-1] != 4:
+        raise ValueError(f"Q.shape must be (..., 4), but got {Q.shape}")
+    
+    if isinstance(Q, torch.Tensor):
+        return R_to_T_torch(Q_to_R_torch(Q))
+    elif isinstance(Q, np.ndarray):
+        return R_to_T_numpy(Q_to_R_numpy(Q))
     else:
         raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(Q)}")
 

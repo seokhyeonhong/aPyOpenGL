@@ -24,30 +24,15 @@ class Motion:
         fps   : float = 30.0,
         name  : str   = "default",
     ):
-        self.__poses : list[Pose] = poses
-        self.__fps   : float      = fps
-        self.__name  : str        = name
+        self.poses : list[Pose] = poses
+        self.fps   : float      = fps
+        self.name  : str        = name
 
     def __len__(self):
-        return len(self.__poses)
+        return len(self.poses)
         
     def num_frames(self):
-        return len(self.__poses)
-    
-    def get_poses(self):
-        return self.__poses
-    
-    def get_pose_at(self, frame):
-        return self.__poses[frame]
-    
-    def get_fps(self):
-        return self.__fps
-    
-    def get_frametime(self):
-        return 1.0 / self.__fps
-    
-    def get_name(self):
-        return self.__name
+        return len(self.poses)
 
     # @classmethod
     # def from_numpy(cls, skeleton, local_R, root_p, fps=30.0, name="default", type="default"):

@@ -16,58 +16,19 @@ class Joint:
     """
     def __init__(
         self,
-        name: str = None,
+        name: str,
         pre_Q: np.ndarray = None,
         local_p: np.ndarray = None
     ):
-        self.__name = None if name is None else str(name)
-        self.__pre_Q = None if pre_Q is None else np.array(pre_Q, dtype=np.float32)
-        self.__local_p = None if local_p is None else np.array(local_p, dtype=np.float32)
-    
-    # get functions
-    def get_name(self):
-        if self.__name is None:
-            raise ValueError("Name is not initialized.")
-        return self.__name
-    
-    def get_pre_Q(self):
-        if self.__pre_Q is None:
-            raise ValueError("Pre-rotation quaternion is not initialized.")
-        return self.__pre_Q
-    
-    def get_local_p(self):
-        if self.__local_p is None:
-            raise ValueError("Local position is not initialized.")
-        return self.__local_p
-    
-    # set functions
-    def set_name(self, name: str):
-        if self.__name is not None:
-            raise ValueError("Name already initialized.")
-        self.__name = str(name)
+        self.name = str(name)
+        self.pre_Q = np.array([1, 0, 0, 0], dtype=np.float32) if pre_Q is None else np.array(pre_Q, dtype=np.float32)
+        self.local_p = np.array([0, 0, 0], dtype=np.float32) if local_p is None else np.array(local_p, dtype=np.float32)
 
-    def set_pre_Q(self, pre_Q: np.ndarray):
-        if self.__pre_Q is not None:
-            raise ValueError("Pre-rotation quaternion already initialized.")
-        self.__pre_Q = np.array(pre_Q, dtype=np.float32)
+        if self.pre_Q.shape != (4,):
+            raise ValueError(f"Pre-rotation quaternion must be a 4-dimensional vector, but got {self.pre_Q.shape}.")
+        if self.local_p.shape != (3,):
+            raise ValueError(f"Local position must be a 3-dimensional vector, but got {self.local_p.shape}.")
 
-    def set_local_p(self, local_p: np.ndarray):
-        if self.__local_p is not None:
-            raise ValueError("Local position already initialized.")
-        self.__local_p = np.array(local_p, dtype=np.float32)
-
-    def is_initialized(self):
-        return all([
-            self.__name is not None,
-            self.__pre_Q is not None,
-            self.__local_p is not None
-        ])
-
-    def get_pre_xform(self):
-        if not self.is_initialized():
-            raise ValueError("Joint is not initialized.")
-        
-        pre_xform = np.eye(4, dtype=np.float32)
-        pre_xform[:3, :3] = rotation.Q_to_R(self.__pre_Q)
-        pre_xform[:3, 3] = self.__local_p
-        return np.ascontiguousarray(pre_xform)
+    def pre_xform(self):
+        pre_R = rotation.Q_to_R(self.pre_Q)
+        return rotation.Rp_to_T(pre_R, self.local_p)

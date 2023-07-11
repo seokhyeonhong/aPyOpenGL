@@ -197,11 +197,11 @@ class Render:
     @staticmethod
     def skeleton(model: Model, render_mode="pbr"):
         rov = []
-        skeleton_xforms = model.pose.get_skeleton_xforms()
-        for idx, joint in enumerate(model.pose.get_joints()[1:]):
+        skeleton_xforms = model.pose.skeleton_xforms()
+        for idx, joint in enumerate(model.pose.skeleton.joints[1:]):
             position = glm.vec3(skeleton_xforms[idx, :3, 3].ravel())
             orientation = glm.mat3(*skeleton_xforms[idx, :3, :3].T.ravel())
-            bone_len = np.linalg.norm(joint.get_local_p())
+            bone_len = np.linalg.norm(joint.local_p)
 
             ro = Render.pyramid(radius=0.01, height=bone_len, render_mode=render_mode)
             ro.transform(position, orientation).albedo([0, 1, 0]).color_mode(True)
@@ -757,7 +757,7 @@ class RenderOptionsVec:
     
     def update_skeleton(self, model: Model):
         """ Only used for Render.skeleton """
-        xforms = model.pose.get_skeleton_xforms()
+        xforms = model.pose.skeleton_xforms()
         for idx, option in enumerate(self.options):
             position = glm.vec3(*xforms[idx, :3, 3].ravel())
             orientation = glm.mat3(*xforms[idx, :3, :3].T.ravel())

@@ -1,7 +1,9 @@
 import os
+import glm
 import glfw
+import numpy as np
 
-from pymovis import vis
+from pymovis import vis, kin
 
 class MotionApp(vis.AnimApp):
     def __init__(self, motion_filename, model_filename):
@@ -20,6 +22,9 @@ class MotionApp(vis.AnimApp):
         self.render_skeleton = vis.Render.skeleton(self.model)
         self.render_model = vis.Render.model(self.model)
 
+        # kin pose
+        self.kinpose = kin.KinPose(self.motion.poses[0])
+
         # UI options
         self.ui.add_menu("MotionApp")
         self.ui.add_menu_item("MotionApp", "X-Ray", self.render_skeleton.switch_visible, key=glfw.KEY_X)
@@ -27,7 +32,13 @@ class MotionApp(vis.AnimApp):
 
     def update(self):
         super().update()
-        self.model.set_pose(self.motion.poses[self.curr_frame])
+        
+        # update kinpose basis to the origin
+        self.kinpose.set_pose(self.motion.poses[self.curr_frame])
+        self.kinpose.set_basis_xform(np.eye(4))
+
+        # update model to render
+        self.model.set_pose(self.kinpose.to_pose())
 
     def render(self):
         super().render()
@@ -38,6 +49,6 @@ class MotionApp(vis.AnimApp):
         self.render_skeleton.update_skeleton(self.model).draw()
 
 if __name__ == "__main__":
-    motion_filename = os.path.join(os.path.dirname(__file__), "../data/fbx/motion/ybot_capoeira.fbx")
+    motion_filename = os.path.join(os.path.dirname(__file__), "../data/fbx/motion/ybot_walking.fbx")
     model_filename  = os.path.join(os.path.dirname(__file__), "../data/fbx/model/ybot.fbx")
     vis.AppManager.start(MotionApp(motion_filename, model_filename))

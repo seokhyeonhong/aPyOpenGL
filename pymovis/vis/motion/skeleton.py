@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import numpy as np
-import copy
 
 from .joint import Joint
-from pymovis.utils import npconst
-from pymovis.ops import mathops, rotation
 
 class Skeleton:
     """
@@ -23,58 +20,32 @@ class Skeleton:
         self,
         joints: list[Joint] = None,
     ):
-        self.__joints: list[Joint]           = [] if joints is None else joints
-        self.__parent_idx: list[int]         = []
-        self.__children_idx: list[list[int]] = []
-        self.__idx_by_name: dict             = {}
-        self.__pre_xforms: np.ndarray        = None
+        self.joints: list[Joint]           = [] if joints is None else joints
+        self.parent_idx: list[int]         = []
+        self.children_idx: list[list[int]] = []
+        self.idx_by_name: dict             = {}
     
-    # get functions
-    def get_joints(self):
-        return self.__joints
-    
-    def get_parent_idx(self):
-        return self.__parent_idx
-    
-    def get_parent_idx_of(self, idx):
-        return self.__parent_idx[idx]
-    
-    def get_children_idx(self):
-        return self.__children_idx
-    
-    def get_idx_by_name(self, name):
-        idx = self.__idx_by_name.get(name, None)
-        if name is None:
-            raise ValueError(f"Name {name} does not exist.")
-        return idx
-    
-    # set functions
-    def set_pre_Q_of(self, idx, pre_Q):
-        self.__joints[idx].set_pre_Q(pre_Q)
-
-    def set_local_p_of(self, idx, local_p):
-        self.__joints[idx].set_local_p(local_p)
-
     def num_joints(self):
-        return len(self.__joints)
+        return len(self.joints)
 
     def add_joint(self, joint_name, pre_Q=None, local_p=None, parent_idx=None):
         # add parent and children indices
         if parent_idx is None or parent_idx == -1:
-            if len(self.__joints) > 0:
-                raise ValueError(f"Root joint {self.__joints[0].get_name()} already exists. Cannot add {joint_name}.")
-            self.__parent_idx.append(-1)
+            if len(self.joints) > 0:
+                raise ValueError(f"Root joint {self.joints[0].name} already exists. Cannot add {joint_name}.")
+            self.parent_idx.append(-1)
         else:
-            self.__parent_idx.append(parent_idx)
-            self.__children_idx[parent_idx].append(len(self.__joints))
+            self.parent_idx.append(parent_idx)
+            self.children_idx[parent_idx].append(len(self.joints))
         
         # add joint
         joint = Joint(joint_name, pre_Q, local_p)
-        self.__children_idx.append(list())
-        self.__idx_by_name[joint_name] = len(self.__joints)
-        self.__joints.append(joint)
+        self.children_idx.append(list())
+        self.idx_by_name[joint_name] = len(self.joints)
+        self.joints.append(joint)
     
-    def get_pre_xforms(self):
-        if self.__pre_xforms is None:
-            self.__pre_xforms = np.stack([joint.get_pre_xform() for joint in self.__joints])
-        return self.__pre_xforms
+    def pre_xforms(self):
+        return np.stack([joint.pre_xform() for joint in self.joints])
+    
+    def root_pre_xform(self):
+        return self.joints[0].pre_xform()

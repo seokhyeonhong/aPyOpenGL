@@ -61,14 +61,14 @@ class BVH:
                     if end_site:
                         end_site = False
                     else:
-                        active = skeleton.get_parent_idx_of(active)
+                        active = skeleton.parent_idx[active]
                     continue
 
                 offmatch = re.match(r"\s*OFFSET\s+([\-\d\.e]+)\s+([\-\d\.e]+)\s+([\-\d\.e]+)", line)
                 if offmatch:
                     if not end_site:
-                        skeleton.set_local_p_of(active, np.array(list(map(float, offmatch.groups())), dtype=np.float32) * self.to_meter)
-                        skeleton.set_pre_Q_of(active, npconst.Q_IDENTITY())
+                        skeleton.joints[active].local_p = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * self.to_meter
+                        skeleton.joints[active].pre_Q = npconst.Q_IDENTITY()
                     continue
 
                 chanmatch = re.match(r"\s*CHANNELS\s+(\d+)", line)
@@ -140,4 +140,4 @@ class BVH:
         return res
     
     def model(self):
-        return Model(meshes=None, skeleton=self.poses[0].get_skeleton())
+        return Model(meshes=None, skeleton=self.poses[0].skeleton)

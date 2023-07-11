@@ -11,6 +11,8 @@ class Pose:
     Represents a pose of a skeleton.
     It contains the local rotation matrices of each joint and the root position.
 
+    global_xforms[i] = global_xforms[parent_idx[i]] @ pre_xform[i] @ local_rots[i]
+
     Attributes:
         skeleton (Skeleton)     : The skeleton that this pose belongs to.
         local_R  (numpy.ndarray): The local rotation matrices of the joints.
@@ -22,88 +24,76 @@ class Pose:
         local_Qs: np.ndarray or list[np.ndarray] = None,
         root_p  : np.ndarray = None,
     ):
-        self.__skeleton = skeleton
-        self.__local_Qs = np.array(local_Qs, dtype=np.float32) if local_Qs is not None else np.stack([npconst.Q_IDENTITY() for _ in range(skeleton.num_joints())], axis=0)
-        self.__root_p   = np.array(root_p, dtype=np.float32) if root_p is not None else self.__skeleton.get_joints()[0].get_local_p()
+        self.skeleton = skeleton
+        self.local_Qs = np.array(local_Qs, dtype=np.float32) if local_Qs is not None else np.stack([npconst.Q_IDENTITY() for _ in range(skeleton.num_joints())], axis=0)
+        self.root_p   = np.array(root_p, dtype=np.float32) if root_p is not None else self.skeleton.joints[0].local_p
 
         # check shapes
-        if self.__skeleton.num_joints() == 0:
+        if self.skeleton.num_joints() == 0:
             raise ValueError("Cannot create a pose for an empty skeleton.")
-        if self.__local_Qs.shape != (self.__skeleton.num_joints(), 4):
-            raise ValueError(f"local_R.shape must be ({skeleton.num_joints}, 4), but got {local_Qs.shape}")
-        if self.__root_p.shape != (3,):
+        if self.local_Qs.shape != (self.skeleton.num_joints(), 4):
+            raise ValueError(f"local_R.shape must be ({skeleton.num_joints()}, 4), but got {local_Qs.shape}")
+        if self.root_p.shape != (3,):
             raise ValueError(f"root_p.shape must be (3,), but got {root_p.shape}")
-        
-        # transformations
-        self.__update_local_xforms()
-        self.__update_global_xforms()
-        self.__update_skeleton_xforms()
+    
+    def pre_xforms(self):
+        pre_xforms = self.skeleton.pre_xforms()
+        pre_xforms[0, :3, 3] = self.root_p
+        return pre_xforms
+    
+    def root_pre_xform(self):
+        root_pre_xform = self.skeleton.root_pre_xform()
+        root_pre_xform[:3, 3] = self.root_p
+        return root_pre_xform
 
-    def __update_local_xforms(self):
-        local_Rs = rotation.Q_to_R(self.__local_Qs)
-        local_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(self.__skeleton.num_joints())], axis=0)
-        local_xforms[0, :3, :3] = local_Rs[0]
-        local_xforms[0, :3, 3]  = self.__root_p
-        for i in range(1, self.__skeleton.num_joints()):
+    def local_xforms(self):
+        local_Rs = rotation.Q_to_R(self.local_Qs)
+
+        local_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(self.skeleton.num_joints())], axis=0)
+        for i in range(self.skeleton.num_joints()):
             local_xforms[i, :3, :3] = local_Rs[i]
-        
-        self.__local_xforms = local_xforms
+            
+        return local_xforms
     
-    def __update_global_xforms(self):
-        noj = self.__skeleton.num_joints()
+    def root_local_xform(self):
+        root_local_xform = np.identity(4, dtype=np.float32)
+        root_local_xform[:3, :3] = rotation.Q_to_R(self.local_Qs[0])
+        return root_local_xform
+    
+    def global_xforms(self):
+        noj = self.skeleton.num_joints()
+        pre_xforms = self.pre_xforms()
+        local_xforms = self.local_xforms()
 
-        pre_xforms = self.__skeleton.get_pre_xforms()
         global_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(noj)], axis=0)
-        global_xforms[0] = self.__local_xforms[0]
+        global_xforms[0] = pre_xforms[0] @ local_xforms[0]
         for i in range(1, noj):
-            global_xforms[i] = global_xforms[self.__skeleton.get_parent_idx_of(i)] @ pre_xforms[i] @ self.__local_xforms[i]
-        
-        self.__global_xforms = global_xforms
+            global_xforms[i] = global_xforms[self.skeleton.parent_idx[i]] @ pre_xforms[i] @ local_xforms[i]
+
+        return global_xforms
     
-    def __update_skeleton_xforms(self):
-        noj = self.__skeleton.num_joints()
+    def root_global_xform(self):
+        root_pre_xform = self.root_pre_xform()
+        root_local_xform = self.root_local_xform()
+        return root_pre_xform @ root_local_xform
+    
+    def skeleton_xforms(self):
+        noj = self.skeleton.num_joints()
+        global_xforms = self.global_xforms()
 
         skeleton_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(noj - 1)], axis=0)
         for i in range(1, noj):
-            parent_pos = self.__global_xforms[self.__skeleton.get_parent_idx_of(i), :3, 3]
+            parent_pos = global_xforms[self.skeleton.parent_idx[i], :3, 3]
             
-            target_dir = mathops.normalize(self.__global_xforms[i, :3, 3] - parent_pos)
+            target_dir = mathops.normalize(global_xforms[i, :3, 3] - parent_pos)
             axis = mathops.normalize(np.cross(npconst.UP(), target_dir))
             angle = mathops.signed_angle(npconst.UP(), target_dir, axis)
 
             skeleton_xforms[i-1, :3, :3] = rotation.A_to_R(angle, axis)
-            skeleton_xforms[i-1, :3,  3] = (parent_pos + self.__global_xforms[i, :3, 3]) / 2
+            skeleton_xforms[i-1, :3,  3] = (parent_pos + global_xforms[i, :3, 3]) / 2
         
-        self.__skeleton_xforms = skeleton_xforms
+        return skeleton_xforms
     
-    def update(self, local_Qs, root_p):
-        self.__local_Qs = np.array(local_Qs, dtype=np.float32)
-        self.__root_p   = np.array(root_p, dtype=np.float32)
-        self.__update_local_xforms()
-        self.__update_global_xforms()
-        self.__update_skeleton_xforms()
-
-    def get_skeleton(self):
-        return self.__skeleton
-    
-    def get_joints(self):
-        return self.__skeleton.get_joints()
-    
-    def get_local_Qs(self):
-        return self.__local_Qs
-    
-    def get_root_p(self):
-        return self.__root_p
-    
-    def get_local_xforms(self):
-        return self.__local_xforms
-    
-    def get_global_xforms(self):
-        return self.__global_xforms
-    
-    def get_skeleton_xforms(self):
-        return self.__skeleton_xforms
-
     @classmethod
     def from_bvh(cls, skeleton, local_E, order, root_p):
         local_Qs = rotation.E_to_Q(local_E, order, radians=False)
