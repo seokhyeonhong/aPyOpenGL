@@ -3,8 +3,9 @@ import re
 import numpy as np
 import multiprocessing as mp
 
-from .motion import Skeleton, Pose, Motion
+from .motion import Joint, Skeleton, Pose, Motion
 from .model  import Model
+from pymovis.utils import npconst
 
 channelmap = {
     'Xrotation': 'x',
@@ -53,20 +54,21 @@ class BVH:
                 rmatch = re.match(r"ROOT (\w+)", line)
                 if rmatch:
                     skeleton.add_joint(rmatch.group(1), parent_idx=None)
-                    active = skeleton.num_joints - 1
+                    active = skeleton.num_joints() - 1
                     continue
 
                 if "}" in line:
                     if end_site:
                         end_site = False
                     else:
-                        active = skeleton.parent_idx[active]
+                        active = skeleton.get_parent_idx_of(active)
                     continue
 
                 offmatch = re.match(r"\s*OFFSET\s+([\-\d\.e]+)\s+([\-\d\.e]+)\s+([\-\d\.e]+)", line)
                 if offmatch:
                     if not end_site:
-                        skeleton.joints[active].local_p = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * self.to_meter
+                        skeleton.set_local_p_of(active, np.array(list(map(float, offmatch.groups())), dtype=np.float32) * self.to_meter)
+                        skeleton.set_pre_Q_of(active, npconst.Q_IDENTITY())
                     continue
 
                 chanmatch = re.match(r"\s*CHANNELS\s+(\d+)", line)
@@ -83,7 +85,7 @@ class BVH:
                 jmatch = re.match("\s*JOINT\s+(\w+)", line)
                 if jmatch:
                     skeleton.add_joint(jmatch.group(1), parent_idx=active)
-                    active = skeleton.num_joints - 1
+                    active = skeleton.num_joints() - 1
                     continue
 
                 if "End Site" in line:
@@ -93,8 +95,8 @@ class BVH:
                 fmatch = re.match("\s*Frames:\s+(\d+)", line)
                 if fmatch:
                     fnum = int(fmatch.group(1))
-                    positions = np.zeros((fnum, skeleton.num_joints, 3), dtype=np.float32)
-                    rotations = np.zeros((fnum, skeleton.num_joints, 3), dtype=np.float32)
+                    positions = np.zeros((fnum, skeleton.num_joints(), 3), dtype=np.float32)
+                    rotations = np.zeros((fnum, skeleton.num_joints(), 3), dtype=np.float32)
                     continue
 
                 fmatch = re.match("\s*Frame Time:\s+([\d\.]+)", line)
@@ -110,18 +112,18 @@ class BVH:
                 dmatch = line.strip().split(' ')
                 if dmatch:
                     data_block = np.array(list(map(float, dmatch)), dtype=np.float32)
-                    N = skeleton.num_joints
+                    num_joints = skeleton.num_joints()
                     fi = i
                     if channels == 3:
                         positions[fi, 0:1] = data_block[0:3] * self.to_meter
-                        rotations[fi, :]   = data_block[3:].reshape(N, 3)
+                        rotations[fi, :]   = data_block[3:].reshape(num_joints, 3)
                     elif channels == 6:
-                        data_block         = data_block.reshape(N, 6)
+                        data_block         = data_block.reshape(num_joints, 6)
                         positions[fi, :]   = data_block[:, 0:3] * self.to_meter
                         rotations[fi, :]   = data_block[:, 3:6]
                     elif channels == 9: 
                         positions[fi, 0]   = data_block[0:3] * self.to_meter
-                        data_block         = data_block[3:].reshape(N - 1, 9)
+                        data_block         = data_block[3:].reshape(num_joints - 1, 9)
                         rotations[fi, 1:]  = data_block[:, 3:6]
                         positions[fi, 1:]  += data_block[:, 0:3] * data_block[:, 6:9]
                     else:

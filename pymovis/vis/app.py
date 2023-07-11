@@ -356,9 +356,10 @@ class MotionApp(AnimApp):
             raise ValueError("Motion data is not loaded.")
         
         if self.model is None:
-            self.model = Model(meshes=None, skeleton=self.motion.poses[0].skeleton)
+            self.model = Model(meshes=None, skeleton=self.motion.get_pose_at(0).get_skeleton())
 
-        self.total_frames = self.motion.num_frames
+        self.total_frames = self.motion.num_frames()
+        self.fps = self.motion.get_fps()
 
         # render options
         self.render_model    = Render.model(self.model)
@@ -384,16 +385,16 @@ class MotionApp(AnimApp):
 
         # set camera focus on the root
         if self.focus_on_root:
-            self.camera.set_focus_position(self.motion.poses[self.curr_frame].root_p)
+            self.camera.set_focus_position(self.motion.get_pose_at(self.curr_frame).get_root_p())
             self.camera.set_up(glm.vec3(0, 1, 0))
         elif self.follow_root:
-            self.camera.set_position(self.motion.poses[self.curr_frame].root_p + glm.vec3(0, 1.5, 5))
-            self.camera.set_focus_position(self.motion.poses[self.curr_frame].root_p)
+            self.camera.set_position(self.motion.get_pose_at(self.curr_frame).get_root_p() + glm.vec3(0, 1.5, 5))
+            self.camera.set_focus_position(self.motion.get_pose_at(self.curr_frame).get_root_p())
             self.camera.set_up(glm.vec3(0, 1, 0))
         self.camera.update()
         
         # set pose
-        self.model.set_pose(self.motion.poses[self.curr_frame])
+        self.model.set_pose(self.motion.get_pose_at(self.curr_frame))
 
     def render(self):
         super().render()

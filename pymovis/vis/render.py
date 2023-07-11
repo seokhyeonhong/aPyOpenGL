@@ -166,11 +166,11 @@ class Render:
     @staticmethod
     def skeleton(model: Model, render_mode="pbr"):
         rov = []
-        for idx, joint in enumerate(model.pose.skeleton.joints[1:]):
-            skeleton_xform = model.pose.skeleton_xforms[idx]
+        for idx, joint in enumerate(model.pose.get_skeleton().get_joints()[1:]):
+            skeleton_xform = model.pose.get_skeleton_xforms()[idx]
             position = glm.vec3(skeleton_xform[:3, 3].ravel())
             orientation = glm.mat3(*skeleton_xform[:3, :3].T.ravel())
-            bone_len = np.linalg.norm(joint.local_p)
+            bone_len = np.linalg.norm(joint.get_local_p())
 
             ro = Render.pyramid(radius=0.01, height=bone_len, render_mode=render_mode)
             ro.transform(position, orientation).albedo([0, 1, 0]).color_mode(True)
@@ -731,7 +731,7 @@ class RenderOptionsVec:
     
     def pose(self, pose: Pose):
         for idx, option in enumerate(self.options):
-            xform = pose.skeleton_xforms[idx]
+            xform = pose.get_skeleton_xforms()[idx]
             position = glm.vec3(*xform[:3, 3].ravel())
             orientation = glm.mat3(*xform[:3, :3].T.ravel())
             option.transform(position, orientation)

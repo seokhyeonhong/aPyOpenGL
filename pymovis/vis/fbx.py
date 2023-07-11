@@ -93,7 +93,7 @@ class Parser:
     def motions(self, joints: list[fbxparser.JointData]):
         skeleton = Skeleton()
         for joint in joints:
-            skeleton.add_joint(joint.name, local_p=joint.local_T, pre_Q=joint.pre_Q, parent_idx=joint.parent_idx)
+            skeleton.add_joint(joint.name, pre_Q=joint.pre_Q, local_p=joint.local_T, parent_idx=joint.parent_idx)
 
         scenes = self.parser.get_scene_keyframes(self.scale)
         names = [joint.name for joint in joints]
@@ -106,7 +106,7 @@ class Parser:
             resampled_scenes.append(keyframe.resample(scene, frame_idx))
 
         motion_set = []
-        root_name = skeleton.joints[0].name
+        root_name = skeleton.get_joints()[0].get_name()
         for i in range(len(resampled_scenes)):
             scene = resampled_scenes[i]
             nof = len(frame_set[i])
@@ -199,7 +199,7 @@ class FBX:
         char_data = self.parser.char_data
         joints = char_data.joint_data
         for joint in joints:
-            skeleton.add_joint(joint.name, local_p=joint.local_T, pre_Q=joint.pre_Q, parent_idx=joint.parent_idx)
+            skeleton.add_joint(joint.name, pre_Q=joint.pre_Q, local_p=joint.local_T, parent_idx=joint.parent_idx)
         return skeleton
 
     def model(self):
@@ -207,7 +207,7 @@ class FBX:
         skeleton = self.skeleton()
 
         meshes   = meshes if len(meshes) > 0 else None
-        skeleton = skeleton if skeleton.num_joints > 0 else None
+        skeleton = skeleton if skeleton.num_joints() > 0 else None
 
         return Model(meshes=meshes, skeleton=skeleton)
     
