@@ -24,7 +24,7 @@ class Pose:
     ):
         self.__skeleton = skeleton
         self.__local_Qs = np.array(local_Qs, dtype=np.float32) if local_Qs is not None else np.stack([npconst.Q_IDENTITY() for _ in range(skeleton.num_joints())], axis=0)
-        self.__root_p   = np.array(root_p, dtype=np.float32) if root_p is not None else npconst.P_ZERO()
+        self.__root_p   = np.array(root_p, dtype=np.float32) if root_p is not None else self.__skeleton.get_joints()[0].get_local_p()
 
         # check shapes
         if self.__skeleton.num_joints() == 0:
@@ -35,9 +35,9 @@ class Pose:
             raise ValueError(f"root_p.shape must be (3,), but got {root_p.shape}")
         
         # transformations
-        self.__local_xforms    = self.__update_local_xforms()
-        self.__global_xforms   = self.__update_global_xforms()
-        self.__skeleton_xforms = self.__update_skeleton_xforms()
+        self.__update_local_xforms()
+        self.__update_global_xforms()
+        self.__update_skeleton_xforms()
 
     def __update_local_xforms(self):
         local_Rs = rotation.Q_to_R(self.__local_Qs)
@@ -47,7 +47,7 @@ class Pose:
         for i in range(1, self.__skeleton.num_joints()):
             local_xforms[i, :3, :3] = local_Rs[i]
         
-        return np.ascontiguousarray(local_xforms)
+        self.__local_xforms = local_xforms
     
     def __update_global_xforms(self):
         noj = self.__skeleton.num_joints()
@@ -58,7 +58,7 @@ class Pose:
         for i in range(1, noj):
             global_xforms[i] = global_xforms[self.__skeleton.get_parent_idx_of(i)] @ pre_xforms[i] @ self.__local_xforms[i]
         
-        return np.ascontiguousarray(global_xforms)
+        self.__global_xforms = global_xforms
     
     def __update_skeleton_xforms(self):
         noj = self.__skeleton.num_joints()
@@ -74,17 +74,20 @@ class Pose:
             skeleton_xforms[i-1, :3, :3] = rotation.A_to_R(angle, axis)
             skeleton_xforms[i-1, :3,  3] = (parent_pos + self.__global_xforms[i, :3, 3]) / 2
         
-        return np.ascontiguousarray(skeleton_xforms)
+        self.__skeleton_xforms = skeleton_xforms
     
     def update(self, local_Qs, root_p):
         self.__local_Qs = np.array(local_Qs, dtype=np.float32)
         self.__root_p   = np.array(root_p, dtype=np.float32)
-        self.__local_xforms    = self.__update_local_xforms()
-        self.__global_xforms   = self.__update_global_xforms()
-        self.__skeleton_xforms = self.__update_skeleton_xforms()
+        self.__update_local_xforms()
+        self.__update_global_xforms()
+        self.__update_skeleton_xforms()
 
     def get_skeleton(self):
         return self.__skeleton
+    
+    def get_joints(self):
+        return self.__skeleton.get_joints()
     
     def get_local_Qs(self):
         return self.__local_Qs

@@ -67,6 +67,9 @@ class Render:
     # irradiance map
     irradiance_map = None
 
+    # VAO cache
+    vao_cache = {}
+
     @staticmethod
     def initialize_shaders():
         Render.primitive_shader = core.Shader("vert.vs", "frag.fs")
@@ -106,31 +109,59 @@ class Render:
 
     @staticmethod
     def cube(render_mode="pbr"):
-        return RenderOptions(core.Cube(), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        cube = Render.vao_cache.get("cube", None)
+        if cube is None:
+            cube = core.Cube()
+            Render.vao_cache["cube"] = cube
+        return RenderOptions(cube, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def sphere(radius=0.5, stacks=16, sectors=16, render_mode="pbr"):
-        return RenderOptions(core.Sphere(radius, stacks, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        sphere = Render.vao_cache.get(f"sphere-{radius}-{stacks}-{sectors}", None)
+        if sphere is None:
+            sphere = core.Sphere(radius, stacks, sectors)
+            Render.vao_cache[f"sphere-{radius}-{stacks}-{sectors}"] = sphere
+        return RenderOptions(sphere, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
     
     @staticmethod
     def cone(radius=0.5, height=1, sectors=16, render_mode="pbr"):
-        return RenderOptions(core.Cone(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        cone = Render.vao_cache.get(f"cone-{radius}-{height}-{sectors}", None)
+        if cone is None:
+            cone = core.Cone(radius, height, sectors)
+            Render.vao_cache[f"cone-{radius}-{height}-{sectors}"] = cone
+        return RenderOptions(cone, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def plane(width=1.0, height=1.0, render_mode="pbr"):
-        return RenderOptions(core.Plane(width, height), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        plane = Render.vao_cache.get(f"plane-{width}-{height}", None)
+        if plane is None:
+            plane = core.Plane(width, height)
+            Render.vao_cache[f"plane-{width}-{height}"] = plane
+        return RenderOptions(plane, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
     
     @staticmethod
     def cylinder(radius=0.5, height=1, sectors=16, render_mode="pbr"):
-        return RenderOptions(core.Cylinder(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        cylinder = Render.vao_cache.get(f"cylinder-{radius}-{height}-{sectors}", None)
+        if cylinder is None:
+            cylinder = core.Cylinder(radius, height, sectors)
+            Render.vao_cache[f"cylinder-{radius}-{height}-{sectors}"] = cylinder
+        return RenderOptions(cylinder, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def arrow(render_mode="pbr"):
-        return RenderOptions(core.Arrow(), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
-
+        arrow = Render.vao_cache.get("arrow", None)
+        if arrow is None:
+            arrow = core.Arrow()
+            Render.vao_cache["arrow"] = arrow
+        return RenderOptions(arrow, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+    
     @staticmethod
     def pyramid(radius=0.5, height=1.0, sectors=4, render_mode="pbr"):
-        return RenderOptions(core.Pyramid(radius, height, sectors), Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
+        pyramid = Render.vao_cache.get(f"pyramid-{radius}-{height}-{sectors}", None)
+        if pyramid is None:
+            pyramid = core.Pyramid(radius, height, sectors)
+            Render.vao_cache[f"pyramid-{radius}-{height}-{sectors}"] = pyramid
+        return RenderOptions(pyramid, Render.primitive_shader, get_draw_func(render_mode), Render.shadow_shader, Render.draw_shadow)
 
     @staticmethod
     def heightmap(heightmap, render_mode="pbr"):
@@ -166,10 +197,10 @@ class Render:
     @staticmethod
     def skeleton(model: Model, render_mode="pbr"):
         rov = []
-        for idx, joint in enumerate(model.pose.get_skeleton().get_joints()[1:]):
-            skeleton_xform = model.pose.get_skeleton_xforms()[idx]
-            position = glm.vec3(skeleton_xform[:3, 3].ravel())
-            orientation = glm.mat3(*skeleton_xform[:3, :3].T.ravel())
+        skeleton_xforms = model.pose.get_skeleton_xforms()
+        for idx, joint in enumerate(model.pose.get_joints()[1:]):
+            position = glm.vec3(skeleton_xforms[idx, :3, 3].ravel())
+            orientation = glm.mat3(*skeleton_xforms[idx, :3, :3].T.ravel())
             bone_len = np.linalg.norm(joint.get_local_p())
 
             ro = Render.pyramid(radius=0.01, height=bone_len, render_mode=render_mode)
@@ -697,11 +728,6 @@ class RenderOptionsVec:
             option.background(background_intensity)
         return self
     
-    def buffer_xforms(self, model: Model):
-        for i in range(len(self.options)):
-            self.options[i].buffer_xforms(model.meshes[i].buffer)
-        return self
-    
     def position(self, position):
         for option in self.options:
             option.position(position)
@@ -729,14 +755,21 @@ class RenderOptionsVec:
         self.options[index].transform(transform)
         return self
     
-    def pose(self, pose: Pose):
+    def update_skeleton(self, model: Model):
+        """ Only used for Render.skeleton """
+        xforms = model.pose.get_skeleton_xforms()
         for idx, option in enumerate(self.options):
-            xform = pose.get_skeleton_xforms()[idx]
-            position = glm.vec3(*xform[:3, 3].ravel())
-            orientation = glm.mat3(*xform[:3, :3].T.ravel())
+            position = glm.vec3(*xforms[idx, :3, 3].ravel())
+            orientation = glm.mat3(*xforms[idx, :3, :3].T.ravel())
             option.transform(position, orientation)
         return self
     
+    def update_model(self, model: Model):
+        """ Only used for Render.model with skinning """
+        for i in range(len(self.options)):
+            self.options[i].buffer_xforms(model.meshes[i].buffer)
+        return self
+
     # def set_all_positions(self, position):
     #     for option in self.options:
     #         option.set_position(position)

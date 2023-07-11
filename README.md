@@ -66,9 +66,6 @@ pip install -r requirements.txt
 * F6: Capture the screen in video if entered once, and save in ```captures/yyyy-mm-dd/videos``` if entered again.
 <!-- * F7: Capture all frames and save the video in ```captures/yyyy-mm-dd/videos```. Once F7 is entered, other commands will not be working while capturing the frames, and it will be restored after capturing all the frames. -->
 
-### MotionApp
-```MotionApp``` is a class that inherits ```AnimApp``` and specialized to visualize motion data. You can render the model as well as its skeleton. Even when the model is not given, the skeleton still can be visualized.
-
 ### Python FBX SDK Installation References on Linux
 To be updated.
 

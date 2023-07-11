@@ -42,11 +42,11 @@ class Skeleton:
     def get_children_idx(self):
         return self.__children_idx
     
-    def get_idx_by_name(self, idx):
-        name = self.__idx_by_name.get(idx, None)
+    def get_idx_by_name(self, name):
+        idx = self.__idx_by_name.get(name, None)
         if name is None:
-            raise ValueError(f"Joint index {idx} does not exist.")
-        return name
+            raise ValueError(f"Name {name} does not exist.")
+        return idx
     
     # set functions
     def set_pre_Q_of(self, idx, pre_Q):

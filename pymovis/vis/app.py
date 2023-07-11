@@ -211,6 +211,11 @@ class AnimApp(App):
     def start(self):
         super().start()
 
+        # check
+        if self.total_frames <= 0:
+            raise ValueError(f"total_frames must be initialized to a positive integer in __init__(), but got {self.total_frames}")
+        self.total_frames = int(self.total_frames)
+
         # render options
         self.axis = Render.axis()
         self.grid = Render.plane(200, 200).albedo(0.15).floor(True)
@@ -244,28 +249,29 @@ class AnimApp(App):
         if action != glfw.PRESS:
             return
         
-        # 0~9, []: frame control
-        if glfw.KEY_0 <= key <= glfw.KEY_9:
-            self.curr_frame = int(self.total_frames * (key - glfw.KEY_0) * 0.1)
-        
+        # frame control when not recording
+        if self.record_mode == AnimApp.RecordMode.eNONE:
+            if glfw.KEY_0 <= key <= glfw.KEY_9:
+                self.curr_frame = int(self.total_frames * (key - glfw.KEY_0) * 0.1)
+            
+            # frame control
+            elif key == glfw.KEY_LEFT_BRACKET:
+                self.move_frame(-1)
+            elif key == glfw.KEY_RIGHT_BRACKET:
+                self.move_frame(+1)
+            elif key == glfw.KEY_LEFT:
+                self.move_frame(-10)
+            elif key == glfw.KEY_RIGHT:
+                self.move_frame(+10)
+
         # F6/F7/F8: record section / all frames / section to images
-        elif key == glfw.KEY_F6:
+        if key == glfw.KEY_F6:
             if self.record_mode == AnimApp.RecordMode.eSECTION_TO_VID:
                 self.save_video()
                 self.captures = []
                 self.record_mode = AnimApp.RecordMode.eNONE
             elif self.record_mode == AnimApp.RecordMode.eNONE:
                 self.record_mode = AnimApp.RecordMode.eSECTION_TO_VID
-        
-        # frame control
-        elif key == glfw.KEY_LEFT_BRACKET:
-            self.move_frame(-1)
-        elif key == glfw.KEY_RIGHT_BRACKET:
-            self.move_frame(+1)
-        elif key == glfw.KEY_LEFT:
-            self.move_frame(-10)
-        elif key == glfw.KEY_RIGHT:
-            self.move_frame(+10)
 
     def update(self):
         super().update()
@@ -334,79 +340,3 @@ class AnimApp(App):
         for i, image in enumerate(self.captures):
             image_path = os.path.join(image_dir, "{:04d}.png".format(i))
             cv2.imwrite(image_path, image)
-
-""" Class for motion data visualization """
-class MotionApp(AnimApp):
-    def __init__(self):
-        super().__init__()
-
-        # motion data
-        self.motion: Motion = None
-        self.model: Model = None
-
-        # camera options
-        self.focus_on_root = False
-        self.follow_root = False
-        self.init_cam_pos = self.camera.position
-
-    def start(self):
-        super().start()
-
-        if self.motion is None:
-            raise ValueError("Motion data is not loaded.")
-        
-        if self.model is None:
-            self.model = Model(meshes=None, skeleton=self.motion.get_pose_at(0).get_skeleton())
-
-        self.total_frames = self.motion.num_frames()
-        self.fps = self.motion.get_fps()
-
-        # render options
-        self.render_model    = Render.model(self.model)
-        self.render_skeleton = Render.skeleton(self.model)
-        
-        # UI options
-        self.ui.add_menu("MotionApp")
-        self.ui.add_menu_item("MotionApp", "X-Ray", self.render_skeleton.switch_visible, key=glfw.KEY_X)
-        if self.render_model is not None:
-            self.ui.add_menu_item("MotionApp", "Model", self.render_model.switch_visible, key=glfw.KEY_M)
-    
-    def key_callback(self, window, key, scancode, action, mods):
-        super().key_callback(window, key, scancode, action, mods)
-
-        # set camera focus on the root
-        if key == glfw.KEY_F3 and action == glfw.PRESS:
-            self.focus_on_root = not self.focus_on_root
-        elif key == glfw.KEY_F4 and action == glfw.PRESS:
-            self.follow_root = not self.follow_root
-
-    def update(self):
-        super().update()
-
-        # set camera focus on the root
-        if self.focus_on_root:
-            self.camera.set_focus_position(self.motion.get_pose_at(self.curr_frame).get_root_p())
-            self.camera.set_up(glm.vec3(0, 1, 0))
-        elif self.follow_root:
-            self.camera.set_position(self.motion.get_pose_at(self.curr_frame).get_root_p() + glm.vec3(0, 1.5, 5))
-            self.camera.set_focus_position(self.motion.get_pose_at(self.curr_frame).get_root_p())
-            self.camera.set_up(glm.vec3(0, 1, 0))
-        self.camera.update()
-        
-        # set pose
-        self.model.set_pose(self.motion.get_pose_at(self.curr_frame))
-
-    def render(self):
-        super().render()
-
-        # render the environment
-        self.grid.draw()
-        self.axis.draw()
-
-        # render the model
-        if self.model is not None:
-            self.render_model.buffer_xforms(self.model).draw()
-
-    def render_xray(self):
-        super().render_xray()
-        self.render_skeleton.pose(self.model.pose).draw()

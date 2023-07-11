@@ -211,5 +211,5 @@ class FBX:
 
         return Model(meshes=meshes, skeleton=skeleton)
     
-    def motions(self):
+    def motions(self) -> list[Motion]:
         return self.parser.motions(self.parser.char_data.joint_data)

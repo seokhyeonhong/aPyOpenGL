@@ -27,7 +27,6 @@ class MyApp(vis.App):
         self.sphere2.draw()
         self.cone.draw()
         self.pyramid.draw()
-        # self.cubemap.draw()
 
     def render_text(self):
         super().render_text()

@@ -140,4 +140,4 @@ class BVH:
         return res
     
     def model(self):
-        return Model(meshes=None, skeleton=self.poses[0].skeleton)
+        return Model(meshes=None, skeleton=self.poses[0].get_skeleton())
