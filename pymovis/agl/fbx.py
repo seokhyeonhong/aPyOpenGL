@@ -38,20 +38,11 @@ class Parser:
         return f"{base}_{pkl_type}.pkl"
     
     def init_character_data(self, scale):
-        char_pkl_path = self.pkl_path("char")
-        if os.path.exists(char_pkl_path):
-            with open(char_pkl_path, "rb") as f:
-                self.char_data = pickle.load(f)
-            return
-        
         self.char_data = fbxparser.CharacterData()
         root = self.parser.scene.GetRootNode()
         self.char_data.name = root.GetName()
         for i in range(root.GetChildCount()):
             fbxparser.parse_nodes_by_type(root.GetChild(i), self.char_data.joint_data, -1, fbx.FbxNodeAttribute.eSkeleton, scale)
-        
-        with open(char_pkl_path, "wb") as f:
-            pickle.dump(self.char_data, f, pickle.HIGHEST_PROTOCOL)
 
     def init_mesh_data(self, scale):
         mesh_pkl_path = self.pkl_path("mesh")
@@ -117,7 +108,7 @@ class Parser:
     def motions(self, joints: list[fbxparser.JointData]):
         skeleton = Skeleton()
         for joint in joints:
-            skeleton.add_joint(joint.name, pre_Q=joint.pre_Q, local_p=joint.local_T, parent_idx=joint.parent_idx)
+            skeleton.add_joint(joint.name, pre_quat=joint.pre_quat, local_pos=joint.local_T, parent_idx=joint.parent_idx)
 
         scenes = self.parser.get_scene_keyframes(self.scale)
         names = [joint.name for joint in joints]
@@ -224,7 +215,7 @@ class FBX:
         char_data = self.parser.char_data
         joints = char_data.joint_data
         for joint in joints:
-            skeleton.add_joint(joint.name, pre_Q=joint.pre_Q, local_p=joint.local_T, parent_idx=joint.parent_idx)
+            skeleton.add_joint(joint.name, pre_quat=joint.pre_quat, local_pos=joint.local_T, parent_idx=joint.parent_idx)
 
         return skeleton
 

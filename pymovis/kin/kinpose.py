@@ -88,7 +88,7 @@ class KinPose:
         # recompute local root transformation
         # - rotation: global_R = basis_R @ pre_R @ local_R_to_basis = pre_R @ local_R_for_pose
         #             Therefore, local_R_for_pose = inv(pre_R) @ basis_R @ pre_R @ local_R_to_basis
-        # - position: global_p = basis_R @ local_p + basis_p
+        # - position: global_p = basis_R @ local_pos + basis_p
         local_Rs[0] = np.linalg.inv(self.root_pre_R) @ self.basis_xform[:3, :3] @ self.root_pre_R @ local_Rs[0]
         root_p = self.basis_xform @ np.concatenate([self.local_root_p, [1]])
         return Pose(self.skeleton, n_quat.from_rotmat(local_Rs), root_p[:3])

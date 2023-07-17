@@ -68,7 +68,7 @@ class BVH:
                 offmatch = re.match(r"\s*OFFSET\s+([\-\d\.e]+)\s+([\-\d\.e]+)\s+([\-\d\.e]+)", line)
                 if offmatch:
                     if not end_site:
-                        skeleton.joints[active].local_p = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * self.to_meter
+                        skeleton.joints[active].local_pos = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * self.to_meter
                     continue
 
                 chanmatch = re.match(r"\s*CHANNELS\s+(\d+)", line)

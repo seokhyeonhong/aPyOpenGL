@@ -151,7 +151,7 @@ class JointData:
 
         self.local_T    = glm.vec3(0.0)
         self.local_R    = glm.quat(1.0, 0.0, 0.0, 0.0)
-        self.pre_Q      = glm.quat(1.0, 0.0, 0.0, 0.0)
+        self.pre_quat   = glm.quat(1.0, 0.0, 0.0, 0.0)
         self.local_S    = glm.vec3(1.0)
 
 class CharacterData:

@@ -19,10 +19,6 @@ class Model:
         self.meshes = [Mesh(meshes[i][0], meshes[i][1], skeleton=skeleton) for i in range(len(meshes))] if meshes is not None else []
         
     def set_pose(self, pose):
-        if isinstance(pose, Pose):
-            self.pose = pose
-        # elif isinstance(pose, KinPose):
-        else:
-            raise ValueError(f"pose must be Pose or KinPose, not {type(pose)}")
+        self.pose = pose
         for mesh in self.meshes:
             mesh.update_mesh(pose)
