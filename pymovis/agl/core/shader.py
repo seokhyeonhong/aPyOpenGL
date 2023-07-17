@@ -3,7 +3,7 @@ import numpy as np
 import glm
 from OpenGL.GL import *
 
-from ..const import PYMOVIS_PATH
+from ..const import AGL_PATH
 
 class Shader:
     def __init__(self, vertex_path, fragment_path, geometry_path=None):
@@ -92,7 +92,7 @@ def load_shader(filename, shader_type):
     return shader
 
 def load_code(filename):
-    shader_dir_path = os.path.join(PYMOVIS_PATH, "../shader")
+    shader_dir_path = os.path.join(AGL_PATH, "shader")
     shader_path = os.path.join(shader_dir_path, filename)
     with open(shader_path, "r") as f:
         code = f.read()
