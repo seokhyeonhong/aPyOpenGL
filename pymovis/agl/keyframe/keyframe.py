@@ -4,7 +4,7 @@ from enum import Enum
 import glm
 import numpy as np
 
-from pymovis.ops import rotation
+from pymovis.transforms import n_quat
 from pymovis.utils import npconst
 
 class KeyInterpType(Enum):
@@ -154,9 +154,9 @@ def get_rotations_from_resampled(names: list[str], scene: SceneKeyframes, nof):
             E = np.stack([e2, e1, e0], axis=1)
 
             # E2 * E1 * E0
-            xyz = "xyz"
+            xyz = ["x", "y", "z"]
             order = xyz[order.z] + xyz[order.y] + xyz[order.x]
-            rotations = rotation.E_to_Q(E, order, radians=True)
+            rotations = n_quat.from_euler(E, order, radians=True)
         
         resampled_rotations.append(rotations)
 

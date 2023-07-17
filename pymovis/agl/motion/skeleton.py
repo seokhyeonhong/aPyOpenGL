@@ -45,7 +45,8 @@ class Skeleton:
         self.joints.append(joint)
     
     def pre_xforms(self):
-        return np.stack([joint.pre_xform() for joint in self.joints])
+        xforms = np.stack([joint.pre_xform() for joint in self.joints])
+        return xforms
     
     def root_pre_xform(self):
         return self.joints[0].pre_xform()

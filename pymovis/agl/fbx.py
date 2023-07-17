@@ -10,7 +10,6 @@ from .motion   import Skeleton, Pose, Motion
 from .material import Material
 from .model    import Model
 from .texture  import TextureType, TextureLoader
-from pymovis.ops    import rotation
 
 FBX_PROPERTY_NAMES = {
     "DiffuseColor":      TextureType.eDIFFUSE,
@@ -118,7 +117,7 @@ class Parser:
 
             poses = []
             for i in range(nof):
-                poses.append(Pose(skeleton, local_Qs=rotations[i], root_p=positions[i]))
+                poses.append(Pose(skeleton, local_quats=rotations[i], root_pos=positions[i]))
 
             motion_set.append(Motion(poses, fps=self.parser.get_scene_fps(), name=self.parser.filepath))
         

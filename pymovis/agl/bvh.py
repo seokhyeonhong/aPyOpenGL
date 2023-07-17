@@ -5,7 +5,8 @@ import multiprocessing as mp
 
 from .motion import Joint, Skeleton, Pose, Motion
 from .model  import Model
-from pymovis.utils import npconst
+
+import pymovis.transforms as T
 
 channelmap = {
     'Xrotation': 'x',
@@ -68,7 +69,6 @@ class BVH:
                 if offmatch:
                     if not end_site:
                         skeleton.joints[active].local_p = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * self.to_meter
-                        skeleton.joints[active].pre_Q = npconst.Q_IDENTITY()
                     continue
 
                 chanmatch = re.match(r"\s*CHANNELS\s+(\d+)", line)
@@ -129,7 +129,9 @@ class BVH:
                     else:
                         raise Exception(f"Invalid channels: {channels}")
 
-                    self.poses.append(Pose.from_bvh(skeleton, rotations[fi], order, positions[fi, 0]))
+                    local_quats = T.n_quat.from_euler(rotations[fi], order, radians=False)
+                    root_pos = positions[fi, 0]
+                    self.poses.append(Pose(skeleton, local_quats, root_pos))
                     i += 1
 
         self.poses = self.poses[1::sampling_step]

@@ -1,11 +1,13 @@
 import numpy as np
 
-from ..vis import Pose
-from pymovis.ops import rotation
+from ..agl import Pose
+from pymovis.transforms import n_quat
 
 class KinPose:
     """
     Represents a pose of a skeleton with a basis transformation.
+    It doesn't modify the original pose data.
+    
     global_xforms
         - root: basis_xform @ pre_xforms[0] @ local_xforms[0]
         - others: global_xforms[parent] @ pre_xforms[i] @ local_xforms[i]
@@ -25,16 +27,16 @@ class KinPose:
         # original pose data - NO CHANGE
         self.pose = pose
         self.skeleton = pose.skeleton
-        self.root_pre_R = rotation.Q_to_R(self.skeleton.joints[0].pre_Q)
+        self.root_pre_R = n_quat.to_rotmat(self.skeleton.joints[0].pre_quat)
 
-        self.recompute_local_root()
+        self._recompute_local_root()
 
-    def recompute_local_root(self):
+    def _recompute_local_root(self):
         # local transformations
         # - root: relative to the basis
         # - others: relative to the parent
-        self.local_root_p = self.pose.root_p
-        self.local_Rs = rotation.Q_to_R(self.pose.local_Qs)
+        self.local_root_p = self.pose.root_pos
+        self.local_Rs = n_quat.to_rotmat(self.pose.local_quats)
 
         # basis transformation (4, 4)
         self.basis_xform = self.get_projected_root_xform()
@@ -72,10 +74,13 @@ class KinPose:
         self.basis_xform = np.array(xform, dtype=np.float32)
         if self.basis_xform.shape != (4, 4):
             raise ValueError(f"basis_xform must be 4x4, not {self.basis_xform.shape}")
+    
+    def transform_basis(self, delta):
+        self.basis_xform = delta @ self.basis_xform
 
     def set_pose(self, pose: Pose):
         self.pose = pose
-        self.recompute_local_root()
+        self._recompute_local_root()
         
     def to_pose(self) -> Pose:
         local_Rs = self.local_Rs.copy()
@@ -86,4 +91,4 @@ class KinPose:
         # - position: global_p = basis_R @ local_p + basis_p
         local_Rs[0] = np.linalg.inv(self.root_pre_R) @ self.basis_xform[:3, :3] @ self.root_pre_R @ local_Rs[0]
         root_p = self.basis_xform @ np.concatenate([self.local_root_p, [1]])
-        return Pose(self.skeleton, rotation.R_to_Q(local_Rs), root_p[:3])
+        return Pose(self.skeleton, n_quat.from_rotmat(local_Rs), root_p[:3])
