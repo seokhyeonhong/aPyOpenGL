@@ -1,7 +1,7 @@
 import os
 
 """ Path constants """
-AGL_PATH = os.path.dirname(__file__)
+PYMOVIS_PATH = os.path.dirname(__file__)
 
 """ Shadow constants """
 SHADOW_MAP_SIZE     = 4 * 1024
