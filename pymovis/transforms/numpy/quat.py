@@ -28,6 +28,30 @@ def inv(q):
 def identity():
     return np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
 
+def interpolate(q0, q1, t):
+    len = np.sum(q0 * q1, axis=-1)
+
+    neg = len < 0.0
+    len[neg] = -len[neg]
+    q1[neg] = -q1[neg]
+
+    t = np.zeros_like(q0[..., 0]) + t
+    t0 = np.zeros(t.shape, dtype=np.float32)
+    t1 = np.zeros(t.shape, dtype=np.float32)
+
+    linear = (1.0 - t) < 0.01
+    omegas = np.arccos(len[~linear])
+    sin_omegas = np.sin(omegas)
+
+    t0[linear] = 1.0 - t[linear]
+    t0[~linear] = np.sin((1.0 - t[~linear]) * omegas) / sin_omegas
+
+    t1[linear] = t[linear]
+    t1[~linear] = np.sin(t[~linear] * omegas) / sin_omegas
+    res = t0[..., None] * q0 + t1[..., None] * q1
+    
+    return res
+
 """
 Quaternion to other representations
 """

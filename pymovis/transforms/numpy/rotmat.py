@@ -3,6 +3,15 @@ import numpy as np
 from . import quat, aaxis, rot6d, xform
 
 """
+Operations
+"""
+def interpolate(r0, r1, t):
+    q0 = to_quat(r0)
+    q1 = to_quat(r1)
+    q = quat.interpolate(q0, q1, t)
+    return quat.to_rotmat(q)
+
+"""
 Rotation matrix to other representation
 """
 def to_aaxis(rotmat):

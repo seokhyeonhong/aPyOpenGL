@@ -3,6 +3,18 @@ import numpy as np
 from . import rotmat, quat, aaxis
 
 """
+Operations
+"""
+def interpolate(x0, x1, t):
+    r0, p0 = x0[..., :3, :3], x0[..., :3, 3]
+    r1, p1 = x1[..., :3, :3], x1[..., :3, 3]
+
+    r = rotmat.interpolate(r0, r1, t)
+    p = p0 + (p1 - p0) * t
+
+    return rotmat.to_xform(r, translation=p)
+
+"""
 Transformation matrix to other representation
 """
 def to_rotmat(xform):

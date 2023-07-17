@@ -20,10 +20,7 @@ class KinPose:
         - root: relative to the basis
         - others: relative to the parent
     """
-    def __init__(
-        self,
-        pose: Pose
-    ):
+    def __init__(self, pose: Pose):
         # original pose data - NO CHANGE
         self.pose = pose
         self.skeleton = pose.skeleton
