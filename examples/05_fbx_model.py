@@ -1,16 +1,16 @@
 import os
 
-from pymovis import vis
+from pymovis import agl
 
-class MyApp(vis.App):
+class MyApp(agl.App):
     def __init__(self, filename):
         super().__init__()
-        self.model = vis.FBX(filename).model()
+        self.model = agl.FBX(filename).model()
     
     def render(self):
         super().render()
-        vis.Render.model(self.model).draw()
+        agl.Render.model(self.model).draw()
 
 if __name__ == "__main__":
-    filename  = os.path.join(os.path.dirname(__file__), "../data/fbx/model/ybot.fbx")
-    vis.AppManager.start(MyApp(filename))
+    filename  = os.path.join(agl.AGL_PATH, "data/fbx/model/ybot.fbx")
+    agl.AppManager.start(MyApp(filename))

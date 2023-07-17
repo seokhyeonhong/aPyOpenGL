@@ -3,15 +3,15 @@ import glm
 import glfw
 import numpy as np
 
-from pymovis import vis, kin
+from pymovis import agl, kin
 
-class MotionApp(vis.AnimApp):
+class MotionApp(agl.AnimApp):
     def __init__(self, motion_filename, model_filename):
         super().__init__()
 
         # motion data
-        self.motion = vis.FBX(motion_filename).motions()[0]
-        self.model  = vis.FBX(model_filename).model()
+        self.motion = agl.FBX(motion_filename).motions()[0]
+        self.model  = agl.FBX(model_filename).model()
         self.total_frames = self.motion.num_frames()
         self.fps = self.motion.fps
     
@@ -19,8 +19,8 @@ class MotionApp(vis.AnimApp):
         super().start()
 
         # render options
-        self.render_skeleton = vis.Render.skeleton(self.model)
-        self.render_model = vis.Render.model(self.model)
+        self.render_skeleton = agl.Render.skeleton(self.model)
+        self.render_model = agl.Render.model(self.model)
 
         # kin pose
         self.kinpose = kin.KinPose(self.motion.poses[0])
@@ -35,7 +35,11 @@ class MotionApp(vis.AnimApp):
         
         # update kinpose basis to the origin
         self.kinpose.set_pose(self.motion.poses[self.curr_frame])
-        self.kinpose.set_basis_xform(np.eye(4))
+        # self.kinpose.set_basis_xform(np.eye(4))
+
+        delta = np.eye(4)
+        delta[:3, 3] = np.array([3, 0, 3])
+        self.kinpose.transform_basis(delta)
 
         # update model to render
         self.model.set_pose(self.kinpose.to_pose())
@@ -49,6 +53,6 @@ class MotionApp(vis.AnimApp):
         self.render_skeleton.update_skeleton(self.model).draw()
 
 if __name__ == "__main__":
-    motion_filename = os.path.join(os.path.dirname(__file__), "../data/fbx/motion/ybot_walking.fbx")
-    model_filename  = os.path.join(os.path.dirname(__file__), "../data/fbx/model/ybot.fbx")
-    vis.AppManager.start(MotionApp(motion_filename, model_filename))
+    motion_filename = os.path.join(agl.AGL_PATH, "data/fbx/motion/ybot_walking.fbx")
+    model_filename  = os.path.join(agl.AGL_PATH, "data/fbx/model/ybot.fbx")
+    agl.AppManager.start(MotionApp(motion_filename, model_filename))

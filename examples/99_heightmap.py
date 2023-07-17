@@ -1,17 +1,17 @@
 import os
 
-from pymovis import vis
+from pymovis import agl
 
-class MyApp(vis.App):
+class MyApp(agl.App):
     def __init__(self, filepath):
         super().__init__()
-        self.heightmap = vis.Heightmap.load_from_file(filepath)
-        self.heightmap = vis.Render.heightmap(self.heightmap).albedo(0.2).floor(True)
+        self.heightmap = agl.Heightmap.load_from_file(filepath)
+        self.heightmap = agl.Render.heightmap(self.heightmap).albedo(0.2).floor(True)
 
     def render(self):
         super().render()
         self.heightmap.draw()
 
 if __name__ == "__main__":
-    filepath = os.path.join(os.path.dirname(__file__), "../data/txt/heightmap.txt")
-    vis.AppManager.start(MyApp(filepath))
+    filepath = os.path.join(agl.AGL_PATH, "data/txt/heightmap.txt")
+    agl.AppManager.start(MyApp(filepath))

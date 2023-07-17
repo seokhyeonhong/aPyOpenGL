@@ -1,15 +1,15 @@
 import glm
 
-from pymovis import vis
+from pymovis import agl
 
-class MyApp(vis.AnimApp):
+class MyApp(agl.AnimApp):
     def __init__(self):
         super().__init__()
         self.total_frames = 100
 
     def start(self):
         super().start()
-        self.sphere = vis.Render.sphere().albedo([0.2, 1, 0.2])
+        self.sphere = agl.Render.sphere().albedo([0.2, 1, 0.2])
     
     def update(self):
         super().update()
@@ -21,4 +21,4 @@ class MyApp(vis.AnimApp):
         self.sphere.draw()
 
 if __name__ == "__main__":
-    vis.AppManager.start(MyApp())
+    agl.AppManager.start(MyApp())

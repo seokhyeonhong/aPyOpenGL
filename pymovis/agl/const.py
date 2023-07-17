@@ -1,7 +1,7 @@
 import os
 
 """ Path constants """
-PYMOVIS_PATH = os.path.dirname(__file__)
+AGL_PATH = os.path.dirname(__file__)
 
 """ Shadow constants """
 SHADOW_MAP_SIZE     = 4 * 1024
@@ -15,7 +15,7 @@ CAM_DOLLY_SENSITIVITY  = 0.2
 
 """ Text constants """
 TEXT_RESOLUTION = 256
-FONT_DIR_PATH = os.path.join(os.path.dirname(__file__), "../../data/fonts/")
+FONT_DIR_PATH = os.path.join(AGL_PATH, "data/fonts/")
 CONSOLAS_FONT_PATH = os.path.join(FONT_DIR_PATH, "consola.ttf")
 
 """ Length conversion """
@@ -27,10 +27,10 @@ MAX_MATERIAL_TEXTURES = 25
 
 """ Texture constants """
 BACKGROUND_TEXTURE_FILE = "background.hdr"
-TEXTURE_DIR_PATH        = os.path.join(os.path.dirname(__file__), "../../data/textures/")
+TEXTURE_DIR_PATH        = os.path.join(AGL_PATH, "data/textures/")
 
 """ Skeleton constants """
 MAX_JOINT_NUM = 100
 
 """ Model constants """
-AXIS_MODEL_PATH = os.path.join(os.path.dirname(__file__), "../../data/fbx/etc/axis.fbx")
+AXIS_MODEL_PATH = os.path.join(AGL_PATH, "data/fbx/etc/axis.fbx")

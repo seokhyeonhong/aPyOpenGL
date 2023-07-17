@@ -2,14 +2,14 @@ import os
 import glfw
 import glm
 
-from pymovis import vis
+from pymovis import agl
 
-class MotionApp(vis.AnimApp):
+class MotionApp(agl.AnimApp):
     def __init__(self, bvh_filename):
         super().__init__()
 
         # motion data
-        bvh = vis.BVH(bvh_filename)
+        bvh = agl.BVH(bvh_filename)
         self.motion = bvh.motion()
         self.model = bvh.model()
         self.total_frames = self.motion.num_frames()
@@ -24,7 +24,7 @@ class MotionApp(vis.AnimApp):
         super().start()
 
         # render options
-        self.render_skeleton = vis.Render.skeleton(self.model)
+        self.render_skeleton = agl.Render.skeleton(self.model)
 
         # UI options
         self.ui.add_menu("MotionApp")
@@ -67,5 +67,5 @@ class MotionApp(vis.AnimApp):
             self.follow_root = not self.follow_root
             
 if __name__ == "__main__":
-    bvh_filename = os.path.join(os.path.dirname(__file__), "../data/bvh/ybot_capoeira.bvh")
-    vis.AppManager.start(MotionApp(bvh_filename))
+    bvh_filename = os.path.join(agl.AGL_PATH, "data/bvh/ybot_capoeira.bvh")
+    agl.AppManager.start(MotionApp(bvh_filename))

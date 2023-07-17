@@ -5,6 +5,7 @@ import os
 import pickle
 
 from . import core, fbxparser, keyframe
+from .const import AGL_PATH
 
 from .motion   import Skeleton, Pose, Motion
 from .material import Material
@@ -31,15 +32,34 @@ class Parser:
         self.parser = fbxparser.FBXParser(path)
         self.init_character_data(scale)
         self.init_mesh_data(scale)
-
+    
+    def pkl_path(self, pkl_type):
+        base, ext = os.path.splitext(self.path)
+        return f"{base}_{pkl_type}.pkl"
+    
     def init_character_data(self, scale):
+        char_pkl_path = self.pkl_path("char")
+        if os.path.exists(char_pkl_path):
+            with open(char_pkl_path, "rb") as f:
+                self.char_data = pickle.load(f)
+            return
+        
         self.char_data = fbxparser.CharacterData()
         root = self.parser.scene.GetRootNode()
         self.char_data.name = root.GetName()
         for i in range(root.GetChildCount()):
             fbxparser.parse_nodes_by_type(root.GetChild(i), self.char_data.joint_data, -1, fbx.FbxNodeAttribute.eSkeleton, scale)
+        
+        with open(char_pkl_path, "wb") as f:
+            pickle.dump(self.char_data, f, pickle.HIGHEST_PROTOCOL)
 
     def init_mesh_data(self, scale):
+        mesh_pkl_path = self.pkl_path("mesh")
+        if os.path.exists(mesh_pkl_path):
+            with open(mesh_pkl_path, "rb") as f:
+                self.mesh_data = pickle.load(f)
+            return
+
         mesh_nodes = []
 
         root = self.parser.scene.GetRootNode()
@@ -81,6 +101,9 @@ class Parser:
             )
             
             self.mesh_data.append(mesh_data)
+        
+        with open(mesh_pkl_path, "wb") as f:
+            pickle.dump(self.mesh_data, f, pickle.HIGHEST_PROTOCOL)
     
     def __load_mesh_recursive(self, node, mesh_nodes):
         for i in range(node.GetNodeAttributeCount()):
@@ -193,7 +216,7 @@ class FBX:
             mesh.vao = core.bind_mesh(mesh.vertices, mesh.indices, compute_tangent=False)
 
             results.append((mesh, materials))
-    
+
         return results
     
     def skeleton(self) -> Skeleton:
@@ -202,6 +225,7 @@ class FBX:
         joints = char_data.joint_data
         for joint in joints:
             skeleton.add_joint(joint.name, pre_Q=joint.pre_Q, local_p=joint.local_T, parent_idx=joint.parent_idx)
+
         return skeleton
 
     def model(self):

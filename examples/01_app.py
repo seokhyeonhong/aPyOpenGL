@@ -1,20 +1,18 @@
-import glm
+from pymovis import agl
 
-from pymovis import vis
-
-class MyApp(vis.App):
+class MyApp(agl.App):
     def start(self):
         super().start()
-        self.plane   = vis.Render.plane(150, 150).floor(True).albedo(0.2)
-        self.plane2  = vis.Render.plane().texture("brickwall.jpg", vis.TextureType.eALBEDO).texture("brickwall_normal.jpg", vis.TextureType.eNORMAL).texture("brickwall_disp.jpg", vis.TextureType.eDISPLACEMENT).position([0, 2, 0])
-        self.axis    = vis.Render.axis()
-        self.cube    = vis.Render.cube().texture("brickwall.jpg", vis.TextureType.eALBEDO).texture("brickwall_normal.jpg", vis.TextureType.eNORMAL).position([1, 0.35, 2]).scale(0.7)
-        self.sphere  = vis.Render.sphere().albedo([0.2, 1, 0.2]).position([-2, 0, 2]).scale(1.8)
-        self.sphere2 = vis.Render.sphere().texture("pbr_albedo.png").texture("pbr_normal.png", vis.TextureType.eNORMAL).texture("pbr_metallic.png", vis.TextureType.eMETALIC).texture("pbr_roughness.png", vis.TextureType.eROUGHNESS).position([2, 1, 2])
-        self.cone    = vis.Render.cone().albedo([0.2, 0.2, 1]).position([0, 0.5, 2])
-        self.pyramid = vis.Render.pyramid().albedo([1, 1, 0]).position([0, 0, -1])
-        self.text    = vis.Render.text("Hello, pymovis!")
-        self.text_on_screen = vis.Render.text_on_screen("Hello, Screen!").scale(1)
+        self.plane   = agl.Render.plane(150, 150).floor(True).albedo(0.2)
+        self.plane2  = agl.Render.plane().texture("brickwall.jpg", agl.TextureType.eALBEDO).texture("brickwall_normal.jpg", agl.TextureType.eNORMAL).texture("brickwall_disp.jpg", agl.TextureType.eDISPLACEMENT).position([0, 2, 0])
+        self.axis    = agl.Render.axis()
+        self.cube    = agl.Render.cube().texture("brickwall.jpg", agl.TextureType.eALBEDO).texture("brickwall_normal.jpg", agl.TextureType.eNORMAL).position([1, 0.35, 2]).scale(0.7)
+        self.sphere  = agl.Render.sphere().albedo([0.2, 1, 0.2]).position([-2, 0, 2]).scale(1.8)
+        self.sphere2 = agl.Render.sphere().texture("pbr_albedo.png").texture("pbr_normal.png", agl.TextureType.eNORMAL).texture("pbr_metallic.png", agl.TextureType.eMETALIC).texture("pbr_roughness.png", agl.TextureType.eROUGHNESS).position([2, 1, 2])
+        self.cone    = agl.Render.cone().albedo([0.2, 0.2, 1]).position([0, 0.5, 2])
+        self.pyramid = agl.Render.pyramid().albedo([1, 1, 0]).position([0, 0, -1])
+        self.text    = agl.Render.text("Hello, pymovis!")
+        self.text_on_screen = agl.Render.text_on_screen("Hello, Screen!").scale(1)
         # self.cubemap = Render.cubemap("skybox")
     
     def render(self):
@@ -34,4 +32,4 @@ class MyApp(vis.App):
         self.text_on_screen.draw()
 
 if __name__ == "__main__":
-    vis.AppManager.start(MyApp())
+    agl.AppManager.start(MyApp())

@@ -28,7 +28,7 @@ class Skeleton:
     def num_joints(self):
         return len(self.joints)
 
-    def add_joint(self, joint_name, pre_Q=None, local_p=None, parent_idx=None):
+    def add_joint(self, joint_name, pre_quat=None, local_pos=None, parent_idx=None):
         # add parent and children indices
         if parent_idx is None or parent_idx == -1:
             if len(self.joints) > 0:
@@ -39,7 +39,7 @@ class Skeleton:
             self.children_idx[parent_idx].append(len(self.joints))
         
         # add joint
-        joint = Joint(joint_name, pre_Q, local_p)
+        joint = Joint(joint_name, pre_quat, local_pos)
         self.children_idx.append(list())
         self.idx_by_name[joint_name] = len(self.joints)
         self.joints.append(joint)

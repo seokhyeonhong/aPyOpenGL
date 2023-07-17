@@ -4,7 +4,7 @@ import os
 from OpenGL.GL import *
 import glm
 
-from .core import VAO, VertexGL
+from .core import VAO, VertexGL, bind_mesh
 from .material import Material
 
 def parse_obj(path, scale):
@@ -141,7 +141,7 @@ def make_vertex(face, positions, uvs, normals, name_to_mtl_idx):
 class Obj(VAO):
     def __init__(self, path, scale=1.0):
         v_array, v_index, materials = Obj.generate_vertices(path, scale)
-        vao = VAO.from_vertex_array(v_array, v_index)
+        vao = bind_mesh(v_array, v_index)
         super().__init__(vao.id, vao.vbos, vao.ebo, vao.indices)
 
         self.materials = materials

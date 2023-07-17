@@ -1,15 +1,15 @@
 import os
 import glfw
 
-from pymovis import vis
+from pymovis import agl
 
-class MotionApp(vis.AnimApp):
+class MotionApp(agl.AnimApp):
     def __init__(self, motion_filename, model_filename):
         super().__init__()
 
         # motion data
-        self.motion = vis.FBX(motion_filename).motions()[0]
-        self.model  = vis.FBX(model_filename).model()
+        self.motion = agl.FBX(motion_filename).motions()[0]
+        self.model  = agl.FBX(model_filename).model()
         self.total_frames = self.motion.num_frames()
         self.fps = self.motion.fps
     
@@ -17,8 +17,8 @@ class MotionApp(vis.AnimApp):
         super().start()
 
         # render options
-        self.render_skeleton = vis.Render.skeleton(self.model)
-        self.render_model = vis.Render.model(self.model)
+        self.render_skeleton = agl.Render.skeleton(self.model)
+        self.render_model = agl.Render.model(self.model)
 
         # UI options
         self.ui.add_menu("MotionApp")
@@ -38,6 +38,6 @@ class MotionApp(vis.AnimApp):
         self.render_skeleton.update_skeleton(self.model).draw()
 
 if __name__ == "__main__":
-    motion_filename = os.path.join(os.path.dirname(__file__), "../data/fbx/motion/ybot_capoeira.fbx")
-    model_filename  = os.path.join(os.path.dirname(__file__), "../data/fbx/model/ybot.fbx")
-    vis.AppManager.start(MotionApp(motion_filename, model_filename))
+    motion_filename = os.path.join(agl.AGL_PATH, "data/fbx/motion/ybot_capoeira.fbx")
+    model_filename  = os.path.join(agl.AGL_PATH, "data/fbx/model/ybot.fbx")
+    agl.AppManager.start(MotionApp(motion_filename, model_filename))
