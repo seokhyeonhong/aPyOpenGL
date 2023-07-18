@@ -4,7 +4,7 @@ import os
 AGL_PATH = os.path.dirname(__file__)
 
 """ Shadow constants """
-SHADOW_MAP_SIZE     = 4 * 1024
+SHADOW_MAP_SIZE     = 8 * 1024
 BACKGROUND_MAP_SIZE = 512
 
 """ Camera constants """

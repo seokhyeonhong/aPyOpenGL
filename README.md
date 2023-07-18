@@ -1,9 +1,10 @@
 # Python Framework for Motion Data
-```pyvmois``` is a framework for processing and visualizing motion data based on right-hand coordinate with y-axis as an up vector.
+```aPyOpenGL``` is a Python version framework of [aOpenGL](https://github.com/ltepenguin/aOpenGL) for motion data processing and visualization.
+Our framework is based on right-hand coordinate with y-axis as the up vector.
 <img src="teaser.gif">
 
 # How to use
-```pyvmois``` has four main modules ```motion```, ```vis```, ```learning```, and ```ops```, and one additional auxiliary module ```utils```. Example codes are in [examples](examples/) and you can run the code you want through:
+```aPyOpenGL``` has four main modules ```agl```, ```kin```, ```transforms```, and ```ops```, and one additional auxiliary module ```utils```. Example codes are in [examples](examples/) and you can run the code you want through:
 ```
 python examples/{script_to_run}.py
 ```
@@ -11,15 +12,15 @@ python examples/{script_to_run}.py
 Also, if you want to use this module in the external scripts, you can do that by adding this module to the environment variable.
 ### Linux
 ```
-git clone https://github.com/seokhyeonhong/pymovis-framework.git
-cd pymovis-framework
+git clone https://github.com/seokhyeonhong/aPyOpenGL.git
+cd aPyOpenGL
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 ```
 ### Windows
 Add the path of the cloned repository to the environment variable PYTHONPATH. If you don't know how, please refer to [this](https://stackoverflow.com/questions/3701646/how-to-add-to-the-pythonpath-in-windows-so-it-finds-my-modules-packages)
 
 ## Motion
-We provide BVH parser for motion data and FBX parser for both motion and mesh data. Motion data in this framework is basically structred by hierarchy of Joint, Skeleton, Pose, and Motion, and you can see the structure [here](pymovis/vis/motion.py).
+We provide BVH parser for motion data and FBX parser for both motion and mesh data. Motion data in this framework is basically structred by hierarchy of Joint, Skeleton, Pose, and Motion, and you can see the structure [here](aPyOpenGL/agl/motion.py).
 
 ## Visualization
 In order to use visualization modules, these modules should be installed first.

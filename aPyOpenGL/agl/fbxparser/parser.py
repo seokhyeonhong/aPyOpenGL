@@ -1,5 +1,6 @@
 import fbx
 import glm
+from tqdm import tqdm
 
 from .animation import get_scene_animation
 
@@ -104,12 +105,11 @@ class FBXParser:
     def get_scene_keyframes(self, scale):
         keyframes = []
         criteria = FbxCriteria.ObjectType(FbxAnimStack.ClassId)
-        for i in range(self.scene.GetSrcObjectCount(criteria)):
+        for i in tqdm(range(self.scene.GetSrcObjectCount(criteria)), desc="FBX anim stacks", leave=False):
             anim_stack = self.scene.GetSrcObject(criteria, i)
             
             scene_kf = get_scene_animation(anim_stack, self.scene.GetRootNode(), scale)
             keyframes.append(scene_kf)
-        
         return keyframes
     
     def get_scene_fps(self):

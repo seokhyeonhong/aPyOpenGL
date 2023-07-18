@@ -1,11 +1,10 @@
 from __future__ import annotations
 import fbx
-import numpy as np
 import os
 import pickle
+from tqdm import tqdm
 
 from . import core, fbxparser, keyframe
-from .const import AGL_PATH
 
 from .motion   import Skeleton, Pose, Motion
 from .material import Material
@@ -93,8 +92,10 @@ class Parser:
             
             self.mesh_data.append(mesh_data)
         
-        with open(mesh_pkl_path, "wb") as f:
-            pickle.dump(self.mesh_data, f, pickle.HIGHEST_PROTOCOL)
+        # save mesh data only when mesh_data exists
+        if len(self.mesh_data) > 0:
+            with open(mesh_pkl_path, "wb") as f:
+                pickle.dump(self.mesh_data, f, pickle.HIGHEST_PROTOCOL)
     
     def __load_mesh_recursive(self, node, mesh_nodes):
         for i in range(node.GetNodeAttributeCount()):
@@ -106,6 +107,11 @@ class Parser:
             self.__load_mesh_recursive(node.GetChild(i), mesh_nodes)
     
     def motions(self, joints: list[fbxparser.JointData]):
+        motion_pkl_path = self.pkl_path("motion")
+        if os.path.exists(motion_pkl_path):
+            with open(motion_pkl_path, "rb") as f:
+                return pickle.load(f)
+            
         skeleton = Skeleton()
         for joint in joints:
             skeleton.add_joint(joint.name, pre_quat=joint.pre_quat, local_pos=joint.local_T, parent_idx=joint.parent_idx)
@@ -115,14 +121,14 @@ class Parser:
         resampled_scenes = []
 
         frame_set = []
-        for scene in scenes:
+        for scene in tqdm(scenes, desc="Resampling", leave=False):
             frame_idx = [i for i in range(scene.start_frame, scene.end_frame + 1)]
             frame_set.append(frame_idx)
             resampled_scenes.append(keyframe.resample(scene, frame_idx))
 
         motion_set = []
         root_name = skeleton.joints[0].name
-        for i in range(len(resampled_scenes)):
+        for i in tqdm(range(len(resampled_scenes)), desc="Parsing", leave=False):
             scene = resampled_scenes[i]
             nof = len(frame_set[i])
             
@@ -135,6 +141,9 @@ class Parser:
 
             motion_set.append(Motion(poses, fps=self.parser.get_scene_fps(), name=self.parser.filepath))
         
+        if len(motion_set) > 0:
+            with open(motion_pkl_path, "wb") as f:
+                pickle.dump(motion_set, f, pickle.HIGHEST_PROTOCOL)
         return motion_set
 
 class FBX:

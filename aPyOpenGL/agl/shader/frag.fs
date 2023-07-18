@@ -40,9 +40,9 @@ uniform vec3        uSkyColor;
 #define MAX_MATERIAL_NUM 5
 struct Material
 {
-    ivec3 textureID; // albedo, normal, displacement
+    ivec3 textureID;    // albedo, normal, displacement
     ivec3 pbrTextureID; // metallic, roughness, ao
-    vec4  albedo; // RGBA
+    vec4  albedo;       // RGBA
 
     // phong shading
     vec3  diffuse;
@@ -104,15 +104,16 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir, sampler2D shadowMap)
     // float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
     float shadow = 0.0f;
     vec2 texelSize = 1.0f / textureSize(shadowMap, 0);
-    for(int u = -1; u <= 1; ++u)
+    int kernelSize = 3;
+    for(int u = -kernelSize; u <= kernelSize; ++u)
     {
-        for(int v = -1; v <= 1; ++v)
+        for(int v = -kernelSize; v <= kernelSize; ++v)
         {
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(u, v) * texelSize).r;
             shadow += currentDepth - bias > pcfDepth ? 1.0f : 0.0f;
         }
     }
-    shadow /= 9.0f;
+    shadow /= float((kernelSize * 2 + 1) * (kernelSize * 2 + 1));
     return shadow;
 }
 

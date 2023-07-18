@@ -5,7 +5,6 @@ import glm
 import numpy as np
 
 from aPyOpenGL.transforms import n_quat
-from aPyOpenGL.utils import npconst
 
 class KeyInterpType(Enum):
     eUNKNOWN = 0
@@ -141,7 +140,7 @@ def get_rotations_from_resampled(names: list[str], scene: SceneKeyframes, nof):
     for i in range(len(names)):
         idx = name_to_idx.get(names[i], None)
         if idx is None:
-            rotations = np.stack([npconst.Q_IDENTITY()] * nof, axis=0)
+            rotations = np.stack([n_quat.identity()] * nof, axis=0)
             print(f"Warning: node {names[i]} not found in the scene.")
         else:
             node = scene.node_keyframes[idx]

@@ -3,7 +3,6 @@ from __future__ import annotations
 import numpy as np
 
 from .skeleton import Skeleton
-from aPyOpenGL.utils import npconst
 from aPyOpenGL.ops import mathops
 import aPyOpenGL.transforms as T
 
@@ -101,40 +100,6 @@ class Pose:
     @classmethod
     def from_torch(cls, skeleton, local_R, root_p):
         return cls(skeleton, local_R.cpu().numpy(), root_p.cpu().numpy())
-
-    # """ Base position and directions (on xz plane, equivalent to horizontal plane) """
-    # @property
-    # def base(self):
-    #     return self.root_p * npconst.XZ()
-    
-    # @property
-    # def forward(self):
-    #     return mathops.normalize((self.local_R[0] @ self.skeleton.v_forward) * npconst.XZ())
-    
-    # @property
-    # def up(self):
-    #     return npconst.UP()
-    
-    # @property
-    # def left(self):
-    #     return mathops.normalize(np.cross(self.up, self.forward))
-
-    # """ Manipulation functions """
-    # def set_root_p(self, root_p):
-    #     delta = root_p - self.root_p
-    #     self.translate_root_p(delta)
-
-    # def translate_root_p(self, delta):
-    #     self.root_p += delta
-    #     self.global_p += delta
-    
-    # def rotate_root(self, delta):
-    #     self.local_R[0] = np.matmul(delta, self.local_R[0])
-    #     self.global_R, self.global_p = motionops.R_fk(self.local_R, self.root_p, self.skeleton)
-    
-    # def update(self):
-    #     """ Called whenever the pose is modified """
-    #     self.global_R, self.global_p = motionops.R_fk(self.local_R, self.root_p, self.skeleton)
 
     # """ IK functions """
     # def two_bone_ik(self, base_idx, effector_idx, target_p, eps=1e-8, facing="forward"):

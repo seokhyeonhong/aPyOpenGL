@@ -1,11 +1,6 @@
 from __future__ import annotations
 
-import numpy as np
-import copy
-
 from .pose import Pose
-from aPyOpenGL.utils import npconst
-from aPyOpenGL.ops import mathops, rotation
 
 class Motion:
     """
