@@ -1,6 +1,6 @@
 import glm
 
-from pymovis import agl
+from aPyOpenGL import agl
 
 class MyApp(agl.AnimApp):
     def __init__(self):

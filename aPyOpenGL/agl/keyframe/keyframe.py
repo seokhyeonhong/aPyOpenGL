@@ -4,8 +4,8 @@ from enum import Enum
 import glm
 import numpy as np
 
-from pymovis.transforms import n_quat
-from pymovis.utils import npconst
+from aPyOpenGL.transforms import n_quat
+from aPyOpenGL.utils import npconst
 
 class KeyInterpType(Enum):
     eUNKNOWN = 0

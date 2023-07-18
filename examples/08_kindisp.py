@@ -3,7 +3,7 @@ import glm
 import glfw
 import numpy as np
 
-from pymovis import agl, kin
+from aPyOpenGL import agl, kin
 
 class MotionApp(agl.AnimApp):
     def __init__(self, motion_filename, model_filename):

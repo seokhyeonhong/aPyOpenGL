@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from pymovis.transforms import n_quat, n_rotmat
+from aPyOpenGL.transforms import n_quat, n_rotmat
 
 class Joint:
     """

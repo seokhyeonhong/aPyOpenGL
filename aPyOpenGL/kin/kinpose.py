@@ -1,7 +1,7 @@
 import numpy as np
 
 from ..agl import Pose
-from pymovis.transforms import n_quat
+from aPyOpenGL.transforms import n_quat
 
 class KinPose:
     """

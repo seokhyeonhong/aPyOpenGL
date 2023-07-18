@@ -1,7 +1,7 @@
 import os
 import glfw
 
-from pymovis import agl
+from aPyOpenGL import agl
 
 class MotionApp(agl.AnimApp):
     def __init__(self, motion_filename, model_filename):

@@ -6,7 +6,7 @@ import multiprocessing as mp
 from .motion import Joint, Skeleton, Pose, Motion
 from .model  import Model
 
-import pymovis.transforms as T
+import aPyOpenGL.transforms as T
 
 channelmap = {
     'Xrotation': 'x',

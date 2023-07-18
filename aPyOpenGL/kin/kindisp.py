@@ -1,7 +1,7 @@
 import numpy as np
 
 from .kinpose import KinPose
-from pymovis.transforms import n_xform, n_rotmat
+from aPyOpenGL.transforms import n_xform, n_rotmat
 
 class KinDisp:
     def __init__(self, source: KinPose, target: KinPose):

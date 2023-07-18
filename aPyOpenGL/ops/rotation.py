@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
-from pymovis.ops import mathops
+from aPyOpenGL.ops import mathops
 
 """
 Rotation conversions and operations

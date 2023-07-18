@@ -1,6 +1,6 @@
 import os
 
-from pymovis import agl
+from aPyOpenGL import agl
 
 class MyApp(agl.App):
     def __init__(self, filepath):

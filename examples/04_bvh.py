@@ -2,7 +2,7 @@ import os
 import glfw
 import glm
 
-from pymovis import agl
+from aPyOpenGL import agl
 
 class MotionApp(agl.AnimApp):
     def __init__(self, bvh_filename):

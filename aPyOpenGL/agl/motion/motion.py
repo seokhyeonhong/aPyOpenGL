@@ -4,8 +4,8 @@ import numpy as np
 import copy
 
 from .pose import Pose
-from pymovis.utils import npconst
-from pymovis.ops import mathops, rotation
+from aPyOpenGL.utils import npconst
+from aPyOpenGL.ops import mathops, rotation
 
 class Motion:
     """

@@ -3,9 +3,9 @@ from __future__ import annotations
 import numpy as np
 
 from .skeleton import Skeleton
-from pymovis.utils import npconst
-from pymovis.ops import mathops
-import pymovis.transforms as T
+from aPyOpenGL.utils import npconst
+from aPyOpenGL.ops import mathops
+import aPyOpenGL.transforms as T
 
 class Pose:
     """
