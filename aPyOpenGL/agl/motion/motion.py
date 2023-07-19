@@ -1,6 +1,8 @@
 from __future__ import annotations
+import numpy as np
 
 from .pose import Pose
+from aPyOpenGL.transforms import n_quat
 
 class Motion:
     """
@@ -25,10 +27,36 @@ class Motion:
 
     def __len__(self):
         return len(self.poses)
-        
+    
+    @property
     def num_frames(self):
         return len(self.poses)
+    
+    @property
+    def skeleton(self):
+        return self.poses[0].skeleton
+    
+    # def pre_xforms(self):
+    #     pre_xforms = self.skeleton.pre_xforms()
+    #     pre_xforms = np.tile(pre_xforms, (len(self.poses), 1, 1, 1))
+    #     root_p   = np.stack([pose.root_p for pose in self.poses], axis=0)
+    #     pre_xforms[:, 0, :3, 3] = root_p
+    #     return pre_xforms
 
+    # def local_xforms(self):
+    #     # for faster computation,
+    #     # we convert all local quats to local xforms at once rather than iterating each pose
+    #     local_quats = []
+    #     for pose in self.poses:
+    #         local_quats.append(pose.local_quats)
+    #     local_quats = np.stack(local_quats, axis=0)
+    #     local_Rs = n_quat.to_rotmat(local_quats)
+
+    #     local_xforms = np.tile(np.eye(4, dtype=np.float32), (len(self.poses), self.skeleton.num_joints, 1, 1))
+    #     local_xforms[:, :, :3, :3] = local_Rs
+
+    #     return local_xforms
+    
     # @classmethod
     # def from_numpy(cls, skeleton, local_R, root_p, fps=30.0, name="default", type="default"):
     #     poses = [Pose.from_numpy(skeleton, local_R[i], root_p[i]) for i in range(local_R.shape[0])]

@@ -3,8 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from .skeleton import Skeleton
-from aPyOpenGL.ops import mathops
-import aPyOpenGL.transforms as T
+from aPyOpenGL import transforms
 
 class Pose:
     """
@@ -26,39 +25,28 @@ class Pose:
     ):
         # set attributes
         self.skeleton = skeleton
-        self.local_quats = np.stack([T.n_quat.identity()] * skeleton.num_joints(), axis=0) if local_quats is None else np.array(local_quats)
-        self.root_pos = np.zeros(3) if root_pos is None else root_pos
+        self.local_quats = np.stack([transforms.n_quat.identity()] * skeleton.num_joints, axis=0) if local_quats is None else np.array(local_quats)
+        self.root_p = np.zeros(3) if root_pos is None else root_pos
         
         # check shapes
-        if self.skeleton.num_joints() == 0:
+        if self.skeleton.num_joints == 0:
             raise ValueError("Cannot create a pose for an empty skeleton.")
     
     def pre_xforms(self):
-        pre_xforms = self.skeleton.pre_xforms()
-        pre_xforms[0, :3, 3] = self.root_pos
+        pre_xforms = self.skeleton.pre_xforms
+        pre_xforms[0, :3, 3] = self.root_p
         return pre_xforms
     
-    def root_pre_xform(self):
-        root_pre_xform = self.skeleton.root_pre_xform()
-        root_pre_xform[:3, 3] = self.root_pos
-        return root_pre_xform
-
     def local_xforms(self):
-        local_Rs = T.n_quat.to_rotmat(self.local_quats)
+        local_Rs = transforms.n_quat.to_rotmat(self.local_quats)
 
-        local_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(self.skeleton.num_joints())], axis=0)
-        for i in range(self.skeleton.num_joints()):
-            local_xforms[i, :3, :3] = local_Rs[i]
+        local_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(self.skeleton.num_joints)], axis=0)
+        local_xforms[:, :3, :3] = local_Rs
             
         return local_xforms
     
-    def root_local_xform(self):
-        root_local_xform = np.identity(4, dtype=np.float32)
-        root_local_xform[:3, :3] = T.n_quat.to_rotmat(self.local_quats[0])
-        return root_local_xform
-    
     def global_xforms(self):
-        noj = self.skeleton.num_joints()
+        noj = self.skeleton.num_joints
         pre_xforms = self.pre_xforms()
         local_xforms = self.local_xforms()
 
@@ -69,26 +57,22 @@ class Pose:
 
         return global_xforms
     
-    def root_global_xform(self):
-        root_pre_xform = self.root_pre_xform()
-        root_local_xform = self.root_local_xform()
-        return root_pre_xform @ root_local_xform
-    
     def skeleton_xforms(self):
-        noj = self.skeleton.num_joints()
+        noj = self.skeleton.num_joints
         global_xforms = self.global_xforms()
 
         skeleton_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(noj - 1)], axis=0)
         for i in range(1, noj):
             parent_pos = global_xforms[self.skeleton.parent_idx[i], :3, 3]
             
-            target_dir = mathops.normalize(global_xforms[i, :3, 3] - parent_pos)
+            target_dir = global_xforms[i, :3, 3] - parent_pos
+            target_dir = target_dir / (np.linalg.norm(target_dir, axis=-1, keepdims=True) + 1e-8)
 
             axis = np.cross(np.array([0, 1, 0]), target_dir)
             axis = axis / (np.linalg.norm(axis, axis=-1, keepdims=True) + 1e-8)
             angle = np.arccos(np.dot(np.array([0, 1, 0]), target_dir))
 
-            skeleton_xforms[i-1, :3, :3] = T.n_aaxis.to_rotmat(angle[..., None] * axis)
+            skeleton_xforms[i-1, :3, :3] = transforms.n_aaxis.to_rotmat(angle[..., None] * axis)
             skeleton_xforms[i-1, :3,  3] = (parent_pos + global_xforms[i, :3, 3]) / 2
         
         return skeleton_xforms

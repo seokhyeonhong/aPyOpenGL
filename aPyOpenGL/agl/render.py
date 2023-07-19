@@ -203,7 +203,7 @@ class Render:
             orientation = glm.mat3(*skeleton_xforms[idx, :3, :3].T.ravel())
             bone_len = np.linalg.norm(joint.local_pos)
 
-            ro = Render.pyramid(radius=0.01, height=bone_len, render_mode=render_mode)
+            ro = Render.pyramid(radius=max(min(bone_len, 1), 0.1) * 0.1, height=bone_len, render_mode=render_mode)
             ro.transform(position, orientation).albedo([0, 1, 0]).color_mode(True)
             rov.append(ro)
         return RenderOptionsVec(rov)

@@ -55,7 +55,7 @@ class BVH:
                 rmatch = re.match(r"ROOT (\w+)", line)
                 if rmatch:
                     skeleton.add_joint(rmatch.group(1), parent_idx=None)
-                    active = skeleton.num_joints() - 1
+                    active = skeleton.num_joints - 1
                     continue
 
                 if "}" in line:
@@ -85,7 +85,7 @@ class BVH:
                 jmatch = re.match("\s*JOINT\s+(\w+)", line)
                 if jmatch:
                     skeleton.add_joint(jmatch.group(1), parent_idx=active)
-                    active = skeleton.num_joints() - 1
+                    active = skeleton.num_joints - 1
                     continue
 
                 if "End Site" in line:
@@ -95,8 +95,8 @@ class BVH:
                 fmatch = re.match("\s*Frames:\s+(\d+)", line)
                 if fmatch:
                     fnum = int(fmatch.group(1))
-                    positions = np.zeros((fnum, skeleton.num_joints(), 3), dtype=np.float32)
-                    rotations = np.zeros((fnum, skeleton.num_joints(), 3), dtype=np.float32)
+                    positions = np.zeros((fnum, skeleton.num_joints, 3), dtype=np.float32)
+                    rotations = np.zeros((fnum, skeleton.num_joints, 3), dtype=np.float32)
                     continue
 
                 fmatch = re.match("\s*Frame Time:\s+([\d\.]+)", line)
@@ -112,7 +112,7 @@ class BVH:
                 dmatch = line.strip().split(' ')
                 if dmatch:
                     data_block = np.array(list(map(float, dmatch)), dtype=np.float32)
-                    num_joints = skeleton.num_joints()
+                    num_joints = skeleton.num_joints
                     fi = i
                     if channels == 3:
                         positions[fi, 0:1] = data_block[0:3] * self.to_meter

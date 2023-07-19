@@ -24,7 +24,11 @@ class Skeleton:
         self.parent_idx: list[int]         = []
         self.children_idx: list[list[int]] = []
         self.idx_by_name: dict             = {}
+
+        if len(self.joints) > 0:
+            self._recompute_pre_xform()
     
+    @property
     def num_joints(self):
         return len(self.joints)
 
@@ -43,10 +47,9 @@ class Skeleton:
         self.children_idx.append(list())
         self.idx_by_name[joint_name] = len(self.joints)
         self.joints.append(joint)
+
+        # recompute pre-transform
+        self._recompute_pre_xform()
     
-    def pre_xforms(self):
-        xforms = np.stack([joint.pre_xform() for joint in self.joints])
-        return xforms
-    
-    def root_pre_xform(self):
-        return self.joints[0].pre_xform()
+    def _recompute_pre_xform(self):
+        self.pre_xforms = np.stack([joint.pre_xform for joint in self.joints])

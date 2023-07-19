@@ -233,7 +233,7 @@ class FBX:
         skeleton = self.skeleton()
 
         meshes   = meshes if len(meshes) > 0 else None
-        skeleton = skeleton if skeleton.num_joints() > 0 else None
+        skeleton = skeleton if skeleton.num_joints > 0 else None
 
         return Model(meshes=meshes, skeleton=skeleton)
     
