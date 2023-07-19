@@ -2,10 +2,9 @@ import glm
 
 from aPyOpenGL import agl
 
-class MyApp(agl.AnimApp):
+class MyApp(agl.App):
     def __init__(self):
         super().__init__()
-        self.total_frames = 100
 
     def start(self):
         super().start()
@@ -13,12 +12,17 @@ class MyApp(agl.AnimApp):
     
     def update(self):
         super().update()
-        angle = self.curr_frame / self.total_frames * 2 * glm.pi()
+        angle = self.frame * 0.01 * glm.pi()
         self.sphere.position([glm.cos(angle), 0.5, glm.sin(angle)])
 
     def render(self):
         super().render()
         self.sphere.draw()
+        self.plane.draw()
+    
+    def render_text(self):
+        super().render_text()
+        agl.Render.text_on_screen(self.frame).draw()
 
 if __name__ == "__main__":
     agl.AppManager.start(MyApp())

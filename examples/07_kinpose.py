@@ -5,40 +5,29 @@ import numpy as np
 
 from aPyOpenGL import agl, kin
 
-class MotionApp(agl.AnimApp):
+class MotionApp(agl.App):
     def __init__(self, motion_filename, model_filename):
         super().__init__()
 
         # motion data
         self.motion = agl.FBX(motion_filename).motions()[0]
         self.model  = agl.FBX(model_filename).model()
-        self.total_frames = self.motion.num_frames()
+        self.total_frames = self.motion.num_frames
         self.fps = self.motion.fps
     
     def start(self):
         super().start()
-
-        # render options
-        self.render_skeleton = agl.Render.skeleton(self.model)
         self.render_model = agl.Render.model(self.model)
-
-        # kin pose
         self.kinpose = kin.KinPose(self.motion.poses[0])
-
-        # UI options
-        self.ui.add_menu("MotionApp")
-        self.ui.add_menu_item("MotionApp", "X-Ray", self.render_skeleton.switch_visible, key=glfw.KEY_X)
-        self.ui.add_menu_item("MotionApp", "Model", self.render_model.switch_visible, key=glfw.KEY_M)
 
     def update(self):
         super().update()
         
-        # update kinpose basis to the origin
-        self.kinpose.set_pose(self.motion.poses[self.curr_frame])
-        # self.kinpose.set_basis_xform(np.eye(4))
+        curr_frame = self.frame % self.total_frames
+        self.kinpose.set_pose(self.motion.poses[curr_frame])
 
         delta = np.eye(4)
-        delta[:3, 3] = np.array([3, 0, 3])
+        delta[:3, 3] = np.array([-1, 0, 1])
         self.kinpose.transform_basis(delta)
 
         # update model to render
@@ -47,10 +36,6 @@ class MotionApp(agl.AnimApp):
     def render(self):
         super().render()
         self.render_model.update_model(self.model).draw()
-
-    def render_xray(self):
-        super().render_xray()
-        self.render_skeleton.update_skeleton(self.model).draw()
 
 if __name__ == "__main__":
     motion_filename = os.path.join(agl.AGL_PATH, "data/fbx/motion/ybot_walking.fbx")

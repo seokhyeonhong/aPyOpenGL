@@ -20,16 +20,34 @@ class App:
     def __init__(
         self,
         camera = Camera(),
-        lights = [DirectionalLight(), DirectionalLight(direction=glm.vec3(1, -2, 1), intensity=0.5)],
+        lights = [DirectionalLight(), DirectionalLight(direction=glm.vec3(1, -2, 1), intensity=0.2)],
     ):
+        # render settings
         self.camera = camera
         self.lights = lights
         
+        # display options
         self.width, self.height = 1920, 1080
         self.io = self.IO()
         self.ui = UI()
         self.capture_path = os.path.join("capture", str(datetime.date.today()))
         self.window = self.init_glfw()
+
+        # play options
+        self.fps = 30
+        self.frame = 0
+        self.prev_frame = -1
+        self.playing = True
+
+        # capture
+        self.captures = []
+        self.record_mode  = App.RecordMode.eNONE
+
+        # auxiliary - render fps
+        self.start_time = 0
+        self.end_time = 0
+        self.frame_count = 0
+        self.render_fps = 30
 
     class IO:
         def __init__(self):
@@ -38,6 +56,11 @@ class App:
             self.mouse_middle_down = False
             self.mouse_left_down = False
     
+    class RecordMode(Enum):
+        eNONE           = 0
+        eSECTION_TO_VID = 1
+        # eSECTION_TO_IMG = 3
+
     def init_glfw(self):
         glfw.init()
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 4)
@@ -82,21 +105,56 @@ class App:
 
         return window
 
-    """ Override these methods to add custom rendering code """
+    """ Cotinue on these methods to add custom rendering scripts """
     def start(self):
-        pass
+        # render options
+        self.grid = Render.plane(200, 200).albedo(0.15).floor(True)
+        self.axis = Render.axis()
+        self.render_fps_text = Render.text_on_screen().position([0, 0.95, 0]).scale(0.3)
+
+        # ui
+        self.ui.add_menu("App")
+        self.ui.add_menu_item("App", "Play / Pause", self.toggle_play, key=glfw.KEY_SPACE)
+        self.ui.add_menu_item("App", "Axis", self.axis.switch_visible, key=glfw.KEY_A)
+        self.ui.add_menu_item("App", "Grid", self.grid.switch_visible, key=glfw.KEY_G)
+        self.ui.add_menu_item("App", "FPS", self.render_fps_text.switch_visible, key=glfw.KEY_F)
 
     def update(self):
-        pass
+        # time setting
+        if self.record_mode == App.RecordMode.eNONE:
+            if self.playing:
+                self.frame = int(glfw.get_time() * self.fps)
+            else:
+                glfw.set_time(self.frame / self.fps)
+        else:
+            self.frame = int(glfw.get_time() * self.fps)
+            if self.frame - self.prev_frame > 1:
+                self.frame = self.prev_frame + 1
+                glfw.set_time(self.frame / self.fps)
 
     def late_update(self):
-        pass
+        # capture video
+        if self.record_mode != App.RecordMode.eNONE:
+            if (self.frame - self.prev_frame) == 1:
+                self.captures.append(self.capture_screen())
+                
+        # update previous frame
+        self.prev_frame = self.frame
+
+        # render fps
+        self.frame_count += 1
+        if self.frame_count == 100:
+            self.end_time = glfw.get_time()
+            self.render_fps = self.frame_count / (self.end_time - self.start_time)
+            self.frame_count = 0
+            self.start_time = glfw.get_time()
 
     def render(self):
-        pass
+        self.axis.draw()
+        self.grid.draw()
 
     def render_text(self):
-        pass
+        self.render_fps_text.text(f"Render FPS: {self.render_fps:.2f}").draw()
 
     def render_xray(self):
         pass
@@ -106,19 +164,44 @@ class App:
 
     """ Callback functions for glfw and camera control """
     def key_callback(self, window, key, scancode, action, mods):
-        if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
+        if action != glfw.PRESS:
+            return
+
+        if key == glfw.KEY_ESCAPE:
             glfw.set_window_should_close(window, True)
             Render.clear()
-        elif key == glfw.KEY_F1 and action == glfw.PRESS:
+        elif key == glfw.KEY_F1:
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-        elif key == glfw.KEY_F2 and action == glfw.PRESS:
+        elif key == glfw.KEY_F2:
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
-        self.ui.key_callback(window, key, scancode, action, mods)
-        if key == glfw.KEY_V and action == glfw.PRESS:
+        # camera control
+        elif key == glfw.KEY_V:
             self.camera.switch_projection()
-        elif key == glfw.KEY_F5 and action == glfw.PRESS:
+
+        # capture
+        elif key == glfw.KEY_F5:
             self.save_image(self.capture_screen())
+        elif key == glfw.KEY_F6:
+            if self.record_mode == App.RecordMode.eSECTION_TO_VID:
+                self.save_video()
+                self.captures = []
+                self.record_mode = App.RecordMode.eNONE
+            elif self.record_mode == App.RecordMode.eNONE:
+                self.record_mode = App.RecordMode.eSECTION_TO_VID
+
+        # frame control
+        elif self.record_mode == App.RecordMode.eNONE:
+            if key == glfw.KEY_LEFT_BRACKET:
+                self.move_frame(-1)
+            elif key == glfw.KEY_RIGHT_BRACKET:
+                self.move_frame(+1)
+            elif key == glfw.KEY_LEFT:
+                self.move_frame(-self.fps)
+            elif key == glfw.KEY_RIGHT:
+                self.move_frame(+self.fps)
+
+        self.ui.key_callback(window, key, scancode, action, mods)
         
     def mouse_callback(self, window, xpos, ypos):
         offset_x = xpos - self.io.last_mouse_x
@@ -156,6 +239,7 @@ class App:
     def on_resize(self, window, width, height):
         glViewport(0, 0, width, height)
         self.width, self.height = width, height
+        self.ui.resize_font(width, height)
     
     """ Capture functions """
     def capture_screen(self):
@@ -177,146 +261,6 @@ class App:
         image_path = os.path.join(image_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".png")
         cv2.imwrite(image_path, image)
     
-    """ UI functions """
-    def process_inputs(self):
-        self.ui.process_inputs()
-
-    def initialize_ui(self):
-        self.ui.initialize(self.window)
-    
-    def render_ui(self):
-        self.ui.render()
-    
-    def terminate_ui(self):
-        self.ui.terminate()
-
-""" Class for general animation with a fixed number of frames """
-# TODO: refactor this class, focusing on glfw.set_time() and glfw.get_time()
-class AnimApp(App):
-    class RecordMode(Enum):
-        eNONE           = 0
-        eSECTION_TO_VID = 1
-        # eSECTION_TO_IMG = 3
-
-    def __init__(self):
-        super().__init__()
-        self.total_frames = 0
-        self.fps          = 30
-        self.curr_frame   = 0
-        self.prev_frame   = 0
-        self.playing      = True
-        self.record_mode  = AnimApp.RecordMode.eNONE
-        self.captures     = []
-
-    def start(self):
-        super().start()
-
-        # check
-        if self.total_frames <= 0:
-            raise ValueError(f"total_frames must be initialized to a positive integer in __init__(), but got {self.total_frames}")
-        self.total_frames = int(self.total_frames)
-
-        # render options
-        self.axis = Render.axis()
-        self.grid = Render.plane(200, 200).albedo(0.15).floor(True)
-        self.text = Render.text_on_screen().position([50, 50, 0])
-
-        # UI options
-        self.ui.add_menu("AnimApp")
-        self.ui.add_menu_item("AnimApp", "Axis", self.axis.switch_visible, key=glfw.KEY_A)
-        self.ui.add_menu_item("AnimApp", "Grid", self.grid.switch_visible, key=glfw.KEY_G)
-        self.ui.add_menu_item("AnimApp", "Text", self.text.switch_visible, key=glfw.KEY_T)
-        self.ui.add_menu_item("AnimApp", "Play/Pause", self.toggle_play, key=glfw.KEY_SPACE)
-
-        # glfw
-        glfw.set_time(0)
-    
-    def toggle_play(self):
-        self.playing = not self.playing
-
-        # Replay when the end of the animation is reached
-        if self.playing and self.curr_frame == self.total_frames - 1:
-            self.curr_frame = 0
-            glfw.set_time(0)
-    
-    def move_frame(self, offset):
-        self.curr_frame = max(0, min(self.curr_frame + offset, self.total_frames - 1))
-        glfw.set_time(self.curr_frame / self.fps)
-
-    def key_callback(self, window, key, scancode, action, mods):
-        super().key_callback(window, key, scancode, action, mods)
-
-        if action != glfw.PRESS:
-            return
-        
-        # frame control when not recording
-        if self.record_mode == AnimApp.RecordMode.eNONE:
-            if glfw.KEY_0 <= key <= glfw.KEY_9:
-                self.curr_frame = int(self.total_frames * (key - glfw.KEY_0) * 0.1)
-            
-            # frame control
-            elif key == glfw.KEY_LEFT_BRACKET:
-                self.move_frame(-1)
-            elif key == glfw.KEY_RIGHT_BRACKET:
-                self.move_frame(+1)
-            elif key == glfw.KEY_LEFT:
-                self.move_frame(-10)
-            elif key == glfw.KEY_RIGHT:
-                self.move_frame(+10)
-
-        # F6/F7/F8: record section / all frames / section to images
-        if key == glfw.KEY_F6:
-            if self.record_mode == AnimApp.RecordMode.eSECTION_TO_VID:
-                self.save_video()
-                self.captures = []
-                self.record_mode = AnimApp.RecordMode.eNONE
-            elif self.record_mode == AnimApp.RecordMode.eNONE:
-                self.record_mode = AnimApp.RecordMode.eSECTION_TO_VID
-
-    def update(self):
-        super().update()
-
-        # time setting
-        if self.record_mode == AnimApp.RecordMode.eNONE:
-            if self.playing:
-                self.curr_frame = min(int(glfw.get_time() * self.fps), self.total_frames - 1)
-            else:
-                glfw.set_time(self.curr_frame / self.fps)
-        else:
-            self.curr_frame = min(int(glfw.get_time() * self.fps), self.total_frames - 1)
-            if self.curr_frame - self.prev_frame > 1:
-                self.curr_frame = self.prev_frame + 1
-                glfw.set_time(self.curr_frame / self.fps)
-                
-        # stop playing at the end of the motion
-        if self.playing and self.curr_frame == self.total_frames - 1:
-            self.playing = False
-    
-    def render(self):
-        super().render()
-        self.grid.draw()
-        self.axis.draw()
-    
-    def render_text(self):
-        super().render_text()
-        self.text.text(f"Frame: {self.curr_frame + 1} / {self.total_frames}").draw()
-
-    def late_update(self):
-        super().late_update()
-
-        # capture video
-        if self.record_mode != AnimApp.RecordMode.eNONE:
-            if (self.curr_frame - self.prev_frame) == 1:
-                self.captures.append(super().capture_screen())
-            if self.record_mode == AnimApp.RecordMode.eSECTION_TO_VID and self.curr_frame == self.total_frames - 1:
-                self.save_video()
-                self.captures = []
-                self.record_mode = AnimApp.RecordMode.eNONE
-
-        # update previous frame
-        self.prev_frame = self.curr_frame
-
-    """ Capture functions """
     def save_video(self):
         video_dir = os.path.join(self.capture_path, "videos")
         if not os.path.exists(video_dir):
@@ -330,13 +274,25 @@ class AnimApp(App):
             video.write(image)
         video.release()
 
-        glfw.set_time(self.curr_frame / self.fps)
+        glfw.set_time(self.frame / self.fps)
     
-    def save_images(self):
-        image_dir = os.path.join(self.capture_path, f"images-{datetime.datetime.now().strftime('%H-%M-%S')}")
-        if not os.path.exists(image_dir):
-            os.makedirs(image_dir)
-        
-        for i, image in enumerate(self.captures):
-            image_path = os.path.join(image_dir, "{:04d}.png".format(i))
-            cv2.imwrite(image_path, image)
+    """ UI functions """
+    def process_inputs(self):
+        self.ui.process_inputs()
+
+    def initialize_ui(self):
+        self.ui.initialize(self.window)
+    
+    def render_ui(self):
+        self.ui.render()
+    
+    def terminate_ui(self):
+        self.ui.terminate()
+
+    """ Auxiliary functions """
+    def toggle_play(self):
+        self.playing = not self.playing
+    
+    def move_frame(self, offset):
+        self.frame = int(max(0, self.frame + offset))
+        glfw.set_time(self.frame / self.fps)

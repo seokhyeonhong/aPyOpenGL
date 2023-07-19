@@ -1,4 +1,4 @@
-from .app         import App, AnimApp
+from .app         import App
 from .appmanager  import AppManager
 from .bvh         import BVH
 from .camera      import Camera

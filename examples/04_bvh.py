@@ -4,7 +4,7 @@ import glm
 
 from aPyOpenGL import agl
 
-class MotionApp(agl.AnimApp):
+class MotionApp(agl.App):
     def __init__(self, bvh_filename):
         super().__init__()
 
@@ -12,7 +12,7 @@ class MotionApp(agl.AnimApp):
         bvh = agl.BVH(bvh_filename)
         self.motion = bvh.motion()
         self.model = bvh.model()
-        self.total_frames = self.motion.num_frames()
+        self.total_frames = self.motion.num_frames
         self.fps = self.motion.fps
 
         # camera options
@@ -20,42 +20,30 @@ class MotionApp(agl.AnimApp):
         self.follow_root = False
         self.init_cam_pos = self.camera.position
     
-    def start(self):
-        super().start()
-
-        # render options
-        self.render_skeleton = agl.Render.skeleton(self.model)
-
-        # UI options
-        self.ui.add_menu("MotionApp")
-        self.ui.add_menu_item("MotionApp", "X-Ray", self.render_skeleton.switch_visible, key=glfw.KEY_X)
-
     def update(self):
         super().update()
 
         # set camera focus on the root
+        curr_frame = self.frame % self.total_frames
         if self.focus_on_root:
-            self.camera.set_focus_position(self.motion.poses[self.curr_frame].root_p)
+            self.camera.set_focus_position(self.motion.poses[curr_frame].root_p)
             self.camera.set_up(glm.vec3(0, 1, 0))
         elif self.follow_root:
-            self.camera.set_position(self.motion.poses[self.curr_frame].root_p + glm.vec3(0, 1.5, 5))
-            self.camera.set_focus_position(self.motion.poses[self.curr_frame].root_p)
+            self.camera.set_position(self.motion.poses[curr_frame].root_p + glm.vec3(0, 1.5, 5))
+            self.camera.set_focus_position(self.motion.poses[curr_frame].root_p)
             self.camera.set_up(glm.vec3(0, 1, 0))
         self.camera.update()
         
         # set pose
-        self.model.set_pose(self.motion.poses[self.curr_frame])
-
-    def render(self):
-        super().render()
-
-        # render the environment
-        self.grid.draw()
-        self.axis.draw()
+        self.model.set_pose(self.motion.poses[curr_frame])
 
     def render_xray(self):
         super().render_xray()
-        self.render_skeleton.update_skeleton(self.model).draw()
+        agl.Render.skeleton(self.motion.poses[self.frame % self.total_frames]).draw()
+    
+    def render_text(self):
+        super().render_text()
+        agl.Render.text_on_screen(f"Frame: {self.frame % self.total_frames} / {self.total_frames}").draw()
 
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)

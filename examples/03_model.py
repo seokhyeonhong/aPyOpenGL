@@ -13,7 +13,6 @@ class MyApp(agl.App):
 
     def render(self):
         super().render()
-        agl.Render.plane(150, 150).floor(True).albedo(0.2).draw()
         agl.Render.model(self.fbx_model).draw()
     
     def render_xray(self):

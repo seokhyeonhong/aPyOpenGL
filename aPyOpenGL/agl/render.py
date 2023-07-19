@@ -195,10 +195,10 @@ class Render:
         return RenderOptionsVec(rov)
     
     @staticmethod
-    def skeleton(model: Model, render_mode="pbr"):
+    def skeleton(pose: Pose, render_mode="pbr"):
         rov = []
-        skeleton_xforms = model.pose.skeleton_xforms()
-        for idx, joint in enumerate(model.pose.skeleton.joints[1:]):
+        skeleton_xforms = pose.skeleton_xforms()
+        for idx, joint in enumerate(pose.skeleton.joints[1:]):
             position = glm.vec3(skeleton_xforms[idx, :3, 3].ravel())
             orientation = glm.mat3(*skeleton_xforms[idx, :3, :3].T.ravel())
             bone_len = np.linalg.norm(joint.local_pos)
@@ -340,7 +340,6 @@ class Render:
                 pbr_texture_id[i].z = gl_set_texture(material.ao_map.texture_id, texture_count)
         
         for i in range(min(len(option._materials), MAX_MATERIAL_NUM)):
-            shader.set_struct(f"uMaterial[{i}]", option._materials[i], "Material")
             shader.set_vec4 (f"uMaterial[{i}].albedo",       rgba[i])
             shader.set_ivec3(f"uMaterial[{i}].textureID",    texture_id[i])
             shader.set_ivec3(f"uMaterial[{i}].pbrTextureID", pbr_texture_id[i])
@@ -407,11 +406,10 @@ class Render:
         if Render.render_mode != RenderMode.eTEXT:
             return
         
-
         if on_screen:
             glDisable(GL_DEPTH_TEST)
-            x = option._position.x * (Render.render_info.width / 3840)
-            y = option._position.y * (Render.render_info.width / 3840)
+            x = option._position.x * Render.render_info.width
+            y = option._position.y * Render.render_info.height
             scale = option._scale.x * (Render.render_info.width / 3840)
         else:
             x = 0

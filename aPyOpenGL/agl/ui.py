@@ -19,9 +19,14 @@ class UI:
         self.impl = GlfwRenderer(window, attach_callbacks=False)
 
         # IO
-        io = imgui.get_io()
-        io.font_global_scale = 2.0
-        self.font = io.fonts.add_font_from_file_ttf(CONSOLAS_FONT_PATH, 16)
+        self.io = imgui.get_io()
+        width, height = glfw.get_window_size(window)
+        self.resize_font(width, height)
+        self.font = self.io.fonts.add_font_from_file_ttf(CONSOLAS_FONT_PATH, 16)
+        self.impl.refresh_font_texture()
+    
+    def resize_font(self, width, height):
+        self.io.font_global_scale = min(width, height) / 750
         self.impl.refresh_font_texture()
         
     def process_inputs(self):
