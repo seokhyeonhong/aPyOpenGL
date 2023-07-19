@@ -3,7 +3,7 @@ from __future__ import annotations
 import fbx
 import glm
 
-from ..keyframe import KeyInterpType, Keyframe, NodeKeyframes, SceneKeyframes
+from .keyframe import KeyInterpType, Keyframe, NodeKeyframes, SceneKeyframes
 
 FbxAnimLayer = fbx.FbxAnimLayer
 FbxCriteria  = fbx.FbxCriteria

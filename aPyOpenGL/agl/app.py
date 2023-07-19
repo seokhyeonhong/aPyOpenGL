@@ -20,10 +20,10 @@ class App:
     def __init__(
         self,
         camera = Camera(),
-        light  = DirectionalLight(),
+        lights = [DirectionalLight(), DirectionalLight(direction=glm.vec3(1, -2, 1), intensity=0.5)],
     ):
         self.camera = camera
-        self.light = light
+        self.lights = lights
         
         self.width, self.height = 1920, 1080
         self.io = self.IO()

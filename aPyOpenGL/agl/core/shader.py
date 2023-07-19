@@ -58,7 +58,6 @@ class Shader:
         int_array = np.asarray(value_array, dtype=np.int32)
         ptr = int_array.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
         glUniform1iv(glGetUniformLocation(self.program, name), len(value_array), ptr)
-
     def set_mat3_array(self, name, value_array):
         float_array = np.concatenate([np.asarray(mat, dtype=np.float32).transpose().flatten() for mat in value_array])
         ptr = float_array.ctypes.data_as(ctypes.POINTER(ctypes.c_float))

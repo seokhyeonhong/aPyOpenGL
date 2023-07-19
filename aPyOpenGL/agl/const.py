@@ -13,6 +13,9 @@ CAM_TUMBLE_SENSITIVITY = 0.002
 CAM_ZOOM_SENSITIVITY   = 0.05
 CAM_DOLLY_SENSITIVITY  = 0.2
 
+""" Light constants """
+MAX_LIGHT_NUM = 4
+
 """ Text constants """
 TEXT_RESOLUTION = 256
 FONT_DIR_PATH = os.path.join(AGL_PATH, "data/fonts/")

@@ -65,13 +65,15 @@ uniform sampler2D uTextures[MAX_MATERIAL_TEXTURE];
 // --------------------------------------------
 // light structure
 // --------------------------------------------
+#define MAX_LIGHT_NUM 4
 struct Light
 {
     vec4 vector; // point light if w == 1, directional light if w == 0
     vec3 color;
     vec3 attenuation; // attenuation coefficients
 };
-uniform Light uLight;
+uniform Light uLight[MAX_LIGHT_NUM];
+uniform int   uLightNum;
 
 // --------------------------------------------
 // camera position
@@ -325,27 +327,23 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, float metalli
     F0 = mix(F0, albedo, metallic);
 
     vec3 Lo = vec3(0.0f);
-    for (int i = 0; i < 1; ++i)
-    {
-        // BRDF
-        float NDF = TrowbridgeReitzGGX(N, H, roughness);
-        float G   = Smith(N, V, L, roughness);
-        vec3  F   = FresnelSchlick(max(dot(H, V), 0.0f), F0);
-
-        vec3  numerator   = NDF * G * F;
-        float denominator = 4.0f * max(dot(N, V), 0.0f) * max(dot(N, L), 0.0f) + 0.0001f;
-        vec3  specular    = numerator / denominator;
-
-        vec3 kS = F;
-        vec3 kD = vec3(1.0f) - kS;
-        kD *= 1.0f - metallic;
-
-        float NdotL = max(dot(N, L), 0.0f);
-
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-    }
     
-    return Lo;
+    // BRDF
+    float NDF = TrowbridgeReitzGGX(N, H, roughness);
+    float G   = Smith(N, V, L, roughness);
+    vec3  F   = FresnelSchlick(max(dot(H, V), 0.0f), F0);
+
+    vec3  numerator   = NDF * G * F;
+    float denominator = 4.0f * max(dot(N, V), 0.0f) * max(dot(N, L), 0.0f) + 0.0001f;
+    vec3  specular    = numerator / denominator;
+
+    vec3 kS = F;
+    vec3 kD = vec3(1.0f) - kS;
+    kD *= 1.0f - metallic;
+
+    float NdotL = max(dot(N, L), 0.0f);
+
+    return (kD * albedo / PI + specular) * radiance * NdotL;
 }
 
 // --------------------------------------------
@@ -375,8 +373,6 @@ void main()
     // normal, view, light and half vectors
     vec3 N = normalize(fNormal);
     vec3 V = normalize(uViewPosition - fPosition);
-    vec3 L = uLight.vector.w == 1.0f ? normalize(uLight.vector.xyz - fPosition) : normalize(-uLight.vector.xyz);
-    vec3 H = normalize(V + L);
 
     // Textures --------------------------------------------
     // displacement
@@ -423,7 +419,8 @@ void main()
     }
 
     // shadow
-    float shadow = Shadow(fPosLightSpace, L, uShadowMap);
+    vec3 lightVec = uLight[0].vector.w == 1.0f ? normalize(uLight[0].vector.xyz - fPosition) : normalize(-uLight[0].vector.xyz);
+    float shadow = Shadow(fPosLightSpace, lightVec, uShadowMap);
 
     // --------------------------------------------
     // rendering
@@ -434,27 +431,40 @@ void main()
     }
     else if (uPBR)
     {
-        vec3 Lo = CookTorranceBRDF(N, V, L, H, albedo, metallic, roughness, ao, uLight);
-        
-        vec3 F0 = vec3(0.04f);
-        F0 = mix(F0, albedo, metallic);
-        vec3 kS = FresnelSchlickRoughness(max(dot(N, V), 0.0f), F0, roughness);
-        vec3 kD = 1.0f - kS;
-        kD *= 1.0f - metallic;
+        for (int i = 0; i < uLightNum; ++i)
+        {
+            // light vector and half vector
+            vec3 L = uLight[i].vector.w == 1.0f ? normalize(uLight[i].vector.xyz - fPosition) : normalize(-uLight[i].vector.xyz);
+            vec3 H = normalize(V + L);
 
-        vec3 irradiance = texture(uIrradianceMap, N).rgb * uIrradianceMapIntensity;
+            vec3 Lo = CookTorranceBRDF(N, V, L, H, albedo, metallic, roughness, ao, uLight[i]);
 
-        vec3 diffuse = irradiance * albedo;
-        vec3 ambient = (kD * diffuse) * ao;
+            vec3 F0 = vec3(0.04f);
+            F0 = mix(F0, albedo, metallic);
+            vec3 kS = FresnelSchlickRoughness(max(dot(N, V), 0.0f), F0, roughness);
+            vec3 kD = 1.0f - kS;
+            kD *= 1.0f - metallic;
 
-        color = ambient + (1.0f - shadow) * Lo;
+            vec3 irradiance = texture(uIrradianceMap, N).rgb * uIrradianceMapIntensity;
+
+            vec3 diffuse = irradiance * albedo;
+            vec3 ambient = (kD * diffuse) * ao;
+
+            color += (ambient + (1.0f - shadow) * Lo);
+        }
     }
     else
     {
-        vec3 ambient = vec3(0.03f) * albedo * ao;
-        vec3 Lo = BlinnPhong(albedo, N, V, L, uLight, uMaterial[fMaterialID]);
+        for (int i = 0; i < uLightNum; ++i)
+        {
+            vec3 L = uLight[i].vector.w == 1.0f ? normalize(uLight[i].vector.xyz - fPosition) : normalize(-uLight[i].vector.xyz);
+            vec3 H = normalize(V + L);
 
-        color = ambient + (1.0f - shadow) * Lo;
+            vec3 ambient = vec3(0.03f) * albedo * ao;
+            vec3 Lo = BlinnPhong(albedo, N, V, L, uLight[i], uMaterial[fMaterialID]);
+
+            color += ambient + (1.0f - shadow) * Lo;
+        }
     }
 
     // floor

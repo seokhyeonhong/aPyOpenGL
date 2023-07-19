@@ -33,16 +33,16 @@ class RenderMode(Enum):
     eTEXT   = 2
 
 class RenderInfo:
-    sky_color         = glm.vec4(0.8)
-    cam_position      = glm.vec3(0.0)
-    cam_projection    = glm.mat4(1.0)
-    cam_view          = glm.mat4(1.0)
-    light_vector      = glm.vec4(0.0)
-    light_color       = glm.vec3(1.0)
-    light_attenuation = glm.vec3(0.0)
-    light_matrix      = glm.mat4(1.0)
-    width             = 1920
-    height            = 1080
+    sky_color          = glm.vec4(0.8)
+    cam_position       = glm.vec3(0.0)
+    cam_projection     = glm.mat4(1.0)
+    cam_view           = glm.mat4(1.0)
+    light_vectors      = [glm.vec4(0.0)]
+    light_colors       = [glm.vec3(1.0)]
+    light_attenuations = [glm.vec3(0.0)]
+    light_matrix       = glm.mat4(1.0)
+    width              = 1920
+    height             = 1080
 
 """ Global rendering state and functions """
 class Render:
@@ -254,13 +254,23 @@ class Render:
         
         # update view
         if shader.is_view_updated is False:
+            # camera
             shader.set_mat4("uPV",                Render.render_info.cam_projection * Render.render_info.cam_view)
             shader.set_vec3("uViewPosition",      Render.render_info.cam_position)
-            shader.set_vec4("uLight.vector",      Render.render_info.light_vector)
-            shader.set_vec3("uLight.color",       Render.render_info.light_color)
-            shader.set_vec3("uLight.attenuation", Render.render_info.light_attenuation)
+
+            # lights
+            light_num = min(len(Render.render_info.light_vectors), MAX_LIGHT_NUM)
+            for i in range(light_num):
+                shader.set_vec4(f"uLight[{i}].vector",      Render.render_info.light_vectors[i])
+                shader.set_vec3(f"uLight[{i}].color",       Render.render_info.light_colors[i])
+                shader.set_vec3(f"uLight[{i}].attenuation", Render.render_info.light_attenuations[i])
             shader.set_mat4("uLightSpaceMatrix",  Render.render_info.light_matrix)
+            shader.set_int("uLightNum", light_num)
+
+            # sky color
             shader.set_vec3("uSkyColor",          Render.render_info.sky_color)
+
+            # update flag
             shader.is_view_updated = True
 
         # update model
@@ -330,6 +340,7 @@ class Render:
                 pbr_texture_id[i].z = gl_set_texture(material.ao_map.texture_id, texture_count)
         
         for i in range(min(len(option._materials), MAX_MATERIAL_NUM)):
+            shader.set_struct(f"uMaterial[{i}]", option._materials[i], "Material")
             shader.set_vec4 (f"uMaterial[{i}].albedo",       rgba[i])
             shader.set_ivec3(f"uMaterial[{i}].textureID",    texture_id[i])
             shader.set_ivec3(f"uMaterial[{i}].pbrTextureID", pbr_texture_id[i])
@@ -495,17 +506,17 @@ class Render:
     @staticmethod
     def update_render_view(app, width, height):
         cam = app.camera
-        light = app.light
+        lights = app.lights
 
-        Render.render_info.cam_position      = cam.position
-        Render.render_info.cam_projection    = cam.get_projection_matrix(width, height)
-        Render.render_info.cam_view          = cam.get_view_matrix()
-        Render.render_info.light_vector      = light.vector
-        Render.render_info.light_color       = light.color * light.intensity
-        Render.render_info.light_attenuation = light.attenuation
-        Render.render_info.light_matrix      = light.get_view_projection_matrix()
-        Render.render_info.width             = width
-        Render.render_info.height            = height
+        Render.render_info.cam_position       = cam.position
+        Render.render_info.cam_projection     = cam.get_projection_matrix(width, height)
+        Render.render_info.cam_view           = cam.get_view_matrix()
+        Render.render_info.light_vectors      = [light.vector for light in lights]
+        Render.render_info.light_colors       = [light.color * light.intensity for light in lights]
+        Render.render_info.light_attenuations = [light.attenuation for light in lights]
+        Render.render_info.light_matrix       = lights[0].get_view_projection_matrix()
+        Render.render_info.width              = width
+        Render.render_info.height             = height
 
         for s in Render.shaders:
             s.is_view_updated = False

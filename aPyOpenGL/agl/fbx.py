@@ -4,12 +4,14 @@ import os
 import pickle
 from tqdm import tqdm
 
-from . import core, fbxparser, keyframe
+from . import core, fbxparser
 
 from .motion   import Skeleton, Pose, Motion
 from .material import Material
 from .model    import Model
 from .texture  import TextureType, TextureLoader
+
+from ..utils import util
 
 FBX_PROPERTY_NAMES = {
     "DiffuseColor":      TextureType.eDIFFUSE,
@@ -18,6 +20,18 @@ FBX_PROPERTY_NAMES = {
     "ShininessExponent": TextureType.eGLOSSINESS,
     "NormalMap":         TextureType.eNORMAL,
 }
+
+def _get_resampled_scene(scene_and_frame_idx):
+    scene, frame_idx = scene_and_frame_idx
+    return fbxparser.keyframe.resample(scene, frame_idx)
+
+def _parse_motion(scene_and_frame_idx, names):
+    scene, frame_idx = scene_and_frame_idx
+    
+    rotations = fbxparser.keyframe.get_rotations_from_resampled(names, scene, len(frame_idx))
+    positions = fbxparser.keyframe.get_positions_from_resampled(names[0], scene, len(frame_idx))
+
+    return rotations, positions
 
 def find_texture_type(type_name):
     find = FBX_PROPERTY_NAMES.get(str(type_name))
@@ -111,35 +125,38 @@ class Parser:
         if os.path.exists(motion_pkl_path):
             with open(motion_pkl_path, "rb") as f:
                 return pickle.load(f)
-            
+        
+        # create skeleton
         skeleton = Skeleton()
         for joint in joints:
             skeleton.add_joint(joint.name, pre_quat=joint.pre_quat, local_pos=joint.local_T, parent_idx=joint.parent_idx)
 
+        # get keyframes
         scenes = self.parser.get_scene_keyframes(self.scale)
         names = [joint.name for joint in joints]
-        resampled_scenes = []
 
+        # resample
         frame_set = []
         for scene in tqdm(scenes, desc="Resampling", leave=False):
             frame_idx = [i for i in range(scene.start_frame, scene.end_frame + 1)]
             frame_set.append(frame_idx)
-            resampled_scenes.append(keyframe.resample(scene, frame_idx))
+        
+        resampled_scenes = util.run_parallel_sync(_get_resampled_scene, zip(scenes, frame_set), desc="Resampling scenes")
+        print(f"Resampled {len(resampled_scenes)} scenes")
 
+        # parse
+        rotations_and_positions = util.run_parallel_sync(_parse_motion, zip(resampled_scenes, frame_set), names=names, desc="Parsing motions")
+
+        # create motion
         motion_set = []
-        root_name = skeleton.joints[0].name
-        for i in tqdm(range(len(resampled_scenes)), desc="Parsing", leave=False):
-            scene = resampled_scenes[i]
-            nof = len(frame_set[i])
-            
-            rotations = keyframe.get_rotations_from_resampled(names, scene, nof)
-            positions = keyframe.get_positions_from_resampled(root_name, scene, nof)
-
+        for rot, pos in rotations_and_positions:
             poses = []
-            for i in range(nof):
-                poses.append(Pose(skeleton, local_quats=rotations[i], root_pos=positions[i]))
-
-            motion_set.append(Motion(poses, fps=self.parser.get_scene_fps(), name=self.parser.filepath))
+            for i in range(len(rot)):
+                poses.append(Pose(skeleton, local_quats=rot[i], root_pos=pos[i]))
+            
+            motion = Motion(poses, fps=self.parser.get_scene_fps(), name=self.parser.filepath)
+            motion_set.append(motion)
+        print(f"Created {len(motion_set)} motions")
         
         if len(motion_set) > 0:
             with open(motion_pkl_path, "wb") as f:

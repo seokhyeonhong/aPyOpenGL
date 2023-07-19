@@ -5,3 +5,4 @@ from .parser import *
 from .skeleton import *
 from .skin import *
 from .texture import *
+from .keyframe import *
