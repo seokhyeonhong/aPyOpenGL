@@ -6,7 +6,7 @@ import multiprocessing as mp
 from .motion import Joint, Skeleton, Pose, Motion
 from .model  import Model
 
-import aPyOpenGL.transforms as T
+from aPyOpenGL.transforms import n_euler
 
 channelmap = {
     'Xrotation': 'x',
@@ -129,7 +129,7 @@ class BVH:
                     else:
                         raise Exception(f"Invalid channels: {channels}")
 
-                    local_quats = T.n_quat.from_euler(rotations[fi], order, radians=False)
+                    local_quats = n_euler.to_quat(rotations[fi], order, radians=False)
                     root_pos = positions[fi, 0]
                     self.poses.append(Pose(skeleton, local_quats, root_pos))
                     i += 1

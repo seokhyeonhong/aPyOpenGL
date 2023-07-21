@@ -83,7 +83,7 @@ class Render:
         Render.shadowmap_fbo, Render.shadowmap_texture_id = TextureLoader.generate_shadow_buffer()
 
         # irradiance map
-        TextureLoader.load_irradiance_map(BACKGROUND_TEXTURE_FILE, Render.equirect_shader)
+        Render.irradiance_map = TextureLoader.load_irradiance_map(BACKGROUND_TEXTURE_FILE, Render.equirect_shader)
 
         # list of all shaders
         Render.shaders = [
@@ -279,7 +279,7 @@ class Render:
                 print(f"Joint number exceeds the limit: {len(option._buffer_xforms)} > {MAX_JOINT_NUM}")
                 option._buffer_xforms = option._buffer_xforms[:MAX_JOINT_NUM]
                 
-            shader.set_mat4_array("uLbsJoints", option._buffer_xforms)
+            shader.set_multiple_mat4("uLbsJoints", option._buffer_xforms)
         else:
             T = glm.translate(glm.mat4(1.0), option._position)
             R = glm.mat4(option._orientation)
@@ -291,7 +291,7 @@ class Render:
         if shader.is_texture_updated is False:
             shader.set_int("uIrradianceMap", 0)
             shader.set_int("uShadowMap", 1)
-            shader.set_int_array("uTextures", [i + 2 for i in range(MAX_MATERIAL_TEXTURES)])
+            shader.set_multiple_int("uTextures", [i+2 for i in range(MAX_MATERIAL_TEXTURES)])
             shader.is_texture_updated = True
         
         # set irradiance map
@@ -382,7 +382,7 @@ class Render:
 
         if option._use_skinning:
             shader.set_bool(f"uIsSkinned", True)
-            shader.set_mat4_array("uLbsJoints", option._buffer_xforms)
+            shader.set_multiple_mat4("uLbsJoints", option._buffer_xforms)
         else:
             shader.set_bool(f"uIsSkinned", False)
             T = glm.translate(glm.mat4(1.0), option._position)

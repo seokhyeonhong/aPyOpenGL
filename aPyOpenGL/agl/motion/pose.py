@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from .skeleton import Skeleton
-from aPyOpenGL import transforms
+from aPyOpenGL import transforms as trf
 
 class Pose:
     """
@@ -13,9 +13,9 @@ class Pose:
     global_xforms[i] = global_xforms[parent_idx[i]] @ pre_xform[i] @ local_rots[i]
 
     Attributes:
-        skeleton (Skeleton)     : The skeleton that this pose belongs to.
-        local_R  (numpy.ndarray): The local rotation matrices of the joints.
-        root_p   (numpy.ndarray): The root position.
+        skeleton    (Skeleton)     : The skeleton that this pose belongs to.
+        local_quats (numpy.ndarray): Local rotations of each joint in quaternion.
+        root_pos    (numpy.ndarray): Root positoin in world space.
     """
     def __init__(
         self,
@@ -24,9 +24,9 @@ class Pose:
         root_pos: np.ndarray = None,
     ):
         # set attributes
-        self.skeleton = skeleton
-        self.local_quats = np.stack([transforms.n_quat.identity()] * skeleton.num_joints, axis=0) if local_quats is None else np.array(local_quats)
-        self.root_p = np.zeros(3) if root_pos is None else root_pos
+        self.skeleton    = skeleton
+        self.local_quats = np.stack([trf.n_quat.identity()] * skeleton.num_joints, axis=0) if local_quats is None else np.array(local_quats)
+        self.root_pos    = np.zeros(3) if root_pos is None else root_pos
         
         # check shapes
         if self.skeleton.num_joints == 0:
@@ -34,11 +34,11 @@ class Pose:
     
     def pre_xforms(self):
         pre_xforms = self.skeleton.pre_xforms
-        pre_xforms[0, :3, 3] = self.root_p
+        pre_xforms[0, :3, 3] = self.root_pos
         return pre_xforms
     
     def local_xforms(self):
-        local_Rs = transforms.n_quat.to_rotmat(self.local_quats)
+        local_Rs = trf.n_quat.to_rotmat(self.local_quats)
 
         local_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(self.skeleton.num_joints)], axis=0)
         local_xforms[:, :3, :3] = local_Rs
@@ -72,18 +72,18 @@ class Pose:
             axis = axis / (np.linalg.norm(axis, axis=-1, keepdims=True) + 1e-8)
             angle = np.arccos(np.dot(np.array([0, 1, 0]), target_dir))
 
-            skeleton_xforms[i-1, :3, :3] = transforms.n_aaxis.to_rotmat(angle[..., None] * axis)
+            skeleton_xforms[i-1, :3, :3] = trf.n_aaxis.to_rotmat(angle[..., None] * axis)
             skeleton_xforms[i-1, :3,  3] = (parent_pos + global_xforms[i, :3, 3]) / 2
         
         return skeleton_xforms
     
     @classmethod
-    def from_numpy(cls, skeleton, local_R, root_p):
-        return cls(skeleton, local_R, root_p)
+    def from_numpy(cls, skeleton, local_quats, root_pos):
+        return cls(skeleton, local_quats, root_pos)
 
     @classmethod
-    def from_torch(cls, skeleton, local_R, root_p):
-        return cls(skeleton, local_R.cpu().numpy(), root_p.cpu().numpy())
+    def from_torch(cls, skeleton, local_quats, root_pos):
+        return cls(skeleton, local_quats.cpu().numpy(), root_pos.cpu().numpy())
 
     # """ IK functions """
     # def two_bone_ik(self, base_idx, effector_idx, target_p, eps=1e-8, facing="forward"):

@@ -11,7 +11,9 @@ class MyApp(agl.App):
         self.pyramid = agl.Render.pyramid().albedo([1, 1, 0]).position([0, 0, -1])
         self.text    = agl.Render.text("Hello, aPyOpenGL!")
         self.text_on_screen = agl.Render.text_on_screen("Hello, Screen!").position([0.01, 0.05, 0]).scale(1)
-        # self.cubemap = Render.cubemap("skybox")
+        self.cubemap = agl.Render.cubemap("skybox")
+
+        self.ball = agl.Render.sphere().scale(0.5)
     
     def render(self):
         super().render()
@@ -21,6 +23,10 @@ class MyApp(agl.App):
         self.sphere2.draw()
         self.cone.draw()
         self.pyramid.draw()
+        self.cubemap.draw()
+
+        # for i in range(1000):
+        #     self.ball.position([i*0.1, 0, i*0.1]).draw()
 
     def render_text(self):
         super().render_text()

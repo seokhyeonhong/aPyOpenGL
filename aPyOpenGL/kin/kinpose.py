@@ -1,12 +1,14 @@
 import numpy as np
 
 from ..agl import Pose
-from aPyOpenGL.transforms import n_quat
+from ..transforms import n_quat, n_xform
 
 class KinPose:
     """
     Represents a pose of a skeleton with a basis transformation.
     It doesn't modify the original pose data.
+
+    NOTE: We assume that the pre-rotation is defined so that the forward direction of the root joint is the z-axis in the world coordinate when the local root rotation is identity.
     
     global_xforms
         - root: basis_xform @ pre_xforms[0] @ local_xforms[0]
@@ -24,7 +26,7 @@ class KinPose:
         # original pose data - NO CHANGE
         self.pose = pose
         self.skeleton = pose.skeleton
-        self.root_pre_R = n_quat.to_rotmat(self.skeleton.joints[0].pre_quat)
+        self.root_pre_quat = self.skeleton.joints[0].pre_quat
 
         self._recompute_local_root()
 
@@ -32,38 +34,33 @@ class KinPose:
         # local transformations
         # - root: relative to the basis
         # - others: relative to the parent
-        self.local_root_p = self.pose.root_pos
-        self.local_Rs = n_quat.to_rotmat(self.pose.local_quats)
+        self.local_root_pos = self.pose.root_pos.copy()
+        self.local_quats = self.pose.local_quats.copy()
 
         # basis transformation (4, 4)
         self.basis_xform = self.get_projected_root_xform()
 
         # root transformation relative to the basis
-        root_xform = self.pose.global_xforms()[0]
-        self.local_Rs[0] = np.linalg.inv(self.root_pre_R) @ np.linalg.inv(self.basis_xform[:3, :3]) @ root_xform[:3, :3]
-        self.local_root_p = (np.linalg.inv(self.basis_xform) @ root_xform)[:3, 3]
+        root_xform = n_quat.to_xform(self.pose.local_quats[0], self.pose.root_pos)
+        self.local_quats[0] = n_quat.mul(n_quat.inv(self.root_pre_quat), n_quat.from_rotmat(self.basis_xform[:3, :3].T @ root_xform[:3, :3])) # root_quat.inv() * basis_rot * root_rot
+        self.local_root_pos = (np.linalg.inv(self.basis_xform) @ root_xform)[:3, 3]
 
     def get_projected_root_xform(self):
-        basis_xform = np.eye(4, dtype=np.float32)
-
-        # get root transformation from the original pose
-        root_xform = self.pose.global_xforms()[0]
-        root_R = root_xform[:3, :3]
-        root_p = root_xform[:3, 3]
-        
-        # set rotation by column vectors
-        dir_x = root_R[:, 0] * np.array([1, 0, 1], dtype=np.float32)
+        # axes for basis rotation matrix (3, 3)
+        dir_x = n_quat.mul_vec(self.pose.local_quats[0], np.array([1, 0, 0], dtype=np.float32))
+        dir_x = dir_x * np.array([1, 0, 1], dtype=np.float32)
         dir_x = dir_x / (np.linalg.norm(dir_x) + 1e-8)
-
-        dir_z = root_R[:, 2] * np.array([1, 0, 1], dtype=np.float32)
+        
+        dir_z = n_quat.mul_vec(self.pose.local_quats[0], np.array([0, 0, 1], dtype=np.float32))
+        dir_z = dir_z * np.array([1, 0, 1], dtype=np.float32)
         dir_z = dir_z / (np.linalg.norm(dir_z) + 1e-8)
 
         dir_y = np.array([0, 1, 0], dtype=np.float32)
 
-        basis_xform[:3, :3] = np.stack([dir_x, dir_y, dir_z], axis=1)
-
-        # set position
-        basis_xform[:3, 3] = root_p * np.array([1, 0, 1], dtype=np.float32)
+        # basis
+        basis_rotmat = np.stack([dir_x, dir_y, dir_z], axis=1)
+        basis_pos    = self.pose.root_pos * np.array([1, 0, 1], dtype=np.float32)
+        basis_xform  = n_xform.from_rotmat(basis_rotmat, basis_pos)
 
         return basis_xform
 
@@ -80,12 +77,14 @@ class KinPose:
         self._recompute_local_root()
         
     def to_pose(self) -> Pose:
-        local_Rs = self.local_Rs.copy()
+        local_quats = self.local_quats.copy()
 
         # recompute local root transformation
-        # - rotation: global_R = basis_R @ pre_R @ local_R_to_basis = pre_R @ local_R_for_pose
-        #             Therefore, local_R_for_pose = inv(pre_R) @ basis_R @ pre_R @ local_R_to_basis
-        # - position: global_p = basis_R @ local_pos + basis_p
-        local_Rs[0] = np.linalg.inv(self.root_pre_R) @ self.basis_xform[:3, :3] @ self.root_pre_R @ local_Rs[0]
-        root_p = self.basis_xform @ np.concatenate([self.local_root_p, [1]])
-        return Pose(self.skeleton, n_quat.from_rotmat(local_Rs), root_p[:3])
+        # - rotation: global_rot = basis_rot * pre_rot * local_rot_to_basis = pre_rot * local_rot_for_pose
+        #             Therefore, local_rot_for_pose = pre_rot.inv() * basis_rot * pre_rot * local_rot_to_basis
+        # - position: global_pos = basis_rot * local_pos + basis_pos
+        q0 = n_quat.mul(n_quat.inv(self.root_pre_quat), n_quat.from_rotmat(self.basis_xform[:3, :3])) # pre_rot.inv() * basis_rot
+        q1 = n_quat.mul(self.root_pre_quat, local_quats[0]) # pre_rot * local_rot_to_basis
+        local_quats[0] = n_quat.mul(q0, q1)
+        root_pos = self.basis_xform @ np.concatenate([self.local_root_pos, [1]])
+        return Pose(self.skeleton, local_quats, root_pos[:3])

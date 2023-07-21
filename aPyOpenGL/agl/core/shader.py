@@ -54,19 +54,15 @@ class Shader:
     # def set_multiple_ivec3(self, name, value): glUniform3iv(glGetUniformLocation(self.program, name), len(value), glm.value_ptr(value))
     # def set_multiple_ivec4(self, name, value): glUniform4iv(glGetUniformLocation(self.program, name), len(value), glm.value_ptr(value))
 
-    def set_int_array(self, name, value_array):
-        int_array = np.asarray(value_array, dtype=np.int32)
-        ptr = int_array.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-        glUniform1iv(glGetUniformLocation(self.program, name), len(value_array), ptr)
-    def set_mat3_array(self, name, value_array):
-        float_array = np.concatenate([np.asarray(mat, dtype=np.float32).transpose().flatten() for mat in value_array])
-        ptr = float_array.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-        glUniformMatrix3fv(glGetUniformLocation(self.program, name), len(value_array), GL_FALSE, ptr)
+    def set_multiple_int(self, name, values): glUniform1iv(glGetUniformLocation(self.program, name), len(values), values)
+    def set_multiple_float(self, name, values): glUniform1fv(glGetUniformLocation(self.program, name), len(values), values)
 
-    def set_mat4_array(self, name, value_array):
-        float_array = np.concatenate([np.asarray(mat, dtype=np.float32).transpose().flatten() for mat in value_array])
-        ptr = float_array.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-        glUniformMatrix4fv(glGetUniformLocation(self.program, name), len(value_array), GL_FALSE, ptr)
+    def set_multiple_mat4(self, name, values): glUniformMatrix4fv(glGetUniformLocation(self.program, name), len(values), GL_FALSE, self._glm_values_to_ptr(values))
+
+    def _glm_values_to_ptr(self, values):
+        # transpose because glm is column-major while numpy is row-major
+        float_array = np.concatenate([np.asarray(value, dtype=np.float32).transpose().flatten() for value in values])
+        return float_array.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
 
 def check_shader_compile_error(handle):
     success = glGetShaderiv(handle, GL_COMPILE_STATUS)

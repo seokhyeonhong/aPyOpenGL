@@ -26,10 +26,6 @@ class MotionApp(agl.App):
         curr_frame = self.frame % self.total_frames
         self.kinpose.set_pose(self.motion.poses[curr_frame])
 
-        delta = np.eye(4)
-        delta[:3, 3] = np.array([-1, 0, 1])
-        self.kinpose.transform_basis(delta)
-
         # update model to render
         self.model.set_pose(self.kinpose.to_pose())
 

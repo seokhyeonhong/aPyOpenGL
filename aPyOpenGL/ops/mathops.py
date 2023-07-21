@@ -4,30 +4,6 @@ import numpy as np
 
 ####################################################################################
 
-def normalize_torch(x, dim=-1):
-    return F.normalize(x, dim=dim)
-
-def normalize_numpy(x, axis=-1):
-    return x / (np.linalg.norm(x, axis=axis, keepdims=True) + 1e-8)
-
-def normalize(x, dim=-1):
-    """
-    Normalize a tensor or numpy array along a given dimension
-    Args:
-        x: torch.Tensor or numpy.ndarray
-        dim: dimension to normalize along
-    Returns:
-        normalized tensor or array
-    """
-    if isinstance(x, torch.Tensor):
-        return normalize_torch(x, dim)
-    elif isinstance(x, np.ndarray):
-        return normalize_numpy(x, dim)
-    else:
-        raise TypeError(f"Type must be torch.Tensor or numpy.ndarray, but got {type(x)}")
-
-####################################################################################
-
 def signed_angle_torch(v1, v2, vn, dim=-1, eps=1e-6):
     v1_unit = F.normalize(v1, dim=dim)
     v2_unit = F.normalize(v2, dim=dim)

@@ -52,6 +52,21 @@ def interpolate(q0, q1, t):
     
     return res
 
+def between_vecs(v_from, v_to):
+    v_from_ = v_from / (np.linalg.norm(v_from, axis=-1, keepdims=True) + 1e-8) # (..., 3)
+    v_to_   = v_to / (np.linalg.norm(v_to,   axis=-1, keepdims=True) + 1e-8)   # (..., 3)
+
+    dot = np.sum(v_from_ * v_to_, axis=-1) # (...,)
+    cross = np.cross(v_from_, v_to_)
+    cross = cross / (np.linalg.norm(cross, axis=-1, keepdims=True) + 1e-8) # (..., 3)
+
+    angle = np.arccos(dot)[..., None] # (..., 1)
+    res = np.concatenate([
+        np.cos(angle / 2.0), # (..., 1)
+        np.sin(angle / 2.0) * cross # (..., 3)
+    ], axis=-1)
+
+    return res
 """
 Quaternion to other representations
 """

@@ -7,4 +7,5 @@ validate
 *.fbm
 
 data/
+ops/
 # examples/

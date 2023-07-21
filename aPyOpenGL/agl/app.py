@@ -7,6 +7,7 @@ import datetime
 import cv2
 import numpy as np
 import glm
+import time
 
 from .motion import Motion
 from .camera import Camera
@@ -20,7 +21,7 @@ class App:
     def __init__(
         self,
         camera = Camera(),
-        lights = [DirectionalLight(), DirectionalLight(direction=glm.vec3(1, -2, 1), intensity=0.2)],
+        lights = [DirectionalLight(), DirectionalLight(direction=glm.vec3(1, 2, 1), intensity=0.2)],
     ):
         # render settings
         self.camera = camera
@@ -77,7 +78,7 @@ class App:
             raise Exception("Failed to create GLFW window")
         
         glfw.make_context_current(window)
-        glfw.swap_interval(1)
+        glfw.swap_interval(0)
 
         # callbacks
         glfw.set_framebuffer_size_callback(window, self.on_resize)
@@ -143,11 +144,10 @@ class App:
 
         # render fps
         self.frame_count += 1
-        if self.frame_count == 100:
-            self.end_time = glfw.get_time()
-            self.render_fps = self.frame_count / (self.end_time - self.start_time)
+        if time.perf_counter() - self.start_time > 1.0:
+            self.render_fps = self.frame_count / (time.perf_counter() - self.start_time)
+            self.start_time = time.perf_counter()
             self.frame_count = 0
-            self.start_time = glfw.get_time()
 
     def render(self):
         self.axis.draw()
