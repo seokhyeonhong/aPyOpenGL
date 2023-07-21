@@ -37,3 +37,6 @@ MAX_JOINT_NUM = 100
 
 """ Model constants """
 AXIS_MODEL_PATH = os.path.join(AGL_PATH, "data/fbx/etc/axis.fbx")
+
+""" Other constants """
+MAX_INSTANCE_NUM = 100

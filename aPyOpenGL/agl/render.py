@@ -9,7 +9,6 @@ import numpy as np
 
 from . import core
 from .material   import Material
-# from .shader     import Shader
 from .texture    import Texture, TextureLoader, TextureType
 from .text       import FontTexture
 from .motion     import Pose
@@ -196,17 +195,22 @@ class Render:
     
     @staticmethod
     def skeleton(pose: Pose, render_mode="pbr"):
-        rov = []
         skeleton_xforms = pose.skeleton_xforms()
-        for idx, joint in enumerate(pose.skeleton.joints[1:]):
-            position = glm.vec3(skeleton_xforms[idx, :3, 3].ravel())
-            orientation = glm.mat3(*skeleton_xforms[idx, :3, :3].T.ravel())
-            bone_len = np.linalg.norm(joint.local_pos)
 
-            ro = Render.pyramid(radius=max(min(bone_len, 1), 0.1) * 0.1, height=bone_len, render_mode=render_mode)
-            ro.transform(position, orientation).albedo([0, 1, 0]).color_mode(True)
-            rov.append(ro)
-        return RenderOptionsVec(rov)
+        ro = Render.pyramid(radius=1, height=1, render_mode=render_mode).instance_num(pose.skeleton.num_joints - 1)
+
+        positions, orientations, scales = [], [], []
+        for idx, joint in enumerate(pose.skeleton.joints[1:]):
+            positions.append(glm.vec3(skeleton_xforms[idx, :3, 3].ravel()))
+            orientations.append(glm.mat3(*skeleton_xforms[idx, :3, :3].T.ravel()))
+
+            bone_len = np.linalg.norm(joint.local_pos)
+            radius = max(min(bone_len, 1), 0.1) * 0.1
+            scales.append(glm.vec3(radius, bone_len, radius))
+        
+        ro.position(positions).orientation(orientations).scale(scales).albedo([0, 1, 0]).color_mode(True)
+
+        return ro
 
     @staticmethod
     def axis(render_mode="pbr"):
@@ -281,11 +285,25 @@ class Render:
                 
             shader.set_multiple_mat4("uLbsJoints", option._buffer_xforms)
         else:
-            T = glm.translate(glm.mat4(1.0), option._position)
-            R = glm.mat4(option._orientation)
-            S = glm.scale(glm.mat4(1.0), option._scale)
-            transform = T * R * S
-            shader.set_mat4("M", transform)
+            shader.set_int("uInstanceNum", option._instance_num)
+
+            # one instance
+            if option._instance_num == 1:
+                T = glm.translate(glm.mat4(1.0), option._position)
+                R = glm.mat4(option._orientation)
+                S = glm.scale(glm.mat4(1.0), option._scale)
+                transform = T * R * S
+                shader.set_mat4("uModel", transform)
+            
+            # multiple instances
+            else:
+                instance_transforms = []
+                for i in range(option._instance_num):
+                    T = glm.translate(glm.mat4(1.0), option._position[i])
+                    R = glm.mat4(option._orientation[i])
+                    S = glm.scale(glm.mat4(1.0), option._scale[i])
+                    instance_transforms.append(T * R * S)
+                shader.set_multiple_mat4("uInstanceModel", instance_transforms)
 
         # texture indexing
         if shader.is_texture_updated is False:
@@ -364,7 +382,10 @@ class Render:
 
         # final rendering
         glBindVertexArray(option._vao.id)
-        glDrawElements(GL_TRIANGLES, len(option._vao.indices), GL_UNSIGNED_INT, None)
+        if option._instance_num == 1:
+            glDrawElements(GL_TRIANGLES, len(option._vao.indices), GL_UNSIGNED_INT, None)
+        else:
+            glDrawElementsInstanced(GL_TRIANGLES, len(option._vao.indices), GL_UNSIGNED_INT, None, option._instance_num)
 
         # unbind vao
         glBindVertexArray(0)
@@ -385,15 +406,28 @@ class Render:
             shader.set_multiple_mat4("uLbsJoints", option._buffer_xforms)
         else:
             shader.set_bool(f"uIsSkinned", False)
-            T = glm.translate(glm.mat4(1.0), option._position)
-            R = glm.mat4(option._orientation)
-            S = glm.scale(glm.mat4(1.0), option._scale)
-            shader.set_mat4("M", T * R * S)
+            shader.set_int("uInstanceNum", option._instance_num)
+            if option._instance_num == 1:
+                T = glm.translate(glm.mat4(1.0), option._position)
+                R = glm.mat4(option._orientation)
+                S = glm.scale(glm.mat4(1.0), option._scale)
+                shader.set_mat4("uModel", T * R * S)
+            else:
+                instance_transforms = []
+                for i in range(option._instance_num):
+                    T = glm.translate(glm.mat4(1.0), option._position[i])
+                    R = glm.mat4(option._orientation[i])
+                    S = glm.scale(glm.mat4(1.0), option._scale[i])
+                    instance_transforms.append(T * R * S)
+                shader.set_multiple_mat4("uInstanceModel", instance_transforms)
 
         # final rendering
         glCullFace(GL_FRONT)
         glBindVertexArray(option._vao.id)
-        glDrawElements(GL_TRIANGLES, len(option._vao.indices), GL_UNSIGNED_INT, None)
+        if option._instance_num == 1:
+            glDrawElements(GL_TRIANGLES, len(option._vao.indices), GL_UNSIGNED_INT, None)
+        else:
+            glDrawElementsInstanced(GL_TRIANGLES, len(option._vao.indices), GL_UNSIGNED_INT, None, option._instance_num)
         glCullFace(GL_BACK)
 
         # unbind vao
@@ -567,6 +601,9 @@ class RenderOptions:
         self._draw_func     = draw_func
         self._shadow_func   = shadow_func
 
+        # instancing
+        self._instance_num  = 1
+
     def draw(self):
         if not self._visible:
             return
@@ -578,20 +615,33 @@ class RenderOptions:
             self._draw_func(self, self._shader)
 
     def position(self, position):
-        self._position = glm.vec3(position)
+        if self._instance_num == 1:
+            self._position = glm.vec3(position)
+        else:
+            self._position = position
         return self
 
     def orientation(self, orientation):
-        self._orientation = glm.mat3(orientation)
+        if self._instance_num == 1:
+            self._orientation = glm.mat3(orientation)
+        else:
+            self._orientation = orientation
         return self
     
     def transform(self, position, orientation):
-        self._position = glm.vec3(position)
-        self._orientation = glm.mat3(orientation)
+        if self._instance_num == 1:
+            self._position = glm.vec3(position)
+            self._orientation = glm.mat3(orientation)
+        else:
+            self._position = position
+            self._orientation = orientation
         return self
     
     def scale(self, scale):
-        self._scale = glm.vec3(scale)
+        if self._instance_num == 1:
+            self._scale = glm.vec3(scale)
+        else:
+            self._scale = scale
         return self
     
     def albedo(self, color, material_id=0):
@@ -711,6 +761,17 @@ class RenderOptions:
     
     def visible(self, visible):
         self._visible = visible
+        return self
+    
+    def instance_num(self, num):
+        # NOTE: This function must be called only once
+        if num > MAX_INSTANCE_NUM:
+            print(f"Instance number exceeds the limit: {num} > {MAX_INSTANCE_NUM}")
+
+        self._instance_num = min(max(num, 1), MAX_INSTANCE_NUM)
+        self._position = [self._position] * self._instance_num
+        self._orientation = [self._orientation] * self._instance_num
+        self._scale = [self._scale] * self._instance_num
         return self
 
 """ Multiple rendering options for a primitive """

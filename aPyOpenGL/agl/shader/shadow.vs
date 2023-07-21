@@ -15,8 +15,12 @@ layout(location=7) in vec4  vLbsWeights2;
 // uniform data
 // --------------------------------------------
 uniform mat4 uLightSpaceMatrix;
-uniform mat4 M;
+uniform mat4 uModel;
 uniform bool uIsSkinned;
+
+#define MAX_INSTANCE_NUM 100
+uniform int  uInstanceNum;
+uniform mat4 uInstanceModel[MAX_INSTANCE_NUM];
 
 mat4 GetJointMatrix(ivec4 ids, vec4 weights)
 {
@@ -41,11 +45,14 @@ void main()
     {
         // LBS
         mat4 lbsModel = GetJointMatrix(vLbsJointIDs1, vLbsWeights1) + GetJointMatrix(vLbsJointIDs2, vLbsWeights2);
-
         gl_Position = uLightSpaceMatrix * lbsModel * vec4(vPosition, 1.0f);
+    }
+    else if (uInstanceNum == 1)
+    {
+        gl_Position = uLightSpaceMatrix * uModel * vec4(vPosition, 1.0f);
     }
     else
     {
-        gl_Position = uLightSpaceMatrix * M * vec4(vPosition, 1.0f);
+        gl_Position = uLightSpaceMatrix * uInstanceModel[gl_InstanceID] * vec4(vPosition, 1.0f);
     }
 }

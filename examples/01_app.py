@@ -1,3 +1,4 @@
+import glm
 from aPyOpenGL import agl
 
 class MyApp(agl.App):
@@ -14,6 +15,7 @@ class MyApp(agl.App):
         self.cubemap = agl.Render.cubemap("skybox")
 
         self.ball = agl.Render.sphere().scale(0.5)
+        self.instance_ball = agl.Render.sphere().scale(0.5).instance_num(100)
     
     def render(self):
         super().render()
@@ -25,8 +27,16 @@ class MyApp(agl.App):
         self.pyramid.draw()
         self.cubemap.draw()
 
+        # draw 1000 balls by one draw call for each
         # for i in range(1000):
         #     self.ball.position([i*0.1, 0, i*0.1]).draw()
+        
+        # draw 1000 balls by one draw call for each chunk
+        for i in range(10):
+            positions = []
+            for j in range(100):
+                positions.append(glm.vec3((i*10+j) * 0.1, 0, (i*10+j) * 0.1))
+            self.instance_ball.position(positions).draw()
 
     def render_text(self):
         super().render_text()

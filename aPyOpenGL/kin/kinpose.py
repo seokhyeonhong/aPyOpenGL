@@ -42,23 +42,21 @@ class KinPose:
 
         # root transformation relative to the basis
         root_xform = n_quat.to_xform(self.pose.local_quats[0], self.pose.root_pos)
-        self.local_quats[0] = n_quat.mul(n_quat.inv(self.root_pre_quat), n_quat.from_rotmat(self.basis_xform[:3, :3].T @ root_xform[:3, :3])) # root_quat.inv() * basis_rot * root_rot
-        self.local_root_pos = (np.linalg.inv(self.basis_xform) @ root_xform)[:3, 3]
+        self.local_quats[0] = n_quat.mul(n_quat.inv(self.root_pre_quat), n_quat.from_rotmat(self.basis_xform[:3, :3].T @ root_xform[:3, :3])) # root_pre_rot.inv() * basis_rot.inv() * root_rot
+        self.local_root_pos = self.basis_xform[:3, :3].T @ (self.pose.root_pos - self.basis_xform[:3, 3])
 
     def get_projected_root_xform(self):
-        # axes for basis rotation matrix (3, 3)
-        dir_x = n_quat.mul_vec(self.pose.local_quats[0], np.array([1, 0, 0], dtype=np.float32))
-        dir_x = dir_x * np.array([1, 0, 1], dtype=np.float32)
-        dir_x = dir_x / (np.linalg.norm(dir_x) + 1e-8)
+        # basis: world forward -> root forward
+        root_fwd = n_quat.mul_vec(self.pose.local_quats[0], np.array([0, 0, 1], dtype=np.float32))
+        root_fwd = root_fwd * np.array([1, 0, 1], dtype=np.float32)
+        root_fwd = root_fwd / (np.linalg.norm(root_fwd) + 1e-8)
         
-        dir_z = n_quat.mul_vec(self.pose.local_quats[0], np.array([0, 0, 1], dtype=np.float32))
-        dir_z = dir_z * np.array([1, 0, 1], dtype=np.float32)
-        dir_z = dir_z / (np.linalg.norm(dir_z) + 1e-8)
+        world_fwd = np.array([0, 0, 1], dtype=np.float32)
 
-        dir_y = np.array([0, 1, 0], dtype=np.float32)
+        basis_quat = n_quat.between_vecs(world_fwd, root_fwd)
 
         # basis
-        basis_rotmat = np.stack([dir_x, dir_y, dir_z], axis=1)
+        basis_rotmat = n_quat.to_rotmat(basis_quat)
         basis_pos    = self.pose.root_pos * np.array([1, 0, 1], dtype=np.float32)
         basis_xform  = n_xform.from_rotmat(basis_rotmat, basis_pos)
 
@@ -79,7 +77,7 @@ class KinPose:
     def to_pose(self) -> Pose:
         local_quats = self.local_quats.copy()
 
-        # recompute local root transformation
+        # recompute local "root" transformation
         # - rotation: global_rot = basis_rot * pre_rot * local_rot_to_basis = pre_rot * local_rot_for_pose
         #             Therefore, local_rot_for_pose = pre_rot.inv() * basis_rot * pre_rot * local_rot_to_basis
         # - position: global_pos = basis_rot * local_pos + basis_pos

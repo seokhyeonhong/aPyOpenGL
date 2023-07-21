@@ -28,11 +28,24 @@ out vec4     fPosLightSpace;
 // uniform data
 // --------------------------------------------
 uniform mat4 uPV;
-uniform mat4 M;
+uniform mat4 uModel;
 uniform mat4 uLightSpaceMatrix;
+
+#define MAX_INSTANCE_NUM 100
+uniform int  uInstanceNum;
+uniform mat4 uInstanceModel[MAX_INSTANCE_NUM];
 
 void main()
 {
+    mat4 M = mat4(1.0f);
+    if (uInstanceNum == 1)
+    {
+        M = uModel;
+    }
+    else
+    {
+        M = uInstanceModel[gl_InstanceID];
+    }
     fPosition      = vec3(M * vec4(vPosition, 1.0f));
     vec3 T         = normalize(transpose(inverse(mat3(M))) * vTangent);
     vec3 B         = normalize(transpose(inverse(mat3(M))) * vBitangent);
