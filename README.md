@@ -50,22 +50,15 @@ pip install -r requirements.txt
 * F1: Render the scene in GL_FILL mode.
 * F2: Render the scene in GL_LINE mode.
 * F5: Capture the screen in image and save in ```captures/yyyy-mm-dd/images```.
+* F6: Capture the screen in video if entered once, and save in ```captures/yyyy-mm-dd/videos``` if entered again.
 * Alt + Left Mouse: Tumble tool for the camera.
 * Alt + Middle Mouse: Track tool for the camera.
 * Alt + Mouse Scroll: Dolly tool for the camera.
 * Mouse Scroll: Zoom tool for the camera.
-
-### AnimApp
-```AnimApp``` is a class that inherits ```App``` and specialized to visualize any sequential data with a fixed length. You should assign total number of frames, and you also can assign FPS whose default value is set to 30. We also provide additional commands for ```AnimApp```.
 * A: Switch the visualization of the axis.
 * G: Switch the visualization of the grid.
-* T: Switch the visualization of the frame.
-* Numbers (0~9): Moves the frame to play to (number * 10)% of the entire frames. For example, if the motion data consists of 1000 frames and you enter 5, the frame will be moved to frame 500.
-* Spacebar: Play or pause the motion.
-* []: Move a single frame to the past/future.
-* Left/Right arrow: Move 10 frames to the past/future.
-* F6: Capture the screen in video if entered once, and save in ```captures/yyyy-mm-dd/videos``` if entered again.
-<!-- * F7: Capture all frames and save the video in ```captures/yyyy-mm-dd/videos```. Once F7 is entered, other commands will not be working while capturing the frames, and it will be restored after capturing all the frames. -->
+* F: Switch the visualization of the render fps text.
+* Left / Right arrow: Move 1 second to the past / future.
 
 ### Python FBX SDK Installation References on Linux
 To be updated.
@@ -79,15 +72,17 @@ Reference:
 <!-- ## Learning
 ```learning``` module provides several neural network models in PyTorch. New models will be updated continuously. -->
 
-## Operations
-```ops``` provides several operations for dealing with motion data. Both NumPy ndarray and PyTorch Tensor are supported.
+## Transforms
+```transforms``` provides several operations for transformation in both numpy and pytorch.
+Modules that start with ```n_``` indicates that it's for numpy ndarray, and ```t_``` indicates pytorch tensor.
+<!-- ```ops``` provides several operations for dealing with motion data. Both NumPy ndarray and PyTorch Tensor are supported.
 
 * ```mathops.py``` provides general mathematical operations.
 * ```motionops.py``` provides manipulation functions for motion data (e.g. forward kinematics).
-* ```rotation.py``` provides rotation operations and conversions.
+* ```rotation.py``` provides rotation operations and conversions. -->
 
 ## Utils
-```utils``` provides several utility functions like multiprocessing and constants.
+```utils``` provides several utility functions like multiprocessing.
 
 # More to Come
 We are planning to support motion manipulation functions, like ```kin``` namespace in [aOpenGL](https://github.com/ltepenguin/aOpenGL). This will be updated soon!
