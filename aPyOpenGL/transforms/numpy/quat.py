@@ -1,5 +1,6 @@
 import numpy as np
-from . import rotmat, aaxis, euler, ortho6d
+
+from . import rotmat, aaxis, euler, ortho6d, xform
 
 """
 Quaternion operations
@@ -60,9 +61,35 @@ def between_vecs(v_from, v_to):
     cross = np.cross(v_from_, v_to_)
     cross = cross / (np.linalg.norm(cross, axis=-1, keepdims=True) + 1e-8) # (..., 3)
     
-    real = np.sqrt((1.0 + dot) * 0.5)
-    imag = np.sqrt((1.0 - dot) * 0.5) * cross
+    real = np.sqrt((1.0 + dot) * 0.5) # (...,)
+    imag = np.sqrt((1.0 - dot) * 0.5)[..., None] * cross
+    
     return np.concatenate([real[..., None], imag], axis=-1)
+
+def fk(local_quats, root_pos, skeleton):
+    """
+    Attributes:
+        local_quats: (..., J, 4)
+        root_pos: (..., 3), global root position
+        skeleton: aPyOpenGL.agl.Skeleton
+    """
+    pre_xforms = skeleton.pre_xforms
+    pre_quats  = xform.to_quat(pre_xforms)
+    pre_pos    = xform.to_translation(pre_xforms)
+    pre_pos[0] = root_pos
+
+    global_quats = [mul(pre_quats[0], local_quats[0])]
+    global_pos = [pre_pos[0]]
+
+    for i in range(1, skeleton.num_joints):
+        parent_idx = skeleton.parent_idx[i]
+        global_quats.append(mul(mul(global_quats[parent_idx], pre_quats[i]), local_quats[i]))
+        global_pos.append(mul_vec(global_quats[parent_idx], pre_pos[i]) + global_pos[parent_idx])
+    
+    global_quats = np.stack(global_quats, axis=-2) # (..., J, 4)
+    global_pos = np.stack(global_pos, axis=-2) # (..., J, 3)
+
+    return global_quats, global_pos
 
 """
 Quaternion to other representations
@@ -125,3 +152,6 @@ def from_rotmat(r):
 
 def from_ortho6d(r6d):
     return ortho6d.to_quat(r6d)
+
+def from_xform(x):
+    return xform.to_quat(x)

@@ -14,6 +14,23 @@ def interpolate(x0, x1, t):
 
     return rotmat.to_xform(r, translation=p)
 
+def fk(local_xforms, root_pos, skeleton):
+    """
+    Attributes:
+        local_xforms: (..., J, 4, 4)
+        root_pos: (..., 3), global root position
+        skeleton: aPyOpenGL.agl.Skeleton
+    """
+    pre_xforms = skeleton.pre_xforms # (J, 4, 4)
+    pre_xforms[0, :3, 3] = root_pos
+    
+    global_xforms = [pre_xforms[0] @ local_xforms[0]]
+    for i in range(1, skeleton.num_joints):
+        global_xforms.append(global_xforms[skeleton.parent_idx[i]] @ pre_xforms[i] @ local_xforms[i])
+    
+    global_xforms = np.stack(global_xforms, axis=-3) # (..., J, 4, 4)
+    return global_xforms
+
 """
 Transformation matrix to other representation
 """
@@ -29,8 +46,8 @@ def to_aaxis(xform):
 def to_ortho6d(xform):
     return rotmat.to_ortho6d(to_rotmat(xform))
 
-def to_trans(xform):
-    return xform[..., :3, 3]
+def to_translation(xform):
+    return np.ascontiguousarray(xform[..., :3, 3])
 
 """
 Other representation to transformation matrix

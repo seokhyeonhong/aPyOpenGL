@@ -12,6 +12,30 @@ def interpolate(r_from, r_to, t):
     q = quat.interpolate(q_from, q_to, t)
     return quat.to_rotmat(q)
 
+def fk(local_rotmats, root_pos, skeleton):
+    """
+    Attributes:
+        local_rotmats: (..., J, 3, 3)
+        root_pos: (..., 3), global root position
+        skeleton: aPyOpenGL.agl.Skeleton
+    """
+    pre_xforms  = torch.from_numpy(skeleton.pre_xforms).to(local_rotmats.device)
+    pre_rotmats = xform.to_rotmat(pre_xforms) # (J, 3, 3)
+    pre_pos     = xform.to_translation(pre_xforms) # (J, 3)
+    pre_pos[0]  = root_pos
+
+    global_rotmats = [torch.matmul(pre_rotmats[0], local_rotmats[0])]
+    global_pos = [pre_pos[0]]
+
+    for i in range(1, skeleton.num_joints):
+        parent_idx = skeleton.parent_idx[i]
+        global_rotmats.append(torch.matmul(torch.matmul(global_rotmats[parent_idx], pre_rotmats[i]), local_rotmats[i]))
+        global_pos.append(torch.matmul(global_rotmats[parent_idx], pre_pos[i]) + global_pos[parent_idx])
+    
+    global_rotmats = torch.stack(global_rotmats, dim=-3) # (..., J, 3, 3)
+    global_pos = torch.stack(global_pos, dim=-2) # (..., J, 3)
+
+    return global_rotmats, global_pos
 """
 Rotations to other representations
 """

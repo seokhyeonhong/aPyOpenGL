@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from . import rotmat, aaxis, euler, ortho6d
+from . import rotmat, aaxis, euler, ortho6d, xform
 
 """ Quaternion operations """
 def mul(q0, q1):
@@ -60,9 +60,34 @@ def between_vecs(v_from, v_to):
     cross = F.normalize(cross, dim=-1, eps=1e-8) # (..., 3)
     
     real = torch.sqrt(0.5 * (1.0 + dot))
-    imag = torch.sqrt(0.5 * (1.0 - dot)) * cross
+    imag = torch.sqrt(0.5 * (1.0 - dot))[..., None] * cross
 
     return torch.cat([real[..., None], imag], dim=-1)
+
+def fk(local_quats, root_pos, skeleton):
+    """
+    Attributes:
+        local_quats: (..., J, 4)
+        root_pos: (..., 3), global root position
+        skeleton: aPyOpenGL.agl.Skeleton
+    """
+    pre_xforms = torch.from_numpy(skeleton.pre_xforms).to(local_quats.device)
+    pre_quats  = xform.to_quat(pre_xforms)
+    pre_pos    = xform.to_translation(pre_xforms)
+    pre_pos[0] = root_pos
+
+    global_quats = [mul(pre_quats[0], local_quats[0])]
+    global_pos = [pre_pos[0]]
+
+    for i in range(1, skeleton.num_joints):
+        parent_idx = skeleton.parent_idx[i]
+        global_quats.append(mul(mul(global_quats[parent_idx], pre_quats[i]), local_quats[i]))
+        global_pos.append(mul_vec(global_quats[parent_idx], pre_pos[i]) + global_pos[parent_idx])
+    
+    global_quats = torch.stack(global_quats, dim=-2) # (..., J, 4)
+    global_pos = torch.stack(global_pos, dim=-2) # (..., J, 3)
+
+    return global_quats, global_pos
 
 """ Quaternion to other representations """
 def to_aaxis(quat):

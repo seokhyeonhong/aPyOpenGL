@@ -3,6 +3,14 @@ import numpy as np
 from . import rotmat, quat, aaxis, xform
 
 """
+Operations
+"""
+def fk(local_ortho6d, root_pos, skeleton):
+    global_xforms = xform.fk(to_xform(local_ortho6d), root_pos, skeleton)
+    global_ortho6ds, global_pos = xform.to_ortho6d(global_xforms), xform.to_translation(global_xforms)
+    return global_ortho6ds, global_pos
+
+"""
 Orthonormal 6D rotation to other representation
 """
 def to_quat(ortho6d):
