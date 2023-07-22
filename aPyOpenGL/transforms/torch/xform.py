@@ -1,16 +1,16 @@
-import numpy as np
+import torch
 
 from . import rotmat, quat, aaxis
 
 """
 Operations
 """
-def interpolate(x0, x1, t):
-    r0, p0 = x0[..., :3, :3], x0[..., :3, 3]
-    r1, p1 = x1[..., :3, :3], x1[..., :3, 3]
+def interpolate(x_from, x_to, t):
+    r_from, p_from = x_from[..., :3, :3], x_from[..., :3, 3]
+    r_to,   p_to   = x_to[..., :3, :3], x_to[..., :3, 3]
 
-    r = rotmat.interpolate(r0, r1, t)
-    p = p0 + (p1 - p0) * t
+    r = rotmat.interpolate(r_from, r_to, t)
+    p = p_from + (p_to - p_from) * t
 
     return rotmat.to_xform(r, translation=p)
 

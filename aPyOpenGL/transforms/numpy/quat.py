@@ -1,5 +1,5 @@
 import numpy as np
-from . import rotmat, aaxis, euler, rot6d
+from . import rotmat, aaxis, euler, ortho6d
 
 """
 Quaternion operations
@@ -28,14 +28,14 @@ def inv(q):
 def identity():
     return np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
 
-def interpolate(q0, q1, t):
-    len = np.sum(q0 * q1, axis=-1)
+def interpolate(q_from, q_to, t):
+    len = np.sum(q_from * q_to, axis=-1)
 
     neg = len < 0.0
     len[neg] = -len[neg]
-    q1[neg] = -q1[neg]
+    q_to[neg] = -q_to[neg]
 
-    t = np.zeros_like(q0[..., 0]) + t
+    t = np.zeros_like(q_from[..., 0:1]) + t
     t0 = np.zeros(t.shape, dtype=np.float32)
     t1 = np.zeros(t.shape, dtype=np.float32)
 
@@ -48,7 +48,7 @@ def interpolate(q0, q1, t):
 
     t1[linear] = t[linear]
     t1[~linear] = np.sin(t[~linear] * omegas) / sin_omegas
-    res = t0[..., None] * q0 + t1[..., None] * q1
+    res = t0 * q_from + t1 * q_to
     
     return res
 
@@ -59,14 +59,11 @@ def between_vecs(v_from, v_to):
     dot = np.sum(v_from_ * v_to_, axis=-1) # (...,)
     cross = np.cross(v_from_, v_to_)
     cross = cross / (np.linalg.norm(cross, axis=-1, keepdims=True) + 1e-8) # (..., 3)
+    
+    real = np.sqrt((1.0 + dot) * 0.5)
+    imag = np.sqrt((1.0 - dot) * 0.5) * cross
+    return np.concatenate([real[..., None], imag], axis=-1)
 
-    angle = np.arccos(dot)[..., None] # (..., 1)
-    res = np.concatenate([
-        np.cos(angle / 2.0), # (..., 1)
-        np.sin(angle / 2.0) * cross # (..., 3)
-    ], axis=-1)
-
-    return res
 """
 Quaternion to other representations
 """
@@ -108,8 +105,8 @@ def to_rotmat(quat):
     ], axis=-1)
     return rotmat.reshape(quat.shape[:-1] + (3, 3)) # (..., 3, 3)
 
-def to_rot6d(quat):
-    return rotmat.to_rot6d(to_rotmat(quat))
+def to_ortho6d(quat):
+    return rotmat.to_ortho6d(to_rotmat(quat))
 
 def to_xform(quat, translation=None):
     return rotmat.to_xform(to_rotmat(quat), translation=translation)
@@ -126,5 +123,5 @@ def from_euler(angles, order, radians=True):
 def from_rotmat(r):
     return rotmat.to_quat(r)
 
-def from_rot6d(r6d):
-    return rot6d.to_quat(r6d)
+def from_ortho6d(r6d):
+    return ortho6d.to_quat(r6d)

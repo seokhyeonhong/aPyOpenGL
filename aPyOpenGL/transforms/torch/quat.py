@@ -1,5 +1,6 @@
 import torch
-from . import rotmat
+import torch.nn.functional as F
+from . import rotmat, aaxis, euler, ortho6d
 
 """ Quaternion operations """
 def mul(q0, q1):
@@ -22,6 +23,46 @@ def mul_vec(q, v):
 
 def inv(q):
     return torch.cat([q[..., 0:1], -q[..., 1:]], dim=-1)
+
+def identity(device="cpu"):
+    return torch.tensor([1.0, 0.0, 0.0, 0.0], dtype=torch.float32, device=device)
+
+def interpolate(q_from, q_to, t):
+    len = torch.sum(q_from * q_to, dim=-1)
+
+    neg = len < 0.0
+    len[neg] = -len[neg]
+    q_to[neg] = -q_to[neg]
+
+    t = torch.zeros_like(q_from[..., 0:1]) + t
+    t0 = torch.zeros_like(t)
+    t1 = torch.zeros_like(t)
+
+    linear = (1.0 - t) < 0.01
+    omegas = torch.acos(len[~linear])
+    sin_omegas = torch.sin(omegas)
+
+    t0[linear] = 1.0 - t[linear]
+    t0[~linear] = torch.sin((1.0 - t[~linear]) * omegas) / sin_omegas
+
+    t1[linear] = t[linear]
+    t1[~linear] = torch.sin(t[~linear] * omegas) / sin_omegas
+    res = t0 * q_from + t1 * q_to
+
+    return res
+
+def between_vecs(v_from, v_to):
+    v_from_ = F.normalize(v_from, dim=-1, eps=1e-8) # (..., 3)
+    v_to_   = F.normalize(v_to,   dim=-1, eps=1e-8) # (..., 3)
+
+    dot = torch.sum(v_from_ * v_to_, dim=-1) # (...,)
+    cross = torch.cross(v_from_, v_to_)
+    cross = F.normalize(cross, dim=-1, eps=1e-8) # (..., 3)
+    
+    real = torch.sqrt(0.5 * (1.0 + dot))
+    imag = torch.sqrt(0.5 * (1.0 - dot)) * cross
+
+    return torch.cat([real[..., None], imag], dim=-1)
 
 """ Quaternion to other representations """
 def to_aaxis(quat):
@@ -49,7 +90,7 @@ def to_rotmat(quat):
     two_s = 2.0 / torch.sum(quat * quat, dim=-1) # (...,)
     r, i, j, k = quat[..., 0], quat[..., 1], quat[..., 2], quat[..., 3]
 
-    R = torch.stack([
+    rotmat = torch.stack([
         1.0 - two_s * (j*j + k*k),
         two_s * (i*j - k*r),
         two_s * (i*k + j*r),
@@ -60,10 +101,25 @@ def to_rotmat(quat):
         two_s * (j*k + i*r),
         1.0 - two_s * (i*i + j*j)
     ], dim=-1)
-    return R.reshape(quat.shape[:-1] + (3, 3)) # (..., 3, 3)
+    return rotmat.reshape(quat.shape[:-1] + (3, 3)) # (..., 3, 3)
 
-def to_rot6d(quat):
-    return rotmat.to_rot6d(to_rotmat(quat))
+def to_ortho6d(quat):
+    return rotmat.to_ortho6d(to_rotmat(quat))
 
 def to_xform(quat):
     return rotmat.to_xform(to_rotmat(quat))
+
+"""
+Other representations to quaternion
+"""
+def from_aaxis(a):
+    return aaxis.to_quat(a)
+
+def from_euler(angles, order, radians=True):
+    return euler.to_quat(angles, order, radians=radians)
+
+def from_rotmat(r):
+    return rotmat.to_quat(r)
+
+def from_ortho6d(r6d):
+    return ortho6d.to_quat(r6d)

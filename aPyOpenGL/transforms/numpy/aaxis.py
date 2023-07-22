@@ -1,6 +1,6 @@
 import numpy as np
 
-from . import rotmat, quat, rot6d, xform
+from . import rotmat, quat, ortho6d, xform
 
 def _split_axis_angle(aaxis):
     # aaxis: (..., 3) angle axis
@@ -39,8 +39,8 @@ def to_rotmat(aaxis):
 
     return I + S * sin + np.matmul(S, S) * (1 - cos)  # (..., 3, 3)
 
-def to_rot6d(aaxis):
-    return rotmat.to_rot6d(to_rotmat(aaxis))
+def to_ortho6d(aaxis):
+    return rotmat.to_ortho6d(to_rotmat(aaxis))
 
 def to_xform(aaxis, translation=None):
     return rotmat.to_xform(to_rotmat(aaxis), translation=translation)
@@ -54,8 +54,8 @@ def from_quat(q):
 def from_rotmat(r):
     return rotmat.to_aaxis(r)
 
-def from_rot6d(r):
-    return rot6d.to_aaxis(r)
+def from_ortho6d(r):
+    return ortho6d.to_aaxis(r)
 
 def from_xform(x):
     return xform.to_aaxis(x)

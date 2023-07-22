@@ -1,8 +1,20 @@
 import torch
 import torch.nn.functional as F
 
-from . import quat
+from . import quat, aaxis, ortho6d, xform
 
+"""
+Operations
+"""
+def interpolate(r_from, r_to, t):
+    q_from = to_quat(r_from)
+    q_to   = to_quat(r_to)
+    q = quat.interpolate(q_from, q_to, t)
+    return quat.to_rotmat(q)
+
+"""
+Rotations to other representations
+"""
 def to_aaxis(rotmat):
     return quat.to_aaxis(to_quat(rotmat))
 
@@ -39,7 +51,7 @@ def to_quat(rotmat):
     
     return Q.reshape(batch_dim + (4,))
 
-def to_rot6d(rotmat):
+def to_ortho6d(rotmat):
     return torch.cat([rotmat[..., 0, :], rotmat[..., 1, :]], dim=-1)
 
 def to_xform(rotmat, translation=None):
@@ -57,3 +69,18 @@ def to_xform(rotmat, translation=None):
         I[..., :3, 3] = translation
 
     return I
+
+"""
+Other representation to rotation matrix
+"""
+def from_aaxis(a):
+    return aaxis.to_rotmat(a)
+
+def from_quat(q):
+    return quat.to_rotmat(q)
+
+def from_ortho6d(r):
+    return ortho6d.to_rotmat(r)
+
+def from_xform(x):
+    return xform.to_rotmat(x)

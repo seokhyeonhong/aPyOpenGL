@@ -1,14 +1,14 @@
 import numpy as np
 
-from . import quat, aaxis, rot6d, xform
+from . import quat, aaxis, ortho6d, xform
 
 """
 Operations
 """
-def interpolate(r0, r1, t):
-    q0 = to_quat(r0)
-    q1 = to_quat(r1)
-    q = quat.interpolate(q0, q1, t)
+def interpolate(r_from, r_to, t):
+    q_from = to_quat(r_from)
+    q_to   = to_quat(r_to)
+    q = quat.interpolate(q_from, q_to, t)
     return quat.to_rotmat(q)
 
 """
@@ -51,7 +51,7 @@ def to_quat(rotmat):
 
     return quat.reshape(batch_dim + (4,))
 
-def to_rot6d(rotmat):
+def to_ortho6d(rotmat):
     return np.concatenate([rotmat[..., 0, :], rotmat[..., 1, :]], axis=-1)
 
 def to_xform(rotmat, translation=None):
@@ -79,8 +79,8 @@ def from_aaxis(a):
 def from_quat(q):
     return quat.to_rotmat(q)
 
-def from_rot6d(r):
-    return rot6d.to_rotmat(r)
+def from_ortho6d(r):
+    return ortho6d.to_rotmat(r)
 
 def from_xform(x):
     return xform.to_rotmat(x)
