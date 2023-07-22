@@ -32,6 +32,10 @@ class Skeleton:
     def num_joints(self):
         return len(self.joints)
 
+    @property
+    def pre_xforms(self):
+        return self.__pre_xforms.copy()
+    
     def add_joint(self, joint_name, pre_quat=None, local_pos=None, parent_idx=None):
         # add parent and children indices
         if parent_idx is None or parent_idx == -1:
@@ -52,4 +56,4 @@ class Skeleton:
         self._recompute_pre_xform()
     
     def _recompute_pre_xform(self):
-        self.pre_xforms = np.stack([joint.pre_xform for joint in self.joints])
+        self.__pre_xforms = np.stack([joint.pre_xform for joint in self.joints])

@@ -31,11 +31,15 @@ class Joint:
 
     @property
     def pre_quat(self):
-        return self.__pre_quat
+        return self.__pre_quat.copy()
     
     @property
     def local_pos(self):
-        return self.__local_pos
+        return self.__local_pos.copy()
+    
+    @property
+    def pre_xform(self):
+        return self.__pre_xform.copy()
     
     @pre_quat.setter
     def pre_quat(self, value):
@@ -53,4 +57,4 @@ class Joint:
 
     def _recompute_pre_xform(self):
         pre_rotmat = n_quat.to_rotmat(self.__pre_quat)
-        self.pre_xform = n_rotmat.to_xform(pre_rotmat, translation=self.__local_pos)
+        self.__pre_xform = n_rotmat.to_xform(pre_rotmat, translation=self.__local_pos)

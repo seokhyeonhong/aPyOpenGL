@@ -141,11 +141,17 @@ class Parser:
             frame_idx = [i for i in range(scene.start_frame, scene.end_frame + 1)]
             frame_set.append(frame_idx)
         
-        resampled_scenes = util.run_parallel_sync(_get_resampled_scene, zip(scenes, frame_set), desc="Resampling scenes")
+        # resampled_scenes = util.run_parallel_sync(_get_resampled_scene, zip(scenes, frame_set), desc="Resampling scenes")
+        resampled_scenes = []
+        for i in tqdm(range(len(scenes)), desc="Resampling scenes", leave=False):
+            resampled_scenes.append(_get_resampled_scene((scenes[i], frame_set[i])))
         print(f"Resampled {len(resampled_scenes)} scenes")
 
         # parse
-        rotations_and_positions = util.run_parallel_sync(_parse_motion, zip(resampled_scenes, frame_set), names=names, desc="Parsing motions")
+        # rotations_and_positions = util.run_parallel_sync(_parse_motion, zip(resampled_scenes, frame_set), names=names, desc="Parsing motions")
+        rotations_and_positions = []
+        for i in tqdm(range(len(resampled_scenes)), desc="Parsing motions", leave=False):
+            rotations_and_positions.append(_parse_motion((resampled_scenes[i], frame_set[i]), names=names))
 
         # create motion
         motion_set = []
