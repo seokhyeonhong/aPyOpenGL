@@ -105,7 +105,7 @@ class FBXParser:
     def get_scene_keyframes(self, scale):
         keyframes = []
         criteria = FbxCriteria.ObjectType(FbxAnimStack.ClassId)
-        for i in tqdm(range(self.scene.GetSrcObjectCount(criteria)), desc="FBX anim stacks", leave=False):
+        for i in tqdm(range(self.scene.GetSrcObjectCount(criteria)), desc="FBX anim stacks"):
             anim_stack = self.scene.GetSrcObject(criteria, i)
             
             scene_kf = get_scene_animation(anim_stack, self.scene.GetRootNode(), scale)

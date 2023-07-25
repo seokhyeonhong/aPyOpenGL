@@ -747,7 +747,7 @@ class RenderOptions:
             material_id = 0
 
         if material_id < len(self._materials):
-            self._materials[material_id].alpha(alpha)
+            self._materials[material_id].set_alpha(alpha)
 
         return self
     
@@ -825,6 +825,11 @@ class RenderOptionsVec:
         self.options[index].transform(transform)
         return self
     
+    def alpha(self, alpha, material_id=0):
+        for option in self.options:
+            option.alpha(alpha, material_id)
+        return self
+
     def update_skeleton(self, model: Model):
         """ Only used for Render.skeleton """
         xforms = model.pose.skeleton_xforms()

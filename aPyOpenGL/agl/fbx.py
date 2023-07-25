@@ -47,8 +47,11 @@ class Parser:
         self.init_mesh_data(scale)
     
     def pkl_path(self, pkl_type):
-        base, ext = os.path.splitext(self.path)
-        return f"{base}_{pkl_type}.pkl"
+        dir_path = os.path.dirname(self.path)
+        filename = os.path.basename(self.path).split(".")[0]
+        save_dir = os.path.join(dir_path, "aPyOpenGL-pkl")
+        os.makedirs(save_dir, exist_ok=True)
+        return os.path.join(save_dir, f"{filename}_{pkl_type}.pkl")
     
     def init_character_data(self, scale):
         self.char_data = fbxparser.CharacterData()
@@ -137,20 +140,19 @@ class Parser:
 
         # resample
         frame_set = []
-        for scene in tqdm(scenes, desc="Resampling", leave=False):
+        for scene in tqdm(scenes, desc="Resampling"):
             frame_idx = [i for i in range(scene.start_frame, scene.end_frame + 1)]
             frame_set.append(frame_idx)
         
         # resampled_scenes = util.run_parallel_sync(_get_resampled_scene, zip(scenes, frame_set), desc="Resampling scenes")
         resampled_scenes = []
-        for i in tqdm(range(len(scenes)), desc="Resampling scenes", leave=False):
+        for i in tqdm(range(len(scenes)), desc="Resampling scenes"):
             resampled_scenes.append(_get_resampled_scene((scenes[i], frame_set[i])))
-        print(f"Resampled {len(resampled_scenes)} scenes")
 
         # parse
         # rotations_and_positions = util.run_parallel_sync(_parse_motion, zip(resampled_scenes, frame_set), names=names, desc="Parsing motions")
         rotations_and_positions = []
-        for i in tqdm(range(len(resampled_scenes)), desc="Parsing motions", leave=False):
+        for i in tqdm(range(len(resampled_scenes)), desc="Parsing motions"):
             rotations_and_positions.append(_parse_motion((resampled_scenes[i], frame_set[i]), names=names))
 
         # create motion
@@ -162,7 +164,6 @@ class Parser:
             
             motion = Motion(poses, fps=self.parser.get_scene_fps(), name=self.parser.filepath)
             motion_set.append(motion)
-        print(f"Created {len(motion_set)} motions")
         
         if len(motion_set) > 0:
             with open(motion_pkl_path, "wb") as f:
@@ -262,3 +263,6 @@ class FBX:
     
     def motions(self) -> list[Motion]:
         return self.parser.motions(self.parser.char_data.joint_data)
+    
+    def fps(self):
+        return self.parser.parser.get_scene_fps()
