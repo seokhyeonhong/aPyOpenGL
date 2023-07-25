@@ -18,18 +18,18 @@ def fk(local_rotmats, root_pos, skeleton):
         root_pos: (..., 3), global root position
         skeleton: aPyOpenGL.agl.Skeleton
     """
-    pre_xforms = skeleton.pre_xforms
-    pre_rotmats = xform.to_rotmat(pre_xforms) # (J, 3, 3)
-    pre_pos     = xform.to_translation(pre_xforms) # (J, 3)
-    pre_pos[0]  = root_pos
+    pre_xforms = np.tile(skeleton.pre_xforms, local_rotmats.shape[:-3] + (1, 1, 1)) # (..., J, 4, 4)
+    pre_rotmats = xform.to_rotmat(pre_xforms) # (..., J, 3, 3)
+    pre_pos     = xform.to_translation(pre_xforms) # (..., J, 3)
+    pre_pos[..., 0, :] = root_pos
 
-    global_rotmats = [np.matmul(pre_rotmats[0], local_rotmats[0])]
-    global_pos = [pre_pos[0]]
+    global_rotmats = [np.matmul(pre_rotmats[..., 0, :, :], local_rotmats[..., 0, :, :])]
+    global_pos = [pre_pos[..., 0, :]]
 
     for i in range(1, skeleton.num_joints):
         parent_idx = skeleton.parent_idx[i]
-        global_rotmats.append(np.matmul(np.matmul(global_rotmats[parent_idx], pre_rotmats[i]), local_rotmats[i]))
-        global_pos.append(np.matmul(global_rotmats[parent_idx], pre_pos[i]) + global_pos[parent_idx])
+        global_rotmats.append(np.matmul(np.matmul(global_rotmats[parent_idx], pre_rotmats[..., i, :, :]), local_rotmats[..., i, :, :]))
+        global_pos.append(np.einsum("...ij,...j->...i", global_rotmats[parent_idx], pre_pos[..., i, :]) + global_pos[parent_idx])
     
     global_rotmats = np.stack(global_rotmats, axis=-3) # (..., J, 3, 3)
     global_pos = np.stack(global_pos, axis=-2) # (..., J, 3)

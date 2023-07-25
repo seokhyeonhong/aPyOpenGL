@@ -31,7 +31,7 @@ def to_rotmat(aaxis):
     S   = S.reshape(batch_dims + (3, 3))
 
     # rotation matrix
-    I   = torch.eye(3, dtype=torch.float32)
+    I   = torch.eye(3, dtype=torch.float32, device=aaxis.device)
     I   = I.repeat(batch_dims + (1, 1))
     sin = torch.sin(angle)[..., None, None]
     cos = torch.cos(angle)[..., None, None]

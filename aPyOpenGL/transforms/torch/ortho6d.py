@@ -11,6 +11,17 @@ def fk(local_ortho6d, root_pos, skeleton):
     global_ortho6ds, global_pos = xform.to_ortho6d(global_xforms), xform.to_translation(global_xforms)
     return global_ortho6ds, global_pos
 
+def mul(r0, r1):
+    r0_ = to_rotmat(r0)
+    r1_ = to_rotmat(r1)
+    res = torch.matmul(r0, r1)
+    return rotmat.to_ortho6d(res)
+
+def inv(r):
+    r_ = to_rotmat(r)
+    res = torch.inverse(r_)
+    return rotmat.to_ortho6d(res)
+
 """
 Orthonormal 6D rotation to other representation
 """
