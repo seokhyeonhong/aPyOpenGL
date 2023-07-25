@@ -21,12 +21,12 @@ def fk(local_xforms, root_pos, skeleton):
         root_pos: (..., 3), global root position
         skeleton: aPyOpenGL.agl.Skeleton
     """
-    pre_xforms = skeleton.pre_xforms # (J, 4, 4)
-    pre_xforms[0, :3, 3] = root_pos
+    pre_xforms = np.tile(skeleton.pre_xforms, local_xforms.shape[:-3] + (1, 1, 1)) # (..., J, 4, 4)
+    pre_xforms[..., 0, :3, 3] = root_pos
     
-    global_xforms = [pre_xforms[0] @ local_xforms[0]]
+    global_xforms = [pre_xforms[..., 0, :, :] @ local_xforms[..., 0, :, :]]
     for i in range(1, skeleton.num_joints):
-        global_xforms.append(global_xforms[skeleton.parent_idx[i]] @ pre_xforms[i] @ local_xforms[i])
+        global_xforms.append(global_xforms[skeleton.parent_idx[i]] @ pre_xforms[..., i, :, :] @ local_xforms[..., i, :, :])
     
     global_xforms = np.stack(global_xforms, axis=-3) # (..., J, 4, 4)
     return global_xforms

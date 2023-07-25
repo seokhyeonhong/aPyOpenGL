@@ -22,12 +22,12 @@ def fk(local_xforms, root_pos, skeleton):
         skeleton: aPyOpenGL.agl.Skeleton
     """
     pre_xforms = torch.from_numpy(skeleton.pre_xforms).to(local_xforms.device) # (J, 4, 4)
-    pre_xforms[0, :3, 3] = root_pos
+    pre_xforms = torch.tile(pre_xforms, local_xforms.shape[:-3] + (1, 1, 1)) # (..., J, 4, 4)
+    pre_xforms[..., 0, :3, 3] = root_pos
     
-    global_xforms = [pre_xforms[0] @ local_xforms[0]]
+    global_xforms = [pre_xforms[..., 0, :, :] @ local_xforms[..., 0, :, :]]
     for i in range(1, skeleton.num_joints):
-        parent_idx = skeleton.parent_idx[i]
-        global_xforms.append(global_xforms[parent_idx] @ pre_xforms[i] @ local_xforms[i])
+        global_xforms.append(global_xforms[skeleton.parent_idx[i]] @ pre_xforms[..., i, :, :] @ local_xforms[..., i, :, :])
     
     global_xforms = torch.stack(global_xforms, dim=-3) # (..., J, 4, 4)
     return global_xforms

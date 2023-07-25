@@ -72,17 +72,18 @@ def fk(local_quats, root_pos, skeleton):
         skeleton: aPyOpenGL.agl.Skeleton
     """
     pre_xforms = torch.from_numpy(skeleton.pre_xforms).to(local_quats.device)
+    pre_xforms = torch.tile(pre_xforms, local_quats.shape[:-2] + (1, 1, 1)) # (..., J, 4, 4)
     pre_quats  = xform.to_quat(pre_xforms)
     pre_pos    = xform.to_translation(pre_xforms)
     pre_pos[0] = root_pos
 
-    global_quats = [mul(pre_quats[0], local_quats[0])]
-    global_pos = [pre_pos[0]]
+    global_quats = [mul(pre_quats[..., 0, :], local_quats[..., 0, :])]
+    global_pos = [pre_pos[..., 0, :]]
 
     for i in range(1, skeleton.num_joints):
         parent_idx = skeleton.parent_idx[i]
-        global_quats.append(mul(mul(global_quats[parent_idx], pre_quats[i]), local_quats[i]))
-        global_pos.append(mul_vec(global_quats[parent_idx], pre_pos[i]) + global_pos[parent_idx])
+        global_quats.append(mul(mul(global_quats[parent_idx], pre_quats[..., i, :]), local_quats[..., i, :]))
+        global_pos.append(mul_vec(global_quats[parent_idx], pre_pos[..., i, :]) + global_pos[parent_idx])
     
     global_quats = torch.stack(global_quats, dim=-2) # (..., J, 4)
     global_pos = torch.stack(global_pos, dim=-2) # (..., J, 3)
