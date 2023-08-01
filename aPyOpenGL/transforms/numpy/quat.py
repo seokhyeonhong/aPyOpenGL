@@ -19,8 +19,8 @@ def mul(q0, q1):
     return res
 
 def mul_vec(q, v):
-    t = 2.0 * np.cross(q[..., 1:], v)
-    res = v + q[..., 0:1] * t + np.cross(q[..., 1:], t)
+    t = 2.0 * np.cross(q[..., 1:], v, axis=-1)
+    res = v + q[..., 0:1] * t + np.cross(q[..., 1:], t, axis=-1)
     return res
 
 def inv(q):
@@ -30,28 +30,49 @@ def identity():
     return np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
 
 def interpolate(q_from, q_to, t):
-    len = np.sum(q_from * q_to, axis=-1)
+    """
+    Args:
+        q_from: (..., 4)
+        q_to: (..., 4)
+        t: (..., t) or (t,), or just a float
+    Returns:
+        interpolated quaternion (..., 4, t)
+    """
 
-    neg = len < 0.0
-    len[neg] = -len[neg]
-    q_to[neg] = -q_to[neg]
+    # ensure t is a numpy array
+    if isinstance(t, float):
+        t = np.array([t], dtype=np.float32)
+    t = np.zeros_like(q_from[..., 0:1]) + t # (..., t)
 
-    t = np.zeros_like(q_from[..., 0:1]) + t
-    t0 = np.zeros(t.shape, dtype=np.float32)
-    t1 = np.zeros(t.shape, dtype=np.float32)
+    # ensure unit quaternions
+    q_from_ = q_from / (np.linalg.norm(q_from, axis=-1, keepdims=True) + 1e-8) # (..., 4)
+    q_to_   = q_to   / (np.linalg.norm(q_to,   axis=-1, keepdims=True) + 1e-8) # (..., 4)
 
-    linear = (1.0 - t) < 0.01
-    omegas = np.arccos(len[~linear])
-    sin_omegas = np.sin(omegas)
+    # ensure positive dot product
+    dot = np.sum(q_from_ * q_to_, axis=-1) # (...,)
+    neg = dot < 0.0
+    dot[neg] = -dot[neg]
+    q_to_[neg] = -q_to_[neg]
 
+    # omega = arccos(dot)
+    linear = dot > 0.9999
+    omegas = np.arccos(dot[~linear]) # (...,)
+    omegas = omegas[..., None] # (..., 1)
+    sin_omegas = np.sin(omegas) # (..., 1)
+
+    # interpolation amounts
+    t0 = np.empty_like(t)
     t0[linear] = 1.0 - t[linear]
-    t0[~linear] = np.sin((1.0 - t[~linear]) * omegas) / sin_omegas
+    t0[~linear] = np.sin((1.0 - t[~linear]) * omegas) / sin_omegas # (..., t)
 
+    t1 = np.empty_like(t)
     t1[linear] = t[linear]
-    t1[~linear] = np.sin(t[~linear] * omegas) / sin_omegas
-    res = t0 * q_from + t1 * q_to
+    t1[~linear] = np.sin(t[~linear] * omegas) / sin_omegas # (..., t)
     
-    return res
+    # interpolate
+    q_interp = t0[..., None, :] * q_from_[..., :, None] + t1[..., None, :] * q_to_[..., :, None] # (..., 4, t)
+    
+    return q_interp
 
 def between_vecs(v_from, v_to):
     v_from_ = v_from / (np.linalg.norm(v_from, axis=-1, keepdims=True) + 1e-8) # (..., 3)

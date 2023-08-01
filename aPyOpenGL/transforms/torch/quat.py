@@ -2,7 +2,9 @@ import torch
 import torch.nn.functional as F
 from . import rotmat, aaxis, euler, ortho6d, xform
 
-""" Quaternion operations """
+"""
+Quaternion operations
+"""
 def mul(q0, q1):
     r0, i0, j0, k0 = torch.split(q0, 1, dim=-1)
     r1, i1, j1, k1 = torch.split(q1, 1, dim=-1)
@@ -17,8 +19,8 @@ def mul(q0, q1):
     return res
 
 def mul_vec(q, v):
-    t = 2.0 * torch.cross(q[..., 1:], v)
-    res = v + q[..., 0:1] * t + torch.cross(q[..., 1:], t)
+    t = 2.0 * torch.cross(q[..., 1:], v, dim=-1)
+    res = v + q[..., 0:1] * t + torch.cross(q[..., 1:], t, dim=-1)
     return res
 
 def inv(q):
@@ -28,28 +30,51 @@ def identity(device="cpu"):
     return torch.tensor([1.0, 0.0, 0.0, 0.0], dtype=torch.float32, device=device)
 
 def interpolate(q_from, q_to, t):
-    len = torch.sum(q_from * q_to, dim=-1)
+    """
+    Args:
+        q_from: (..., 4)
+        q_to: (..., 4)
+        t: (..., t) or (t,), or just a float
+    Returns:
+        interpolated quaternion (..., 4, t)
+    """
+    device = q_from.device
+    
+    # ensure t is a torch tensor
+    if isinstance(t, float):
+        t = torch.tensor([t], dtype=torch.float32, device=device)
+    t = torch.zeros_like(q_from[..., 0:1]) + t # (..., t)
+    
+    # ensure unit quaternions
+    q_from_ = F.normalize(q_from, dim=-1, eps=1e-8) # (..., 4)
+    q_to_   = F.normalize(q_to,   dim=-1, eps=1e-8) # (..., 4)
 
-    neg = len < 0.0
-    len[neg] = -len[neg]
-    q_to[neg] = -q_to[neg]
+    # ensure positive dot product
+    dot = torch.sum(q_from_ * q_to_, dim=-1) # (...,)
+    neg = dot < 0.0
+    dot[neg] = -dot[neg]
+    q_to_[neg] = -q_to_[neg]
 
-    t = torch.zeros_like(q_from[..., 0:1]) + t
-    t0 = torch.zeros_like(t)
-    t1 = torch.zeros_like(t)
+    # omega = arccos(dot)
+    linear = dot > 0.9999
+    omegas = torch.acos(dot[~linear]) # (...,)
+    omegas = omegas[..., None] # (..., 1)
+    sin_omegas = torch.sin(omegas) # (..., 1)
 
-    linear = (1.0 - t) < 0.01
-    omegas = torch.acos(len[~linear])
-    sin_omegas = torch.sin(omegas)
-
+    # interpolation amounts
+    t0 = torch.empty_like(t)
     t0[linear] = 1.0 - t[linear]
-    t0[~linear] = torch.sin((1.0 - t[~linear]) * omegas) / sin_omegas
+    t0[~linear] = torch.sin((1.0 - t[~linear]) * omegas) / sin_omegas # (..., t)
 
+    t1 = torch.empty_like(t)
     t1[linear] = t[linear]
-    t1[~linear] = torch.sin(t[~linear] * omegas) / sin_omegas
-    res = t0 * q_from + t1 * q_to
-
-    return res
+    t1[~linear] = torch.sin(t[~linear] * omegas) / sin_omegas # (..., t)
+    
+    # interpolate
+    q_interp = t0[..., None, :] * q_from_[..., :, None] + t1[..., None, :] * q_to_[..., :, None] # (..., 4, t)
+    q_interp = F.normalize(q_interp, dim=-2, eps=1e-8) # (..., 4, t)
+    
+    return q_interp
 
 def between_vecs(v_from, v_to):
     v_from_ = F.normalize(v_from, dim=-1, eps=1e-8) # (..., 3)
@@ -75,7 +100,7 @@ def fk(local_quats, root_pos, skeleton):
     pre_xforms = torch.tile(pre_xforms, local_quats.shape[:-2] + (1, 1, 1)) # (..., J, 4, 4)
     pre_quats  = xform.to_quat(pre_xforms)
     pre_pos    = xform.to_translation(pre_xforms)
-    pre_pos[0] = root_pos
+    pre_pos[..., 0, :] = root_pos
 
     global_quats = [mul(pre_quats[..., 0, :], local_quats[..., 0, :])]
     global_pos = [pre_pos[..., 0, :]]
