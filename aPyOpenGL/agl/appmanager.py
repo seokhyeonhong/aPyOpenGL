@@ -91,3 +91,4 @@ class AppManager:
         glfw.destroy_window(app.window)
         glfw.terminate()
         app.terminate()
+        Render.vao_cache = {}

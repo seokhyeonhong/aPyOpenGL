@@ -759,6 +759,11 @@ class RenderOptions:
         self._visible = not self._visible
         return self
     
+    def no_shadow(self):
+        self._shadow_shader = None
+        self._shadow_func = None
+        return self
+    
     def visible(self, visible):
         self._visible = visible
         return self
@@ -828,6 +833,11 @@ class RenderOptionsVec:
     def alpha(self, alpha, material_id=0):
         for option in self.options:
             option.alpha(alpha, material_id)
+        return self
+    
+    def no_shadow(self):
+        for option in self.options:
+            option.no_shadow()
         return self
 
     def update_skeleton(self, model: Model):

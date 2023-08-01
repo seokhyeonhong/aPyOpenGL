@@ -70,7 +70,7 @@ class App:
         glfw.window_hint(glfw.SAMPLES, 4)
 
         # create window
-        window = glfw.create_window(self.width, self.height, "pymovis", None, None)
+        window = glfw.create_window(self.width, self.height, "aPyOpenGL", None, None)
         glfw.make_context_current(window)
 
         if not window:
