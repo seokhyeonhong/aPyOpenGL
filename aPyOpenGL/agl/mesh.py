@@ -21,7 +21,7 @@ class Mesh:
         self.buffer       = [glm.mat4(1.0)] * len(self.mesh_gl.joint_names)
         
     def __deepcopy__(self, memo):
-        res = Mesh(self.mesh_gl, copy.deepcopy(self.materials), self.use_skinning, self.skeleton)
+        res = Mesh(self.mesh_gl, copy.deepcopy(self.materials), self.skeleton)
         res.buffer = copy.deepcopy(self.buffer)
         memo[id(self)] = res
         return res

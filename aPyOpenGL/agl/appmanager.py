@@ -61,27 +61,21 @@ class AppManager:
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             app.render()
 
-            # render background
-            # Render.set_render_mode(RenderMode.eBACKGROUND)
-            # glViewport(0, 0, BACKGROUND_MAP_SIZE, BACKGROUND_MAP_SIZE)
-            # glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-            # app.render()
-
             # render text
             Render.set_render_mode(RenderMode.eTEXT)
             glViewport(0, 0, width, height)
             app.render_text()
-
+            
             # render xray
             Render.set_render_mode(RenderMode.eDRAW)
             glClear(GL_DEPTH_BUFFER_BIT)
             app.render_xray()
 
-            # late update
-            app.late_update()
-
             # render ui
             app.render_ui()
+
+            # late update
+            app.late_update()
 
             # event
             glfw.poll_events()

@@ -21,7 +21,7 @@ class App:
     def __init__(
         self,
         camera = Camera(),
-        lights = [DirectionalLight(), DirectionalLight(direction=glm.vec3(1, 2, 1), intensity=0.2)],
+        lights = [DirectionalLight(), DirectionalLight(direction=glm.vec3(1, -2, 1), intensity=0.2)],
     ):
         # render settings
         self.camera = camera
@@ -90,14 +90,16 @@ class App:
         
         # global OpenGL state
         glEnable(GL_DEPTH_TEST)
-        glEnable(GL_CULL_FACE)
-        glEnable(GL_BLEND)
-        glEnable(GL_MULTISAMPLE)
-        glEnable(GL_LINE_SMOOTH)
-
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glDepthFunc(GL_LEQUAL)
+
+        glEnable(GL_MULTISAMPLE)
+        
+        glEnable(GL_CULL_FACE)
         glCullFace(GL_BACK)
+
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
         # glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
 
         # intialize shaders
@@ -109,7 +111,7 @@ class App:
     """ Cotinue on these methods to add custom rendering scripts """
     def start(self):
         # render options
-        self.grid = Render.plane(200, 200).albedo(0.15).floor(True)
+        self.grid = Render.plane(200, 200).albedo(0.2).floor(True)
         self.axis = Render.axis()
         self.render_fps_text = Render.text_on_screen().position([0, 0.95, 0]).scale(0.3)
 
@@ -158,6 +160,9 @@ class App:
 
     def render_xray(self):
         pass
+
+    def render_ui(self):
+        self.ui.render()
     
     def terminate(self):
         pass
@@ -282,9 +287,6 @@ class App:
 
     def initialize_ui(self):
         self.ui.initialize(self.window)
-    
-    def render_ui(self):
-        self.ui.render()
     
     def terminate_ui(self):
         self.ui.terminate()

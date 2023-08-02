@@ -208,7 +208,7 @@ class Render:
             radius = max(min(bone_len, 1), 0.1) * 0.1
             scales.append(glm.vec3(radius, bone_len, radius))
         
-        ro.position(positions).orientation(orientations).scale(scales).albedo([0, 1, 0]).color_mode(True)
+        ro.position(positions).orientation(orientations).scale(scales).albedo([0, 1, 1]).color_mode(True)
 
         return ro
 
@@ -276,13 +276,9 @@ class Render:
 
             # update flag
             shader.is_view_updated = True
-
+        
         # update model
         if option._use_skinning:
-            if len(option._buffer_xforms) > MAX_JOINT_NUM:
-                print(f"Joint number exceeds the limit: {len(option._buffer_xforms)} > {MAX_JOINT_NUM}")
-                option._buffer_xforms = option._buffer_xforms[:MAX_JOINT_NUM]
-                
             shader.set_multiple_mat4("uLbsJoints", option._buffer_xforms)
         else:
             shader.set_int("uInstanceNum", option._instance_num)
@@ -454,15 +450,15 @@ class Render:
         shader.use()
         
         if on_screen:
-            PV = glm.ortho(0, Render.render_info.width, 0, Render.render_info.height)
-            M  = glm.mat4(1.0)
+            PVM = glm.ortho(0, Render.render_info.width, 0, Render.render_info.height)
         else:
             PV = Render.render_info.cam_projection * Render.render_info.cam_view
             M = glm.translate(glm.mat4(1.0), option._position)\
                 * glm.mat4(option._orientation)\
                 * glm.scale(glm.mat4(1.0), option._scale) # translation * rotation * scale
+            PVM = PV * M
 
-        shader.set_mat4("uPVM", PV * M)
+        shader.set_mat4("uPVM", PVM)
         shader.set_int("uFontTexture", 0)
         shader.set_vec3("uTextColor", option._materials[0].albedo.xyz)
 
@@ -534,7 +530,7 @@ class Render:
 
         # unbind vao
         glBindVertexArray(0)
-        
+
     @staticmethod
     def update_render_view(app, width, height):
         cam = app.camera
@@ -723,6 +719,10 @@ class RenderOptions:
         return self
     
     def buffer_xforms(self, buffer_xforms):
+        if len(buffer_xforms) > MAX_JOINT_NUM:
+            print(f"Joint number exceeds the limit: {len(buffer_xforms)} > {MAX_JOINT_NUM}")
+            buffer_xforms = buffer_xforms[:MAX_JOINT_NUM]
+            
         self._buffer_xforms = buffer_xforms
         return self
     
@@ -754,7 +754,7 @@ class RenderOptions:
     def color_mode(self, color_mode):
         self._color_mode = color_mode
         return self
-
+    
     def switch_visible(self):
         self._visible = not self._visible
         return self
