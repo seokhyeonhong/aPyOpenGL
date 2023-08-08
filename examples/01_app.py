@@ -11,7 +11,7 @@ class MyApp(agl.App):
         self.cone    = agl.Render.cone().albedo([0.2, 0.2, 1]).position([0, 0.5, 2])
         self.pyramid = agl.Render.pyramid().albedo([1, 1, 0]).position([0, 0, -1])
         self.text    = agl.Render.text("Hello, aPyOpenGL!")
-        self.text_on_screen = agl.Render.text_on_screen("Hello, Screen!").position([0.01, 0.05, 0]).scale(1)
+        self.text_on_screen = agl.Render.text_on_screen("Hello, Screen!\nHIHI").position([0.01, 0.5, 0]).scale(1)
         self.cubemap = agl.Render.cubemap("skybox")
 
         self.ball = agl.Render.sphere().scale(0.5)

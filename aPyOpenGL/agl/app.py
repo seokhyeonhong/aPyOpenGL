@@ -42,7 +42,7 @@ class App:
 
         # capture
         self.captures = []
-        self.record_mode  = App.RecordMode.eNONE
+        self.record_mode = App.RecordMode.eNONE
 
         # auxiliary - render fps
         self.start_time = 0
@@ -139,6 +139,11 @@ class App:
         # capture video
         if self.record_mode != App.RecordMode.eNONE:
             if (self.frame - self.prev_frame) == 1:
+                # capture = self.capture_screen()
+                # cache_dir = os.path.join(self.capture_path, "videos", "cache")
+                # if not os.path.exists(cache_dir):
+                #     os.makedirs(cache_dir)
+                # cv2.imwrite(os.path.join(cache_dir, f"{self.frame:05d}.png"), capture)
                 self.captures.append(self.capture_screen())
                 
         # update previous frame
@@ -190,7 +195,6 @@ class App:
         elif key == glfw.KEY_F6:
             if self.record_mode == App.RecordMode.eSECTION_TO_VID:
                 self.save_video()
-                self.captures = []
                 self.record_mode = App.RecordMode.eNONE
             elif self.record_mode == App.RecordMode.eNONE:
                 self.record_mode = App.RecordMode.eSECTION_TO_VID
@@ -255,8 +259,7 @@ class App:
         data = glReadPixels(x, y, self.width, self.height, GL_RGB, GL_UNSIGNED_BYTE)
         pixels = np.frombuffer(data, dtype=np.uint8).reshape(self.height, self.width, 3)
         pixels = np.flip(pixels[:-self.ui.get_menu_height()], axis=0)
-        image = cv2.cvtColor(pixels, cv2.COLOR_RGB2BGR)
-        return image
+        return pixels
     
     def save_image(self, image):
         image_dir = os.path.join(self.capture_path, "images")
@@ -264,20 +267,44 @@ class App:
             os.makedirs(image_dir)
         
         image_path = os.path.join(image_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".png")
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         cv2.imwrite(image_path, image)
     
     def save_video(self):
+        # path setup
+        # video_dir = os.path.join(self.capture_path, "videos")
+        # cache_dir = os.path.join(video_dir, "cache")
+        # video_path = os.path.join(video_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".mp4")
+
+        # # save video
+        # video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"mp4v"), self.fps, (self.width, self.height))
+        # for file in sorted(os.listdir(cache_dir)):
+        #     image_path = os.path.join(cache_dir, file)
+        #     image = cv2.imread(image_path)
+        #     image = cv2.resize(image, (self.width, self.height))
+        #     video.write(image)
+        # video.release()
+
+        # # clean cache
+        # import shutil
+        # shutil.rmtree(cache_dir)
+
+        # path setup
         video_dir = os.path.join(self.capture_path, "videos")
         if not os.path.exists(video_dir):
             os.makedirs(video_dir)
-        
         video_path = os.path.join(video_dir, datetime.datetime.now().strftime("%H-%M-%S") + ".mp4")
-        height, width, _ = self.captures[0].shape
-        
-        video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"mp4v"), self.fps, (width, height))
-        for image in self.captures:
+
+        # save video
+        video = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"mp4v"), self.fps, (self.width, self.height))
+        for capture in self.captures:
+            image = cv2.cvtColor(capture, cv2.COLOR_RGB2BGR)
+            image = cv2.resize(image, (self.width, self.height))
             video.write(image)
         video.release()
+
+        # clean cache
+        self.captures = []
 
         glfw.set_time(self.frame / self.fps)
     
