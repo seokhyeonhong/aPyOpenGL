@@ -223,20 +223,20 @@ class Render:
         return RenderOptionsVec(rov)
 
     @staticmethod
-    def text(t="", color=glm.vec3(0)):
+    def text(t="", color=glm.vec3(0), line_space=1.0):
         if Render.font_texture is None:
             Render.font_texture = FontTexture()
 
         res = RenderOptions(core.VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=False))
-        return res.text(str(t)).albedo(color)
+        return res.text(str(t), line_space=line_space).albedo(color)
 
     @staticmethod
-    def text_on_screen(t="", color=glm.vec3(0)):
+    def text_on_screen(t="", color=glm.vec3(0), line_space=1.0):
         if Render.font_texture is None:
             Render.font_texture = FontTexture()
 
         res = RenderOptions(core.VAO(), Render.text_shader, functools.partial(Render.draw_text, on_screen=True))
-        return res.text(str(t)).albedo(color)
+        return res.text(str(t), line_space=line_space).albedo(color)
 
     @staticmethod
     def cubemap(dirname):
@@ -466,6 +466,11 @@ class Render:
         glBindVertexArray(Render.font_texture.vao)
 
         for c in option._text:
+            if c == "\n":
+                y -= TEXT_RESOLUTION * scale * option._line_space
+                x = option._position.x * Render.render_info.width if on_screen else 0
+                continue
+            
             ch = Render.font_texture.character(c)
 
             xpos = x + ch.bearing.x * scale
@@ -582,7 +587,6 @@ class RenderOptions:
         self._cubemap       = Texture()
         self._uv_repeat     = glm.vec2(1.0)
         self._disp_scale    = 0.0001
-        self._text          = ""
         self._color_mode    = False
 
         # grid and environment
@@ -591,6 +595,10 @@ class RenderOptions:
         self._grid_width    = 1.0
         self._grid_interval = 1.0
         self._background_intensity = 1.0
+
+        # text
+        self._text          = ""
+        self._line_space    = 1.0
 
         # visibility
         self._visible       = True
@@ -737,8 +745,9 @@ class RenderOptions:
         self._disp_scale = scale
         return self
     
-    def text(self, text):
+    def text(self, text, line_space=1.0):
         self._text = str(text)
+        self._line_space = line_space
         return self
     
     def alpha(self, alpha, material_id=0):
@@ -762,6 +771,11 @@ class RenderOptions:
     def no_shadow(self):
         self._shadow_shader = None
         self._shadow_func = None
+        return self
+    
+    def shadow(self):
+        self._shadow_shader = Render.shadow_shader
+        self._shadow_func = Render.draw_shadow
         return self
     
     def visible(self, visible):
