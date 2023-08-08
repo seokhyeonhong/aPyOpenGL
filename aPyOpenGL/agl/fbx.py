@@ -1,17 +1,19 @@
 from __future__ import annotations
-import fbx
+try:
+    import fbx
+    from . import fbxparser
+except ImportError:
+    pass
+
 import os
 import pickle
 from tqdm import tqdm
 
-from . import core, fbxparser
-
+from . import core
 from .motion   import Skeleton, Pose, Motion
 from .material import Material
 from .model    import Model
 from .texture  import TextureType, TextureLoader
-
-from ..utils import util
 
 FBX_PROPERTY_NAMES = {
     "DiffuseColor":      TextureType.eDIFFUSE,
