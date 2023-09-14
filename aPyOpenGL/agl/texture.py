@@ -18,6 +18,9 @@ def get_texture_data(filename, channels="RGBA", hdr=False):
     texture_image = np.flipud(texture_image)
     
     if hdr:
+        # texture_image[:] *= 1 / 2.2
+        # save hdr
+        # imageio.imwrite(texture_path, texture_image, format="HDR-FI")
         texture_data = texture_image.tobytes()
     else:
         texture_data = Image.fromarray(texture_image)
@@ -28,9 +31,11 @@ def get_texture_data(filename, channels="RGBA", hdr=False):
 
 def render_cube():
     vao = core.Cube()
+    glCullFace(GL_FRONT) # for inner faces
     glBindVertexArray(vao.id)
     glDrawElements(GL_TRIANGLES, len(vao.indices), GL_UNSIGNED_INT, None)
     glBindVertexArray(0)
+    glCullFace(GL_BACK)
 
 class TextureType(Enum):
     eUNKNOWN      = -1
@@ -235,7 +240,7 @@ class TextureLoader:
         
         texture_data, height, width = get_texture_data(filename, channels="RGB", hdr=True)
 
-        # NOTE: GL_RGB16F instead of GL_RGBA for HDR textures
+        # GL_RGB16F instead of GL_RGBA for HDR textures
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, texture_data)
         
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
@@ -310,7 +315,7 @@ class TextureLoader:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER)
-        border_color = [1.0, 1.0, 1.0, 1.0]
+        border_color = [1.0] * 4
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color)
 
         # create frame buffer

@@ -21,4 +21,4 @@ class Model:
     def set_pose(self, pose):
         self.pose = pose
         for mesh in self.meshes:
-            mesh.update_mesh(pose)
+            mesh.update_mesh(self.pose)

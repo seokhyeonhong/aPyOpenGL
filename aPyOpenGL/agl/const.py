@@ -5,7 +5,7 @@ AGL_PATH = os.path.dirname(__file__)
 
 """ Shadow constants """
 SHADOW_MAP_SIZE     = 8 * 1024
-BACKGROUND_MAP_SIZE = 512
+BACKGROUND_MAP_SIZE = 1024
 
 """ Camera constants """
 CAM_TRACK_SENSITIVITY  = 0.002

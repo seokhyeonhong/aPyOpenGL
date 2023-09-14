@@ -84,6 +84,7 @@ uniform vec3 uViewPosition;
 // constants
 // --------------------------------------------
 const float PI = 3.14159265359f;
+const float GAMMA = 2.2f;
 
 // --------------------------------------------
 float Shadow(vec4 fragPosLightSpace, vec3 lightDir, sampler2D shadowMap)
@@ -153,12 +154,11 @@ vec3 BlinnPhong(vec3 albedo, vec3 N, vec3 V, vec3 L, Light light, Material mater
 // --------------------------------------------
 vec3 ReinhardToneMapping(vec3 color)
 {
-    const float gamma = 2.2f;
     vec3 result = color / (color + vec3(1.0f));
-    return pow(result, vec3(1.0f / gamma));
+    return pow(result, vec3(1.0f / GAMMA));
 }
 
-vec3 ACESFilmicToneMapping(vec3 x) 
+vec3 ACESFilmicToneMapping(vec3 x)
 {
     // Narkowicz 2015, "ACES Filmic Tone Mapping Curve"
     const float a = 2.51f;
@@ -168,7 +168,6 @@ vec3 ACESFilmicToneMapping(vec3 x)
     const float e = 0.14f;
 
     x = (x * (a * x + b)) / (x * (c * x + d) + e);
-    // return x;
     return clamp(x, 0.0f, 1.0f);
 }
 
@@ -177,6 +176,7 @@ vec2 Filter(vec2 p, float q)
 {
     return floor(p) + min(fract(p) * q, 1.0f);
 }
+
 float FilteredGrid(vec2 p)
 {
     p *= uGridInterval;
@@ -198,6 +198,7 @@ vec2 Triangular(vec2 p)
     vec2 q = fract(p * 0.5f) - 0.5f;
     return 1.0f - 2.0f * abs(q);
 }
+
 float FilteredChecker(vec2 p)
 {
     p *= uGridInterval;
@@ -209,7 +210,8 @@ float FilteredChecker(vec2 p)
     vec2 b = p - 0.5f * w;
     vec2 i = (Triangular(p + 0.5f * w) - Triangular(p - 0.5f * w)) / w;
 
-    return 0.5f * (1.0f - i.x * i.y);
+    float res = 1.0f - i.x * i.y;
+    return res * 0.5f + 0.5f;
 }
 
 // --------------------------------------------
@@ -323,8 +325,7 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, float metalli
     float atten = GetAttenuation(light);
     vec3 radiance = light.color * atten;
 
-    vec3 F0 = vec3(0.04f);
-    F0 = mix(F0, albedo, metallic);
+    vec3 F0 = mix(vec3(0.04f), albedo, metallic);
 
     vec3 Lo = vec3(0.0f);
     
@@ -364,7 +365,8 @@ void main()
     vec2 uv = fTexCoord * uvScale;
 
     // find material attributes
-    vec3  albedo    = uMaterial[fMaterialID].albedo.rgb;
+    // vec3  albedo    = uMaterial[fMaterialID].albedo.rgb;
+    vec3  albedo    = pow(uMaterial[fMaterialID].albedo.rgb, vec3(2.2f));
     float alpha     = uMaterial[fMaterialID].albedo.a;
     float metallic  = uMaterial[fMaterialID].metallic;
     float roughness = uMaterial[fMaterialID].roughness;
@@ -391,7 +393,7 @@ void main()
     // albedo
     if (albedoID >= 0)
     {
-        albedo = texture(uTextures[albedoID], uv).rgb;
+        albedo = pow(texture(uTextures[albedoID], uv).rgb, vec3(GAMMA));
     }
 
     // normal
@@ -431,40 +433,39 @@ void main()
     }
     else if (uPBR)
     {
+        vec3 Lo = vec3(0.0f);
         for (int i = 0; i < uLightNum; ++i)
         {
             // light vector and half vector
             vec3 L = uLight[i].vector.w == 1.0f ? normalize(uLight[i].vector.xyz - fPosition) : normalize(-uLight[i].vector.xyz);
             vec3 H = normalize(V + L);
 
-            vec3 Lo = CookTorranceBRDF(N, V, L, H, albedo, metallic, roughness, ao, uLight[i]);
-
-            vec3 F0 = vec3(0.04f);
-            F0 = mix(F0, albedo, metallic);
-            vec3 kS = FresnelSchlickRoughness(max(dot(N, V), 0.0f), F0, roughness);
-            vec3 kD = 1.0f - kS;
-            kD *= 1.0f - metallic;
-
-            vec3 irradiance = texture(uIrradianceMap, N).rgb * uIrradianceMapIntensity;
-
-            vec3 diffuse = irradiance * albedo;
-            vec3 ambient = (kD * diffuse) * ao;
-
-            color += (ambient + (1.0f - shadow) * Lo);
+            Lo += CookTorranceBRDF(N, V, L, H, albedo, metallic, roughness, ao, uLight[i]);
         }
+
+        vec3 F0 = mix(vec3(0.04f), albedo, metallic);
+        vec3 kS = FresnelSchlickRoughness(max(dot(N, V), 0.0f), F0, roughness);
+        vec3 kD = vec3(1.0f) - kS;
+        kD *= 1.0f - metallic;
+
+        vec3 irradiance = texture(uIrradianceMap, N).rgb;
+        vec3 diffuse = irradiance * albedo;
+        vec3 ambient = (kD * diffuse) * ao;
+
+        color = (ambient + (1.0f - shadow) * Lo);
     }
     else
     {
+        vec3 Lo = vec3(0.0f);
         for (int i = 0; i < uLightNum; ++i)
         {
             vec3 L = uLight[i].vector.w == 1.0f ? normalize(uLight[i].vector.xyz - fPosition) : normalize(-uLight[i].vector.xyz);
             vec3 H = normalize(V + L);
 
-            vec3 ambient = vec3(0.03f) * albedo * ao;
-            vec3 Lo = BlinnPhong(albedo, N, V, L, uLight[i], uMaterial[fMaterialID]);
-
-            color += ambient + (1.0f - shadow) * Lo;
+            Lo += BlinnPhong(albedo, N, V, L, uLight[i], uMaterial[fMaterialID]);
         }
+        vec3 ambient = vec3(0.03f) * albedo * ao;
+        color = ambient + (1.0f - shadow) * Lo;
     }
 
     // floor
@@ -472,6 +473,7 @@ void main()
     if(uIsFloor)
     {
         float tile = FilteredGrid(fPosition.xz);
+        // float tile = FilteredChecker(fPosition.xz);
         tile = pow(tile, 3.0f);
 
         floorWeight = 1.0f - tile;
