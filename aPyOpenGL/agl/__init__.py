@@ -7,6 +7,7 @@ from .fbx         import FBX
 from .heightmap   import Heightmap
 from .light       import Light
 from .material    import Material
+from .model       import Model
 from .motion      import Joint, Skeleton, Pose, Motion
 from .render      import Render
 from .texture     import TextureType

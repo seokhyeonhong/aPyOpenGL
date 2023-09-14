@@ -36,6 +36,9 @@ def fk(local_rotmats, root_pos, skeleton):
 
     return global_rotmats, global_pos
 
+def inv(r):
+    return np.transpose(r, axes=(-2, -1))
+
 """
 Rotation matrix to other representation
 """
