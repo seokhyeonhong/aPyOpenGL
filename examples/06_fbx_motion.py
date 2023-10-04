@@ -21,7 +21,7 @@ class MotionApp(agl.App):
         self.init_cam_pos = self.camera.position
 
         # show xray
-        self.show_xray = False
+        self.show_xray = True
     
     def start(self):
         super().start()
@@ -33,10 +33,7 @@ class MotionApp(agl.App):
         # UI options
         self.ui.add_menu("MotionApp")
         self.ui.add_menu_item("MotionApp", "Model", self.render_model.switch_visible, key=glfw.KEY_M)
-        self.ui.add_menu_item("MotionApp", "Sphere", self.toggle_xray, key=glfw.KEY_X)
-    
-    def toggle_xray(self):
-        self.show_xray = not self.show_xray
+        self.ui.add_menu_item("MotionApp", "X-ray", lambda: setattr(self, "show_xray", not self.show_xray), key=glfw.KEY_X)
 
     def update(self):
         super().update()
@@ -62,10 +59,6 @@ class MotionApp(agl.App):
         super().render_xray()
         if self.show_xray:
             agl.Render.skeleton(self.motion.poses[self.frame]).draw()
-        # local_xforms = trf.n_xform.from_quat(self.motion.poses[self.frame].local_quats)
-        # global_xform = trf.n_xform.fk(local_xforms, self.motion.poses[self.frame].root_pos, self.motion.skeleton)
-        # global_pos = trf.n_xform.to_translation(global_xform)
-        # self.render_sphere.position([gp for gp in global_pos]).draw()
 
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)

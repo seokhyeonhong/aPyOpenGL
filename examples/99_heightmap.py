@@ -5,8 +5,12 @@ from aPyOpenGL import agl
 class MyApp(agl.App):
     def __init__(self, filepath):
         super().__init__()
-        self.heightmap = agl.Heightmap.load_from_file(filepath)
-        self.heightmap = agl.Render.heightmap(self.heightmap).albedo(0.2).floor(True)
+        hmap = agl.Heightmap.load_from_file(filepath)
+        self.heightmap = agl.Render.heightmap(hmap).albedo(0.2).floor(True)
+
+    def start(self):
+        super().start()
+        self.grid.visible(False)
 
     def render(self):
         super().render()
