@@ -18,7 +18,6 @@ class MyApp(agl.App):
     def render(self):
         super().render()
         self.sphere.draw()
-        self.plane.draw()
     
     def render_text(self):
         super().render_text()

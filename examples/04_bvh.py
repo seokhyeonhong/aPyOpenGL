@@ -43,7 +43,7 @@ class MotionApp(agl.App):
     
     def render_text(self):
         super().render_text()
-        agl.Render.text(f"Frame: {self.frame % self.total_frames} / {self.total_frames}").draw()
+        agl.Render.text_on_screen(f"Frame: {self.frame % self.total_frames} / {self.total_frames}").draw()
 
     def key_callback(self, window, key, scancode, action, mods):
         super().key_callback(window, key, scancode, action, mods)
