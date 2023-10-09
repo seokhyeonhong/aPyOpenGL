@@ -4,9 +4,9 @@ import numpy as np
 
 ####################################################################################
 
-def signed_angle_torch(v1, v2, vn, dim=-1, eps=1e-6):
-    v1_unit = F.normalize(v1, dim=dim)
-    v2_unit = F.normalize(v2, dim=dim)
+def signed_angle_torch(v1, v2, vn, dim=-1, eps=1e-8):
+    v1_unit = F.normalize(v1, dim=dim, eps=eps)
+    v2_unit = F.normalize(v2, dim=dim, eps=eps)
 
     dot = torch.sum(v1_unit * v2_unit, dim=dim)
     dot = torch.clamp(dot, -1 + eps, 1 - eps)

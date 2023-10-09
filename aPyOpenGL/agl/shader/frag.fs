@@ -319,17 +319,21 @@ vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 }
 
 // PBR
-vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 H, vec3 albedo, float metallic, float roughness, float ao, Light light)
+vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 albedo, float metallic, float roughness, float ao, Light light)
 {
+    // light direction and half vector
+    vec3 L = light.vector.w == 1.0f ? normalize(light.vector.xyz - fPosition) : normalize(-light.vector.xyz);
+    vec3 H = normalize(V + L);
+
+    // surface reflectance
+    vec3 F0 = mix(vec3(0.04f), albedo, metallic);
+
+    // radiance
     float d = length(light.vector.xyz - fPosition);
     float atten = GetAttenuation(light);
     vec3 radiance = light.color * atten;
 
-    vec3 F0 = mix(vec3(0.04f), albedo, metallic);
-
-    vec3 Lo = vec3(0.0f);
-    
-    // BRDF
+    // Cook-Torrance BRDF
     float NDF = TrowbridgeReitzGGX(N, H, roughness);
     float G   = Smith(N, V, L, roughness);
     vec3  F   = FresnelSchlick(max(dot(H, V), 0.0f), F0);
@@ -366,13 +370,13 @@ void main()
 
     // find material attributes
     // vec3  albedo    = uMaterial[fMaterialID].albedo.rgb;
-    vec3  albedo    = pow(uMaterial[fMaterialID].albedo.rgb, vec3(2.2f));
+    vec3  albedo    = pow(uMaterial[fMaterialID].albedo.rgb, vec3(GAMMA));
     float alpha     = uMaterial[fMaterialID].albedo.a;
     float metallic  = uMaterial[fMaterialID].metallic;
     float roughness = uMaterial[fMaterialID].roughness;
     float ao        = uMaterial[fMaterialID].ao;
 
-    // normal, view, light and half vectors
+    // normal and view direction
     vec3 N = normalize(fNormal);
     vec3 V = normalize(uViewPosition - fPosition);
 
@@ -393,6 +397,7 @@ void main()
     // albedo
     if (albedoID >= 0)
     {
+        // albedo = texture(uTextures[albedoID], uv).rgb;
         albedo = pow(texture(uTextures[albedoID], uv).rgb, vec3(GAMMA));
     }
 
@@ -436,11 +441,7 @@ void main()
         vec3 Lo = vec3(0.0f);
         for (int i = 0; i < uLightNum; ++i)
         {
-            // light vector and half vector
-            vec3 L = uLight[i].vector.w == 1.0f ? normalize(uLight[i].vector.xyz - fPosition) : normalize(-uLight[i].vector.xyz);
-            vec3 H = normalize(V + L);
-
-            Lo += CookTorranceBRDF(N, V, L, H, albedo, metallic, roughness, ao, uLight[i]);
+            Lo += CookTorranceBRDF(N, V, albedo, metallic, roughness, ao, uLight[i]);
         }
 
         vec3 F0 = mix(vec3(0.04f), albedo, metallic);

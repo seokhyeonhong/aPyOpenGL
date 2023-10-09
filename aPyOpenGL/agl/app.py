@@ -15,17 +15,21 @@ from .light  import Light, DirectionalLight, PointLight
 from .render import Render
 from .model  import Model
 from .ui     import UI
+from .const  import MAX_LIGHT_NUM
 
 """ Base class for all applications """
 class App:
     def __init__(
         self,
         camera = Camera(),
-        lights = [DirectionalLight(), DirectionalLight(direction=glm.vec3(1, -2, 1), intensity=0.2)],
+        lights = [DirectionalLight() for _ in range(4)],
     ):
         # render settings
         self.camera = camera
         self.lights = lights
+        if len(self.lights) > MAX_LIGHT_NUM:
+            self.lights = self.lights[:MAX_LIGHT_NUM]
+            print(f"Warning: Maximum number of lights is {MAX_LIGHT_NUM}.")
         
         # display options
         self.width, self.height = 1920, 1080
@@ -206,9 +210,9 @@ class App:
             elif key == glfw.KEY_RIGHT_BRACKET:
                 self.move_frame(+1)
             elif key == glfw.KEY_LEFT:
-                self.move_frame(-self.fps)
+                self.move_frame(-10)
             elif key == glfw.KEY_RIGHT:
-                self.move_frame(+self.fps)
+                self.move_frame(+10)
 
         self.ui.key_callback(window, key, scancode, action, mods)
         
@@ -258,7 +262,7 @@ class App:
         glReadBuffer(GL_FRONT)
         data = glReadPixels(x, y, self.width, self.height, GL_RGB, GL_UNSIGNED_BYTE)
         pixels = np.frombuffer(data, dtype=np.uint8).reshape(self.height, self.width, 3)
-        pixels = np.flip(pixels[:-self.ui.get_menu_height()], axis=0)
+        pixels = np.flip(pixels[:-(self.ui.get_menu_height()+10)], axis=0)
         return pixels
     
     def save_image(self, image):
