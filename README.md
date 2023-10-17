@@ -3,48 +3,40 @@
 Our framework is based on right-hand coordinate with y-axis as the up vector.
 <img src="teaser.gif">
 
+# Installation
+For the visualization modules, install necessary modules by:
+```
+pip install -r requirements.txt
+imageio_download_bin freeimage
+```
+### Python FBX SDK Installation
+For Linux, visit this wonderful guide: [Link for Ubuntu](https://azure-headstand-38d.notion.site/How-to-Install-FBX-SDK-and-Python-Bindings-in-the-Linux-Server-VESSL-7b3311eba3914c429e1f80eb780624eb?pvs=4)
+
+For Windows, visit this perfect guide: [Link for Windows](https://www.ralphminderhoud.com/blog/build-fbx-python-sdk-for-windows/)
+
+Since installing FBX SDK is the most challenging part to use this framework, we will update to share a conda environment built in advance.
+
 # How to use
 ```aPyOpenGL``` has four main modules ```agl```, ```kin```, ```transforms```, and ```ops```, and one additional auxiliary module ```utils```. Example codes are in [examples](examples/) and you can run the code you want through:
 ```
 python examples/{script_to_run}.py
 ```
 
-Also, if you want to use this module in the external scripts, you can do that by adding this module to the environment variable.
+## Set Up the Environment Variable
+If you add the path of this framework to the global environment variable, you can use this framework anywhere in your local computer.
+
 ### Linux
+Add this line to ```~/.bashrc```:
 ```
-git clone https://github.com/seokhyeonhong/aPyOpenGL.git
-cd aPyOpenGL
-export PYTHONPATH=$PYTHONPATH:$(pwd)
+export PYTHONPATH=$PYTHONPATH:{path/to/aPyOpenGL}
 ```
+and then execute this:
+```
+source ~/.bashrc
+```
+
 ### Windows
-Add the path of the cloned repository to the environment variable PYTHONPATH. If you don't know how, please refer to [this](https://stackoverflow.com/questions/3701646/how-to-add-to-the-pythonpath-in-windows-so-it-finds-my-modules-packages)
-
-## Motion
-We provide BVH parser for motion data and FBX parser for both motion and mesh data. Motion data in this framework is basically structred by hierarchy of Joint, Skeleton, Pose, and Motion, and you can see the structure [here](aPyOpenGL/agl/motion.py).
-
-## Visualization
-In order to use visualization modules, these modules should be installed first.
-```
-PyOpenGL
-PyOpenGL-accelerate
-PyGLM
-glfw
-freetype-py
-FreeImage binary
-FBX SDK Python Binding
-```
-FreeImage binary can be downloaded by this command:
-```
-Windows:
-$ imageio_download_bin freeimage
-
-Ubuntu:
-$ sudo apt-get install libfreeimage3 libfreeimage-dev
-```
-All the other modules except FBX SDK Python Binding can be installed by this command:
-```
-pip install -r requirements.txt
-```
+Add the path of the cloned repository to the environment variable PYTHONPATH. If you don't know how, please refer to [this](https://stackoverflow.com/questions/3701646/how-to-add-to-the-pythonpath-in-windows-so-it-finds-my-modules-packages).
 
 ### Commands
 * F1: Render the scene in GL_FILL mode.
@@ -60,14 +52,12 @@ pip install -r requirements.txt
 * F: Switch the visualization of the render fps text.
 * Left / Right arrow: Move 1 second to the past / future.
 
-### Python FBX SDK Installation References on Linux
-To be updated.
+Additionally, you can add your own custom commands.
+You can find the examples in the codes in [examples](examples/).
 
-### Python FBX SDK Installation References on Windows
-Reference:
-[Link1](https://www.ralphminderhoud.com/blog/build-fbx-python-sdk-for-windows/)
-[Link2](https://forums.autodesk.com/t5/fbx-forum/cannot-manage-to-compile-python-fbx-2020-0-1-vs2017-with-python/td-p/9270853)
-[Link3](https://stackoverflow.com/questions/32054021/how-to-install-sip-pyqt-on-windows-7)
+## Motion
+We provide BVH parser for motion data and FBX parser for both motion and mesh data. Motion data in this framework is basically structred by hierarchy of Joint, Skeleton, Pose, and Motion, and you can see the structure [here](aPyOpenGL/agl/motion).
+
 
 <!-- ## Learning
 ```learning``` module provides several neural network models in PyTorch. New models will be updated continuously. -->
