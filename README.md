@@ -4,17 +4,19 @@ Our framework is based on right-hand coordinate with y-axis as the up vector.
 <img src="teaser.gif">
 
 # Installation
-For the visualization modules, install necessary modules by:
+### Linux
+For Linux users, we provide a shell script that creates a conda environment in ```install.sh```. You can modify the environment name by changing ```ENV_NAME``` in the script, which is set to ```env-apyopengl``` by default.
+```
+bash install.sh
+```
+
+### Windows
+For the visualization modules, install necessary modules first.
 ```
 pip install -r requirements.txt
 imageio_download_bin freeimage
 ```
-### Python FBX SDK Installation
-For Linux, visit this wonderful guide: [Link for Ubuntu](https://azure-headstand-38d.notion.site/How-to-Install-FBX-SDK-and-Python-Bindings-in-the-Linux-Server-VESSL-7b3311eba3914c429e1f80eb780624eb?pvs=4)
-
-For Windows, visit this perfect guide: [Link for Windows](https://www.ralphminderhoud.com/blog/build-fbx-python-sdk-for-windows/)
-
-Since installing FBX SDK is the most challenging part to use this framework, we will update to share a conda environment built in advance.
+Also, visit this perfect guide to install FBX SDK on your computer: [Link for Windows](https://www.ralphminderhoud.com/blog/build-fbx-python-sdk-for-windows/)
 
 # How to use
 ```aPyOpenGL``` has four main modules ```agl```, ```kin```, ```transforms```, and ```ops```, and one additional auxiliary module ```utils```. Example codes are in [examples](examples/) and you can run the code you want through:
