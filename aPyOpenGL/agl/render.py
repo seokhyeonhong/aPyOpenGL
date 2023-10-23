@@ -19,9 +19,9 @@ from .const      import *
 from .fbx        import FBX
 
 def get_draw_func(render_func):
-    if render_func is "phong":
+    if render_func == "phong":
         return functools.partial(Render.draw, pbr=False)
-    elif render_func is "pbr":
+    elif render_func == "pbr":
         return functools.partial(Render.draw, pbr=True)
     else:
         raise Exception(f"Unknown render function: {render_func}")

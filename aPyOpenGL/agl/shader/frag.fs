@@ -107,7 +107,7 @@ float Shadow(vec4 fragPosLightSpace, vec3 lightDir, sampler2D shadowMap)
     // float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
     float shadow = 0.0f;
     vec2 texelSize = 1.0f / textureSize(shadowMap, 0);
-    int kernelSize = 3;
+    int kernelSize = 2;
     for(int u = -kernelSize; u <= kernelSize; ++u)
     {
         for(int v = -kernelSize; v <= kernelSize; ++v)
@@ -218,6 +218,7 @@ float FilteredChecker(vec2 p)
 vec3 GetNormalFromMap(sampler2D normalMap, vec2 uv)
 {
     vec3 N = texture(normalMap, uv).rgb * 2.0f - 1.0f;
+    // vec3 N = vec3(0, 0, 1);
     return normalize(fTBN * N);
 }
 
@@ -398,13 +399,14 @@ void main()
     if (albedoID >= 0)
     {
         // albedo = texture(uTextures[albedoID], uv).rgb;
-        albedo = pow(texture(uTextures[albedoID], uv).rgb, vec3(GAMMA));
+        albedo = pow(texture(uTextures[normalID], uv).rgb, vec3(GAMMA));
     }
 
     // normal
     if (normalID >= 0)
     {
         N = GetNormalFromMap(uTextures[normalID], uv);
+        // albedo = N * 0.5f + 0.5f;
     }
 
     // metallic
