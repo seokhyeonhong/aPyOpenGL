@@ -3,7 +3,7 @@ try:
     import fbx
     from . import fbxparser
 except ImportError:
-    pass
+    print("Warning: Failed to import fbx. Please install fbx sdk and rebuild aPyOpenGL.")
 
 import os
 import pickle
