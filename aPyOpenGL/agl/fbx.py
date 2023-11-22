@@ -45,8 +45,8 @@ class Parser:
         self.scale = scale
         self.save = save
         self.parser = fbxparser.FBXParser(path)
-        self.init_character_data(scale)
-        self.init_mesh_data(scale)
+        self._init_character_data(scale)
+        self._init_mesh_data(scale)
     
     def pkl_path(self, pkl_type):
         dir_path = os.path.dirname(self.path)
@@ -55,16 +55,17 @@ class Parser:
         os.makedirs(save_dir, exist_ok=True)
         return os.path.join(save_dir, f"{filename}_{pkl_type}.pkl")
     
-    def init_character_data(self, scale):
+    def _init_character_data(self, scale):
         self.char_data = fbxparser.CharacterData()
         root = self.parser.scene.GetRootNode()
         self.char_data.name = root.GetName()
         for i in range(root.GetChildCount()):
             fbxparser.parse_nodes_by_type(root.GetChild(i), self.char_data.joint_data, -1, fbx.FbxNodeAttribute.eSkeleton, scale)
 
-    def init_mesh_data(self, scale):
+    def _init_mesh_data(self, scale):
+        # return pickled mesh data if exists and is newer than fbx file
         mesh_pkl_path = self.pkl_path("mesh")
-        if os.path.exists(mesh_pkl_path):
+        if os.path.exists(mesh_pkl_path) and os.path.getmtime(mesh_pkl_path) > os.path.getmtime(self.path):
             with open(mesh_pkl_path, "rb") as f:
                 self.mesh_data = pickle.load(f)
             return
@@ -72,7 +73,7 @@ class Parser:
         mesh_nodes = []
 
         root = self.parser.scene.GetRootNode()
-        self.__load_mesh_recursive(root, mesh_nodes)
+        self._load_mesh_recursive(root, mesh_nodes)
         
         self.mesh_data = []
         for i in range(len(mesh_nodes)):
@@ -116,18 +117,19 @@ class Parser:
             with open(mesh_pkl_path, "wb") as f:
                 pickle.dump(self.mesh_data, f, pickle.HIGHEST_PROTOCOL)
     
-    def __load_mesh_recursive(self, node, mesh_nodes):
+    def _load_mesh_recursive(self, node, mesh_nodes):
         for i in range(node.GetNodeAttributeCount()):
             attrib = node.GetNodeAttributeByIndex(i)
             if attrib.GetAttributeType() == fbx.FbxNodeAttribute.eMesh:
                 mesh_nodes.append(node)
         
         for i in range(node.GetChildCount()):
-            self.__load_mesh_recursive(node.GetChild(i), mesh_nodes)
+            self._load_mesh_recursive(node.GetChild(i), mesh_nodes)
     
     def motions(self, joints: list[fbxparser.JointData]):
+        # return pickled motion if exists and is newer than fbx file
         motion_pkl_path = self.pkl_path("motion")
-        if os.path.exists(motion_pkl_path):
+        if os.path.exists(motion_pkl_path) and os.path.getmtime(motion_pkl_path) > os.path.getmtime(self.path):
             with open(motion_pkl_path, "rb") as f:
                 return pickle.load(f)
         
