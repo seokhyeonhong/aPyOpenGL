@@ -398,8 +398,8 @@ void main()
     // albedo
     if (albedoID >= 0)
     {
-        // albedo = texture(uTextures[albedoID], uv).rgb;
-        albedo = pow(texture(uTextures[normalID], uv).rgb, vec3(GAMMA));
+        albedo = pow(texture(uTextures[albedoID], uv).rgb, vec3(GAMMA));
+        // albedo = pow(texture(uTextures[normalID], uv).rgb, vec3(GAMMA));
     }
 
     // normal

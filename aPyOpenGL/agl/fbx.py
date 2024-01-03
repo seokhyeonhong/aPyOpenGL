@@ -202,7 +202,9 @@ class FBX:
                 )
                 mesh.joint_names = data.skinning_data.joint_names
                 mesh.name_to_idx = data.skinning_data.name_to_idx
-                mesh.joint_bind_xform_inv = data.skinning_data.offset_xform
+                mesh.bind_xform_inv = data.skinning_data.offset_xform
+                mesh.control_point_idx_to_vertex_idx = data.control_point_idx_to_vertex_idx
+                mesh.vertex_idx_to_control_point_idx = data.vertex_idx_to_control_point_idx
             else:
                 mesh.is_skinned = False
                 mesh.vertices = core.to_vertex_array(data.positions, data.normals, data.uvs, data.tangents, data.bitangents)

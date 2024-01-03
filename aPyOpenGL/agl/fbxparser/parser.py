@@ -129,6 +129,7 @@ class SkinningData:
 class MeshData:
     def __init__(self):
         self.control_point_idx_to_vertex_idx = {}
+        self.vertex_idx_to_control_point_idx = {}
         self.indices                         = []
         self.positions                       = []
         self.normals                         = []

@@ -25,10 +25,11 @@ def get_mesh_data(fbx_mesh_, scale) -> MeshData:
             control_point_idx = fbx_mesh_.GetPolygonVertex(i, j)
 
             data.indices.append(vertex_id)
-            if control_point_idx not in data.control_point_idx_to_vertex_idx:
+            if data.control_point_idx_to_vertex_idx.get(control_point_idx, None) is None:
                 data.control_point_idx_to_vertex_idx[control_point_idx] = [vertex_id]
             else:
                 data.control_point_idx_to_vertex_idx[control_point_idx].append(vertex_id)
+            data.vertex_idx_to_control_point_idx[vertex_id] = control_point_idx
 
             position = get_mesh_position(fbx_mesh_, control_points, i, j, scale)
             data.positions.append(position)

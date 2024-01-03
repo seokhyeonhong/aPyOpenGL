@@ -38,14 +38,15 @@ class VertexGL:
 
 class MeshGL:
     def __init__(self, vao=None, vertices=None, indices=None):
-        self.vao                  = vao
-        self.vertices             = vertices
-        self.indices              = indices
-
-        self.is_skinned           = False
-        self.joint_names          = []
-        self.name_to_idx          = {}
-        self.joint_bind_xform_inv = []
+        self.vao                             = vao
+        self.vertices                        = vertices
+        self.indices                         = indices
+        self.is_skinned                      = False
+        self.joint_names                     = []
+        self.name_to_idx                     = {}
+        self.bind_xform_inv                  = []
+        self.control_point_idx_to_vertex_idx = {}
+        self.vertex_idx_to_control_point_idx = {}
     
     def generate_vertices(self):
         pass

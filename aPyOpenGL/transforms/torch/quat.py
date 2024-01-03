@@ -174,3 +174,6 @@ def from_rotmat(r):
 
 def from_ortho6d(r6d):
     return ortho6d.to_quat(r6d)
+
+def from_xform(x):
+    return xform.to_quat(x)

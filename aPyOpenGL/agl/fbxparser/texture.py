@@ -41,14 +41,14 @@ def find_and_display_texture_info_by_property(property, material_idx):
                 blend_mode = layered_texture.GetTextureBlendMode(k)
 
                 texture_info = get_file_texture(texture, blend_mode)
-                texture_info.property = property.GetName()
+                texture_info.property = str(property.GetName())
                 texture_info.connected_material = material_idx
                 textures.append(texture_info)
         else:
             texture = property.GetSrcObject(criteria, j)
             
             texture_info = get_file_texture(texture, -1)
-            texture_info.property = property.GetName()
+            texture_info.property = str(property.GetName())
             texture_info.connected_material = material_idx
             textures.append(texture_info)
             

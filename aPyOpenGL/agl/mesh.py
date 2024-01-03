@@ -38,5 +38,5 @@ class Mesh:
         for i in range(len(self.mesh_gl.joint_names)):
             jidx = self.skeleton.idx_by_name[self.mesh_gl.joint_names[i]]
             global_xform = glm.mat4(*global_xforms[jidx].T.ravel())
-            bind_xform_inv = self.mesh_gl.joint_bind_xform_inv[i]
+            bind_xform_inv = self.mesh_gl.bind_xform_inv[i]
             self.buffer[i] = global_xform * bind_xform_inv
