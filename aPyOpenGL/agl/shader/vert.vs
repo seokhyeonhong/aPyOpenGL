@@ -19,8 +19,9 @@ layout(location=9) in vec4  vLbsWeights2;
 // --------------------------------------------
 out vec3     fPosition;
 out vec2     fTexCoord;
+out vec3     fTangent;
+out vec3     fBitangent;
 out vec3     fNormal;
-out mat3     fTBN;
 flat out int fMaterialID;
 out vec4     fPosLightSpace;
 
@@ -47,11 +48,9 @@ void main()
         M = uInstanceModel[gl_InstanceID];
     }
     fPosition      = vec3(M * vec4(vPosition, 1.0f));
-    vec3 T         = normalize(transpose(inverse(mat3(M))) * vTangent);
-    vec3 B         = normalize(transpose(inverse(mat3(M))) * vBitangent);
-    vec3 N         = normalize(transpose(inverse(mat3(M))) * vNormal);
-    fTBN           = mat3(T, B, N);
-    fNormal        = N;
+    fTangent       = normalize(mat3(M) * vTangent);
+    fBitangent     = normalize(mat3(M) * vBitangent);
+    fNormal        = normalize(mat3(M) * vNormal);
     fTexCoord      = vTexCoord;
     fPosLightSpace = uLightSpaceMatrix * vec4(fPosition, 1.0f);
     fMaterialID    = vMaterialID;

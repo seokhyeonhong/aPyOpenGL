@@ -91,7 +91,6 @@ class Parser:
                     if textures[i].connected_material == materials[j].material_id:
                         materials[j].texture_ids.append(i)
                         texture_set = True
-                        break
                 
                 if not texture_set:
                     print(f"Texture is NOT used {textures[i].filename}")
@@ -193,12 +192,12 @@ class FBX:
                     data.positions,
                     data.normals,
                     data.uvs,
-                    data.tangents,
-                    data.bitangents,
-                    data.skinning_data.joint_indices1,
-                    data.skinning_data.joint_weights1,
-                    data.skinning_data.joint_indices2,
-                    data.skinning_data.joint_weights2
+                    tangents=data.tangents,
+                    bitangents=data.bitangents,
+                    lbs_indices1=data.skinning_data.joint_indices1,
+                    lbs_weights1=data.skinning_data.joint_weights1,
+                    lbs_indices2=data.skinning_data.joint_indices2,
+                    lbs_weights2=data.skinning_data.joint_weights2
                 )
                 mesh.joint_names = data.skinning_data.joint_names
                 mesh.name_to_idx = data.skinning_data.name_to_idx

@@ -324,10 +324,10 @@ class Render:
             glBindTexture(GL_TEXTURE_2D, 0)
         
         # material settings
-        rgba = [glm.vec4(1)] * MAX_MATERIAL_NUM
+        rgba = [glm.vec4(1) for _ in range(MAX_MATERIAL_NUM)]
         # attribs = [glm.vec3(0)] * MAX_MATERIAL_NUM
-        texture_id = [glm.ivec3(-1)] * MAX_MATERIAL_NUM
-        pbr_texture_id = [glm.ivec3(-1)] * MAX_MATERIAL_NUM
+        texture_id = [glm.ivec3(-1) for _ in range(MAX_MATERIAL_NUM)]
+        pbr_texture_id = [glm.ivec3(-1) for _ in range(MAX_MATERIAL_NUM)]
 
         def gl_set_texture(texture_id, count):
             if texture_id == 0 or count[0] >= MAX_MATERIAL_TEXTURES:

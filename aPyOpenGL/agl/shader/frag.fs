@@ -5,7 +5,8 @@
 // --------------------------------------------
 in vec3     fPosition;
 in vec2     fTexCoord;
-in mat3     fTBN;
+in vec3     fTangent;
+in vec3     fBitangent;
 in vec3     fNormal;
 flat in int fMaterialID;
 in vec4     fPosLightSpace;
@@ -215,11 +216,10 @@ float FilteredChecker(vec2 p)
 }
 
 // --------------------------------------------
-vec3 GetNormalFromMap(sampler2D normalMap, vec2 uv)
+vec3 GetNormalFromMap(sampler2D normalMap, vec2 uv, mat3 TBN)
 {
-    vec3 N = texture(normalMap, uv).rgb * 2.0f - 1.0f;
-    // vec3 N = vec3(0, 0, 1);
-    return normalize(fTBN * N);
+    vec3 normal = texture(normalMap, uv).rgb * 2.0f - 1.0f;
+    return normalize(TBN * normal);
 }
 
 // --------------------------------------------
@@ -380,6 +380,7 @@ void main()
     // normal and view direction
     vec3 N = normalize(fNormal);
     vec3 V = normalize(uViewPosition - fPosition);
+    mat3 fTBN = mat3(fTangent, fBitangent, fNormal);
 
     // Textures --------------------------------------------
     // displacement
@@ -399,14 +400,12 @@ void main()
     if (albedoID >= 0)
     {
         albedo = pow(texture(uTextures[albedoID], uv).rgb, vec3(GAMMA));
-        // albedo = pow(texture(uTextures[normalID], uv).rgb, vec3(GAMMA));
     }
 
     // normal
     if (normalID >= 0)
     {
-        N = GetNormalFromMap(uTextures[normalID], uv);
-        // albedo = N * 0.5f + 0.5f;
+        N = GetNormalFromMap(uTextures[normalID], uv, fTBN);
     }
 
     // metallic
