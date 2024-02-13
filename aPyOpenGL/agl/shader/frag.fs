@@ -399,7 +399,13 @@ void main()
     // albedo
     if (albedoID >= 0)
     {
-        albedo = pow(texture(uTextures[albedoID], uv).rgb, vec3(GAMMA));
+        vec4 texel = texture(uTextures[albedoID], uv);
+        albedo = pow(texel.rgb, vec3(GAMMA));
+        alpha = texel.a;
+    }
+    if (alpha < 0.1f)
+    {
+        discard;
     }
 
     // normal

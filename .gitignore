@@ -9,3 +9,5 @@ validate
 data/
 ops/
 # examples/
+
+*.ini

@@ -27,10 +27,10 @@ ordermap = {
 }
 
 class BVH:
-    def __init__(self, filename: str, target_fps=30, to_meter=0.01):
+    def __init__(self, filename: str, target_fps=30, scale=0.01):
         self.filename = filename
         self.target_fps = target_fps
-        self.to_meter = to_meter
+        self.scale = scale
 
         self.poses = []
         self._load()
@@ -68,7 +68,7 @@ class BVH:
                 offmatch = re.match(r"\s*OFFSET\s+([\-\d\.e]+)\s+([\-\d\.e]+)\s+([\-\d\.e]+)", line)
                 if offmatch:
                     if not end_site:
-                        skeleton.joints[active].local_pos = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * self.to_meter
+                        skeleton.joints[active].local_pos = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * self.scale
                     continue
 
                 chanmatch = re.match(r"\s*CHANNELS\s+(\d+)", line)
@@ -115,14 +115,14 @@ class BVH:
                     num_joints = skeleton.num_joints
                     fi = i
                     if channels == 3:
-                        positions[fi, 0:1] = data_block[0:3] * self.to_meter
+                        positions[fi, 0:1] = data_block[0:3] * self.scale
                         rotations[fi, :]   = data_block[3:].reshape(num_joints, 3)
                     elif channels == 6:
                         data_block         = data_block.reshape(num_joints, 6)
-                        positions[fi, :]   = data_block[:, 0:3] * self.to_meter
+                        positions[fi, :]   = data_block[:, 0:3] * self.scale
                         rotations[fi, :]   = data_block[:, 3:6]
                     elif channels == 9: 
-                        positions[fi, 0]   = data_block[0:3] * self.to_meter
+                        positions[fi, 0]   = data_block[0:3] * self.scale
                         data_block         = data_block[3:].reshape(num_joints - 1, 9)
                         rotations[fi, 1:]  = data_block[:, 3:6]
                         positions[fi, 1:]  += data_block[:, 0:3] * data_block[:, 6:9]
