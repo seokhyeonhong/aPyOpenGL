@@ -72,7 +72,7 @@ class AppManager:
             app.render_xray()
 
             # render ui
-            app.render_ui()
+            app._render_ui()
 
             # late update
             app.late_update()

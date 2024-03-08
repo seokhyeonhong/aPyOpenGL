@@ -7,9 +7,9 @@ from ..const import AGL_PATH
 
 class Shader:
     def __init__(self, vertex_path, fragment_path, geometry_path=None):
-        self.vertex_shader    = load_shader(vertex_path, GL_VERTEX_SHADER)
-        self.fragment_shader  = load_shader(fragment_path, GL_FRAGMENT_SHADER)
-        self.geometry_shader  = load_shader(geometry_path, GL_GEOMETRY_SHADER) if geometry_path is not None else None
+        self.vertex_shader    = _load_shader(vertex_path, GL_VERTEX_SHADER)
+        self.fragment_shader  = _load_shader(fragment_path, GL_FRAGMENT_SHADER)
+        self.geometry_shader  = _load_shader(geometry_path, GL_GEOMETRY_SHADER) if geometry_path is not None else None
         self.build()
 
         self.name = os.path.splitext(os.path.basename(vertex_path))[0]
@@ -24,7 +24,7 @@ class Shader:
             glAttachShader(self.program, self.geometry_shader)
         
         glLinkProgram(self.program)
-        check_program_link_error(self.program)
+        _check_program_link_error(self.program)
 
         glDeleteShader(self.vertex_shader)
         glDeleteShader(self.fragment_shader)
@@ -54,39 +54,38 @@ class Shader:
     # def set_multiple_ivec3(self, name, value): glUniform3iv(glGetUniformLocation(self.program, name), len(value), glm.value_ptr(value))
     # def set_multiple_ivec4(self, name, value): glUniform4iv(glGetUniformLocation(self.program, name), len(value), glm.value_ptr(value))
 
-    def set_multiple_int(self, name, values): glUniform1iv(glGetUniformLocation(self.program, name), len(values), values)
+    def set_multiple_int(self, name, values):   glUniform1iv(glGetUniformLocation(self.program, name), len(values), values)
     def set_multiple_float(self, name, values): glUniform1fv(glGetUniformLocation(self.program, name), len(values), values)
-
-    def set_multiple_mat4(self, name, values): glUniformMatrix4fv(glGetUniformLocation(self.program, name), len(values), GL_FALSE, self._glm_values_to_ptr(values))
+    def set_multiple_mat4(self, name, values):  glUniformMatrix4fv(glGetUniformLocation(self.program, name), len(values), GL_FALSE, self._glm_values_to_ptr(values))
 
     def _glm_values_to_ptr(self, values):
         # transpose because glm is column-major while numpy is row-major
         float_array = np.concatenate([np.asarray(value, dtype=np.float32).transpose().flatten() for value in values])
         return float_array.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
 
-def check_shader_compile_error(handle):
+def _check_shader_compile_error(handle):
     success = glGetShaderiv(handle, GL_COMPILE_STATUS)
     if not success:
         info_log = glGetShaderInfoLog(handle)
         raise Exception("Shader compilation error: " + info_log.decode("utf-8"))
 
-def check_program_link_error(handle):
+def _check_program_link_error(handle):
     success = glGetProgramiv(handle, GL_LINK_STATUS)
     if not success:
         info_log = glGetProgramInfoLog(handle)
         raise Exception("Shader program linking error: " + info_log.decode("utf-8"))
 
-def load_shader(filename, shader_type):
-    shader_code = load_code(filename)
+def _load_shader(filename, shader_type):
+    shader_code = _load_code(filename)
     shader = glCreateShader(shader_type)
     
     glShaderSource(shader, shader_code)
     glCompileShader(shader)
-    check_shader_compile_error(shader)
+    _check_shader_compile_error(shader)
     
     return shader
 
-def load_code(filename):
+def _load_code(filename):
     shader_dir_path = os.path.join(AGL_PATH, "shader")
     shader_path = os.path.join(shader_dir_path, filename)
     with open(shader_path, "r") as f:

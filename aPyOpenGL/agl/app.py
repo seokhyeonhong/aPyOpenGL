@@ -38,6 +38,8 @@ class App:
         self.capture_path = os.path.join("capture", str(datetime.date.today()))
         self.window = self.init_glfw()
 
+        self.render_ui = True
+
         # play options
         self.fps = 30
         self.frame = 0
@@ -48,7 +50,7 @@ class App:
         self.captures = []
         self.record_mode = App.RecordMode.eNONE
 
-        # auxiliary - render fps
+        # render fps
         self.start_time = 0
         self.end_time = 0
         self.frame_count = 0
@@ -93,6 +95,9 @@ class App:
         glfw.set_error_callback(self.on_error)
         
         # global OpenGL state
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
         glEnable(GL_DEPTH_TEST)
         glDepthFunc(GL_LEQUAL)
 
@@ -101,10 +106,7 @@ class App:
         glEnable(GL_CULL_FACE)
         glCullFace(GL_BACK)
 
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-
-        # glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
 
         # intialize shaders
         Render.initialize_shaders()
@@ -170,8 +172,8 @@ class App:
     def render_xray(self):
         pass
 
-    def render_ui(self):
-        self.ui.render()
+    def _render_ui(self):
+        self.ui.render(self.render_ui)
     
     def terminate(self):
         pass
@@ -203,6 +205,10 @@ class App:
             elif self.record_mode == App.RecordMode.eNONE:
                 self.record_mode = App.RecordMode.eSECTION_TO_VID
 
+        # ui
+        elif key == glfw.KEY_F12:
+            self.render_ui = not self.render_ui
+
         # frame control
         elif self.record_mode == App.RecordMode.eNONE:
             if key == glfw.KEY_LEFT_BRACKET:
@@ -213,7 +219,7 @@ class App:
                 self.move_frame(-10)
             elif key == glfw.KEY_RIGHT:
                 self.move_frame(+10)
-
+        
         self.ui.key_callback(window, key, scancode, action, mods)
         
     def mouse_callback(self, window, xpos, ypos):
@@ -262,7 +268,7 @@ class App:
         glReadBuffer(GL_FRONT)
         data = glReadPixels(x, y, self.width, self.height, GL_RGB, GL_UNSIGNED_BYTE)
         pixels = np.frombuffer(data, dtype=np.uint8).reshape(self.height, self.width, 3)
-        pixels = np.flip(pixels[:-(self.ui.get_menu_height()+10)], axis=0)
+        pixels = np.flip(pixels, axis=0)
         return pixels
     
     def save_image(self, image):

@@ -18,8 +18,9 @@ class UI:
         imgui.create_context()
         self.impl = GlfwRenderer(window, attach_callbacks=False)
 
-        # IO
+        # IO - prevent creating a default window
         self.io = imgui.get_io()
+
         width, height = glfw.get_window_size(window)
         self.resize_font(width, height)
         self.font = self.io.fonts.add_font_from_file_ttf(CONSOLAS_FONT_PATH, 16)
@@ -33,7 +34,7 @@ class UI:
         self.impl.process_inputs()
         imgui.new_frame()
         imgui.push_font(self.font)
-    
+
         if imgui.begin_main_menu_bar():
             # default menu
             if imgui.begin_menu("Menu", True):
@@ -72,18 +73,22 @@ class UI:
                         
                     imgui.end_menu()
             imgui.end_main_menu_bar()
+        
+        # add slider to the glfw window
+        # imgui.begin("Slider")
+        # imgui.slider_float("float", 0, 1.0, 2.0, "%.3f")
+        # imgui.end()
 
-    def render(self):
+
+    def render(self, show_ui=True):
         imgui.pop_font()
         imgui.render()
-        self.impl.render(imgui.get_draw_data())
+        if show_ui:
+            self.impl.render(imgui.get_draw_data())
         imgui.end_frame()
     
     def terminate(self):
         self.impl.shutdown()
-    
-    def get_menu_height(self):
-        return int(imgui.get_frame_height_with_spacing())
     
     def add_menu(self, menu_name):
         self.menu_to_items[menu_name] = []

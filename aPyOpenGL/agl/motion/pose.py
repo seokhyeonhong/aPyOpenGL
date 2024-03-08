@@ -68,11 +68,9 @@ class Pose:
             target_dir = global_xforms[i, :3, 3] - parent_pos
             target_dir = target_dir / (np.linalg.norm(target_dir, axis=-1, keepdims=True) + 1e-8)
 
-            axis = np.cross(np.array([0, 1, 0]), target_dir)
-            axis = axis / (np.linalg.norm(axis, axis=-1, keepdims=True) + 1e-8)
-            angle = np.arccos(np.dot(np.array([0, 1, 0]), target_dir))
+            quat = trf.n_quat.between_vecs(np.array([0, 1, 0], dtype=np.float32), target_dir)
 
-            skeleton_xforms[i-1, :3, :3] = trf.n_aaxis.to_rotmat(angle[..., None] * axis)
+            skeleton_xforms[i-1, :3, :3] = trf.n_quat.to_rotmat(quat)
             skeleton_xforms[i-1, :3,  3] = (parent_pos + global_xforms[i, :3, 3]) / 2
         
         return skeleton_xforms

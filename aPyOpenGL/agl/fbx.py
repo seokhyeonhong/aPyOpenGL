@@ -21,6 +21,7 @@ FBX_PROPERTY_NAMES = {
     "SpecularColor":     TextureType.eSPECULAR,
     "ShininessExponent": TextureType.eGLOSSINESS,
     "NormalMap":         TextureType.eNORMAL,
+    "TransparentColor":  TextureType.eDIFFUSE,
 }
 
 def _get_resampled_scene(scene_and_frame_idx):
@@ -34,10 +35,6 @@ def _parse_motion(scene_and_frame_idx, names):
     positions = fbxparser.keyframe.get_positions_from_resampled(names[0], scene, len(frame_idx))
 
     return rotations, positions
-
-def find_texture_type(type_name):
-    find = FBX_PROPERTY_NAMES.get(str(type_name))
-    return find if find is not None else "unknown"
 
 class Parser:
     def __init__(self, path, scale, save):
@@ -91,6 +88,7 @@ class Parser:
                     if textures[i].connected_material == materials[j].material_id:
                         materials[j].texture_ids.append(i)
                         texture_set = True
+                        break
                 
                 if not texture_set:
                     print(f"Texture is NOT used {textures[i].filename}")
@@ -223,7 +221,7 @@ class FBX:
                     texture_info = data.textures[texture_id]
 
                     gl_texture = TextureLoader.load(texture_info.filename)
-                    gl_texture_type = find_texture_type(texture_info.property)
+                    gl_texture_type = FBX_PROPERTY_NAMES.get(str(texture_info.property), "unknown")
                     material.set_texture(gl_texture, gl_texture_type)
                 
                 materials.append(material)
@@ -257,7 +255,7 @@ class FBX:
 
         return skeleton
 
-    def model(self):
+    def model(self) -> Model:
         meshes   = self.meshes_and_materials()
         skeleton = self.skeleton()
 
