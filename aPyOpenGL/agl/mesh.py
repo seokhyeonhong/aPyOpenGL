@@ -39,7 +39,7 @@ class Mesh:
         if self.skeleton is None:
             return
         
-        self.buffer = [glm.mat4(1.0)] * len(self.mesh_gl.joint_names)
+        self.buffer = [glm.mat4(1.0) for _ in range(len(self.mesh_gl.joint_names))]
         if self.joint_map is None:
             self._update_without_joint_map(pose)
         else:
@@ -52,8 +52,12 @@ class Mesh:
         for i in range(len(pose.skeleton.joints)):
             # get joint names
             src_jname = pose.skeleton.joints[i].name
-            tgt_jname = self.joint_map[src_jname]
-            tgt_idx = self.mesh_gl.name_to_idx[tgt_jname]
+            tgt_jname = self.joint_map.get(src_jname, None)
+            if tgt_jname is None:
+                continue
+            tgt_idx = self.mesh_gl.name_to_idx.get(tgt_jname, None)
+            if tgt_idx is None:
+                continue
 
             # map global xform
             global_xform = glm.mat4(*global_xforms[i].T.ravel())
@@ -64,7 +68,9 @@ class Mesh:
         for i, updated in enumerate(buffer_updated):
             if not updated:
                 jname = self.mesh_gl.joint_names[i]
-                self.buffer[i] = self.buffer[self.mesh_gl.name_to_idx[jname] - 1]
+                parent_idx = self.skeleton.parent_idx[self.skeleton.idx_by_name[jname]]
+                pjoint_name = self.skeleton.joints[parent_idx].name
+                self.buffer[i] = self.buffer[self.mesh_gl.name_to_idx[pjoint_name]]
 
     def _update_without_joint_map(self, pose: Pose):
         global_xforms = pose.global_xforms()
