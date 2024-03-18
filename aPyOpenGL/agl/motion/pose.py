@@ -32,30 +32,14 @@ class Pose:
         if self.skeleton.num_joints == 0:
             raise ValueError("Cannot create a pose for an empty skeleton.")
     
-    def pre_xforms(self):
-        pre_xforms = self.skeleton.pre_xforms
-        pre_xforms[0, :3, 3] = self.root_pos
-        return pre_xforms
-    
-    def local_xforms(self):
-        local_Rs = trf.n_quat.to_rotmat(self.local_quats)
-
-        local_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(self.skeleton.num_joints)], axis=0)
-        local_xforms[:, :3, :3] = local_Rs
-            
-        return local_xforms
-    
     def global_xforms(self):
-        noj = self.skeleton.num_joints
-        pre_xforms = self.pre_xforms()
-        local_xforms = self.local_xforms()
+        gq, gp = trf.n_quat.fk(self.local_quats, self.root_pos, self.skeleton)
+        gr = trf.n_quat.to_rotmat(gq)
+        gx = np.stack([np.identity(4, dtype=np.float32) for _ in range(self.skeleton.num_joints)], axis=0)
+        gx[:, :3, :3] = gr
+        gx[:, :3,  3] = gp
 
-        global_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(noj)], axis=0)
-        global_xforms[0] = pre_xforms[0] @ local_xforms[0]
-        for i in range(1, noj):
-            global_xforms[i] = global_xforms[self.skeleton.parent_idx[i]] @ pre_xforms[i] @ local_xforms[i]
-
-        return global_xforms
+        return gx
     
     def skeleton_xforms(self):
         noj = self.skeleton.num_joints
@@ -72,7 +56,7 @@ class Pose:
 
             skeleton_xforms[i-1, :3, :3] = trf.n_quat.to_rotmat(quat)
             skeleton_xforms[i-1, :3,  3] = (parent_pos + global_xforms[i, :3, 3]) / 2
-        
+
         return skeleton_xforms
     
     @classmethod

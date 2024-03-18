@@ -26,7 +26,7 @@ class Skeleton:
         self.idx_by_name: dict             = {}
 
         if len(self.joints) > 0:
-            self._recompute_pre_xform()
+            self.recompute_pre_xform()
     
     @property
     def num_joints(self):
@@ -53,7 +53,7 @@ class Skeleton:
         self.joints.append(joint)
 
         # recompute pre-transform
-        self._recompute_pre_xform()
+        self.recompute_pre_xform()
     
-    def _recompute_pre_xform(self):
+    def recompute_pre_xform(self):
         self.__pre_xforms = np.stack([joint.pre_xform for joint in self.joints])

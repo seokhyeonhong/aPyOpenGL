@@ -69,6 +69,7 @@ class BVH:
                 if offmatch:
                     if not end_site:
                         skeleton.joints[active].local_pos = np.array(list(map(float, offmatch.groups())), dtype=np.float32) * self.scale
+                        skeleton.recompute_pre_xform()
                     continue
 
                 chanmatch = re.match(r"\s*CHANNELS\s+(\d+)", line)
