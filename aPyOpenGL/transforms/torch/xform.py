@@ -36,7 +36,7 @@ def fk(local_xforms, root_pos, skeleton):
 Transformation matrix to other representation
 """
 def to_rotmat(xform):
-    return xform[..., :3, :3]
+    return xform[..., :3, :3].clone()
 
 def to_quat(xform):
     return rotmat.to_quat(to_rotmat(xform))
@@ -48,7 +48,7 @@ def to_ortho6d(xform):
     return rotmat.to_ortho6d(to_rotmat(xform))
 
 def to_translation(xform):
-    return xform[..., :3, 3]
+    return xform[..., :3, 3].clone()
 
 """
 Other representation to transformation matrix
