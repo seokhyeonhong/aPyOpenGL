@@ -55,5 +55,39 @@ class Skeleton:
         # recompute pre-transform
         self.recompute_pre_xform()
     
+    def remove_joint_by_name(self, joint_name):
+        joint_idx = self.idx_by_name.get(joint_name, None)
+        if joint_idx is None:
+            raise ValueError(f"Joint {joint_name} does not exist.")
+        return self.remove_joint_by_idx(joint_idx)
+
+    def remove_joint_by_idx(self, joint_idx):
+        remove_indices = [joint_idx]
+        
+        def dfs(jidx):
+            for cidx in self.children_idx[jidx]:
+                remove_indices.append(cidx)
+                dfs(cidx)
+
+        dfs(joint_idx)
+        remove_indices.sort(reverse=True)
+
+        for ridx in remove_indices:
+            self.children_idx[self.parent_idx[ridx]].remove(ridx)
+            self.joints.pop(ridx)
+            self.parent_idx.pop(ridx)
+            self.children_idx.pop(ridx)
+
+        for i in range(len(self.joints)):
+            self.parent_idx[i] = self.parent_idx[i] - sum([1 for ridx in remove_indices if ridx < self.parent_idx[i]])
+            self.children_idx[i] = [cidx - sum([1 for ridx in remove_indices if ridx < cidx]) for cidx in self.children_idx[i]]
+            
+        for i, joint in enumerate(self.joints):
+            self.idx_by_name[joint.name] = i
+
+        self.recompute_pre_xform()
+
+        return remove_indices
+
     def recompute_pre_xform(self):
         self.__pre_xforms = np.stack([joint.pre_xform for joint in self.joints])

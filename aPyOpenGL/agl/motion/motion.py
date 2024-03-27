@@ -1,5 +1,6 @@
 from __future__ import annotations
 import numpy as np
+import copy
 
 from .pose import Pose
 from aPyOpenGL.transforms import n_quat
@@ -33,3 +34,9 @@ class Motion:
     @property
     def skeleton(self):
         return self.poses[0].skeleton
+    
+    def remove_joint_by_name(self, joint_name):
+        remove_indices = self.skeleton.remove_joint_by_name(joint_name)
+        for pose in self.poses:
+            pose.skeleton = self.skeleton
+            pose.local_quats = np.delete(pose.local_quats, remove_indices, axis=0)

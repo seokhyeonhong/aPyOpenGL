@@ -1,6 +1,8 @@
 from __future__ import annotations
+from typing import Union
 
 import numpy as np
+import copy
 
 from .skeleton import Skeleton
 from aPyOpenGL import transforms as trf
@@ -20,7 +22,7 @@ class Pose:
     def __init__(
         self,
         skeleton: Skeleton,
-        local_quats: np.ndarray or list[np.ndarray] = None,
+        local_quats: Union[np.ndarray, list[np.ndarray]] = None,
         root_pos: np.ndarray = None,
     ):
         # set attributes
@@ -58,6 +60,10 @@ class Pose:
             skeleton_xforms[i-1, :3,  3] = (parent_pos + global_xforms[i, :3, 3]) / 2
 
         return skeleton_xforms
+    
+    def remove_joint_by_name(self, joint_name):
+        joint_indices = self.skeleton.remove_joint_by_name(joint_name)
+        self.local_quats = np.delete(self.local_quats, joint_indices, axis=0)
     
     @classmethod
     def from_numpy(cls, skeleton, local_quats, root_pos):
