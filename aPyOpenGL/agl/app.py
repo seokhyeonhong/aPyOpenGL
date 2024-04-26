@@ -23,6 +23,7 @@ class App:
         self,
         camera = Camera(),
         lights = [DirectionalLight() for _ in range(4)],
+        fps = 30,
     ):
         # render settings
         self.camera = camera
@@ -41,7 +42,7 @@ class App:
         self.render_ui = True
 
         # play options
-        self.fps = 30
+        self.fps = fps
         self.frame = 0
         self.prev_frame = -1
         self.playing = True
@@ -54,7 +55,7 @@ class App:
         self.start_time = 0
         self.end_time = 0
         self.frame_count = 0
-        self.render_fps = 30
+        self.render_fps = fps
 
     class IO:
         def __init__(self):

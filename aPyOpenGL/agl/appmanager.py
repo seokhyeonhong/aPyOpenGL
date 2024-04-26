@@ -6,23 +6,19 @@ from .render import Render, RenderMode
 from .const  import SHADOW_MAP_SIZE
 
 class AppManager:
-    app = None
+    _app = None
 
     @staticmethod
     def start(app: App):
-        AppManager.set_app(app)
-        AppManager.render_loop()
+        AppManager._app = app
+        AppManager._render_loop()
 
     @staticmethod
-    def set_app(app: App):
-        AppManager.app = app
-
-    @staticmethod
-    def render_loop():
-        if AppManager.app is None:
+    def _render_loop():
+        if AppManager._app is None:
             raise Exception("AppManager.app is empty")
         
-        app = AppManager.app
+        app = AppManager._app
 
         # start
         app.start()

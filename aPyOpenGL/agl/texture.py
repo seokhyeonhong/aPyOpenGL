@@ -135,9 +135,13 @@ class TextureLoader:
     @staticmethod
     def load(path) -> Texture:
         if path not in TextureLoader.__texture_map:
-            texture_id = TextureLoader.generate_texture(path)
-            texture = Texture(path, texture_id)
-            TextureLoader.__texture_map[path] = texture
+            try:
+                texture_id = TextureLoader.generate_texture(path)
+                texture = Texture(path, texture_id)
+                TextureLoader.__texture_map[path] = texture
+            
+            except FileNotFoundError:
+                return Texture()
             
         return TextureLoader.__texture_map[path]
     
