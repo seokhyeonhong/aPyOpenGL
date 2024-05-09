@@ -22,6 +22,7 @@ done
 # check if --name is provided
 if [[ -z "$ENV_NAME" ]]; then
     echo "The --name argument is mandatory!"
+    echo "Usage: install.sh --name <env_name>"
     exit 1
 fi
 
@@ -60,6 +61,7 @@ pushd "${ROOT_DIR}"
 
     # make fbxsdk directory
     mkdir -p python-fbxsdk
+    pip install gdown
 
     pushd python-fbxsdk
         # download fbx sdk
@@ -67,9 +69,9 @@ pushd "${ROOT_DIR}"
         FBXSDK_TARGZ=fbx202001_fbxsdk_linux.tar.gz
         BINDINGS_TARGZ=fbx202001_fbxpythonbindings_linux.tar.gz
 
-        wget --load-cookies ~/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies ~/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1qPvq_23_7jmxMM1gWEQPSCgSyvB6Q7CE' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1qPvq_23_7jmxMM1gWEQPSCgSyvB6Q7CE" -O $SIP_TARGZ && rm -rf ~/cookies.txt
-        wget --load-cookies ~/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies ~/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1Kn8vH2QMkfaCUM6j5gNDUVwawNiMvq4c' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1Kn8vH2QMkfaCUM6j5gNDUVwawNiMvq4c" -O $FBXSDK_TARGZ && rm -rf ~/cookies.txt
-        wget --load-cookies ~/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies ~/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1r4IcLf6nj10GjEgcDrIvrZ8_0I9XU-hG' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1r4IcLf6nj10GjEgcDrIvrZ8_0I9XU-hG" -O $BINDINGS_TARGZ && rm -rf ~/cookies.txt
+        gdown --id 1qPvq_23_7jmxMM1gWEQPSCgSyvB6Q7CE -O $SIP_TARGZ
+        gdown --id 1Kn8vH2QMkfaCUM6j5gNDUVwawNiMvq4c -O $FBXSDK_TARGZ
+        gdown --id 1r4IcLf6nj10GjEgcDrIvrZ8_0I9XU-hG -O $BINDINGS_TARGZ
 
         # extract tar.gz files
         mkdir -p sdk
@@ -123,7 +125,8 @@ pushd "${ROOT_DIR}"
     # install additional dependencies
     pip install -r requirements.txt
     imageio_download_bin freeimage
-    pip install torch==1.10.1+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+    # pip install torch==1.10.1+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+    # pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu121
 
     # remove fbxsdk directory
     rm -rf python-fbxsdk
