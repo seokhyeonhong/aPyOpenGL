@@ -44,11 +44,8 @@ class Motion:
             pose.skeleton = self.skeleton
             pose.local_quats = np.delete(pose.local_quats, remove_indices, axis=0)
 
-    def export_as_bvh(self):
-        total_frames = self.num_frames
-        filename = os.path.join(agl.AGL_PATH, "data/bvh/ybot_capoeira_export.bvh")
+    def export_as_bvh(self, filename):
         self._save(filename)
-        
 
     def _save(self, filename, scale=100.0, rot_order="ZXY", verbose=False):
         if verbose:
