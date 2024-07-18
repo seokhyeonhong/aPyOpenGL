@@ -85,8 +85,8 @@ class Motion:
                 p *= scale
                 f.write("%f %f %f " % (p[0], p[1], p[2]))
                 for quat in self.poses[i].local_quats:
-                    R = self._Q2E(quat)
-                    f.write("%f %f %f " % (R[2], R[1], R[0]))
+                    R = self._Q2E(quat, rot_order)
+                    f.write("%f %f %f " % (R[0], R[1], R[2]))
                 f.write("\n")
                 t += dt
                 if verbose and i == num_frames - 1:
