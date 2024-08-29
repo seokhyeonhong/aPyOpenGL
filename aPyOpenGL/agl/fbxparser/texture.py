@@ -60,7 +60,7 @@ def get_file_texture(texture, blend_mode):
 
     # get texture type
     if isinstance(texture, fbx.FbxFileTexture):
-        info.filename = texture.GetFileName()
+        info.filename = texture.GetRelativeFileName()
     elif isinstance(texture, fbx.FbxProceduralTexture):
         return info
     else:

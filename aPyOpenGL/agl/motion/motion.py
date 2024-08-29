@@ -145,3 +145,9 @@ class Motion:
         modifiedQ = [x,y,z,w]
 
         return Rotation.from_quat(modifiedQ).as_euler(order, degrees=degrees)
+    
+    def mirror(self, pair_indices):
+        mirrored_poses = []
+        for pose in self.poses:
+            mirrored_poses.append(pose.mirror(pair_indices))
+        return Motion(mirrored_poses, self.fps, self.name)

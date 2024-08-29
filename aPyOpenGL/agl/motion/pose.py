@@ -64,6 +64,27 @@ class Pose:
     def remove_joint_by_name(self, joint_name):
         joint_indices = self.skeleton.remove_joint_by_name(joint_name)
         self.local_quats = np.delete(self.local_quats, joint_indices, axis=0)
+
+    def mirror(self, pair_indices):
+        res = Pose(self.skeleton, self.local_quats.copy(), self.root_pos.copy())
+
+        # swap joint indices
+        res.local_quats = res.local_quats[pair_indices]
+
+        # mirror by symmetry axis
+        sym_axis = res.skeleton.find_symmetry_axis(pair_indices)
+        if sym_axis == "x":
+            res.local_quats[:, (0, 1)] *= -1
+            res.root_pos[0] *= -1
+        elif sym_axis == "y":
+            res.local_quats[:, (0, 2)] *= -1
+            res.root_pos[1] *= -1
+        elif sym_axis == "z":
+            res.local_quats[:, (0, 3)] *= -1
+            res.root_pos[2] *= -1
+        
+        return res
+
     
     @classmethod
     def from_numpy(cls, skeleton, local_quats, root_pos):
