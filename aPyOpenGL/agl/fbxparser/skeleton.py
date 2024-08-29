@@ -31,6 +31,10 @@ def to_vec3(x):
     return glm.vec3(x[0], x[1], x[2])
 
 def parse_nodes_by_type(node, joints, parent_idx, type, scale):
+    if node.GetTypeName() == "Null":
+        for i in range(node.GetChildCount()):
+            parse_nodes_by_type(node.GetChild(i), joints, parent_idx, type, scale)
+    
     is_type = False
     for i in range(node.GetNodeAttributeCount()):
         attr = node.GetNodeAttributeByIndex(i)
