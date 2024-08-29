@@ -60,6 +60,8 @@ class Shader:
 
     def _glm_values_to_ptr(self, values):
         # transpose because glm is column-major while numpy is row-major
+        if len(values) == 0:
+            return np.array([], dtype=np.float32).ctypes.data_as(ctypes.POINTER(ctypes.c_float))
         float_array = np.concatenate([np.asarray(value, dtype=np.float32).transpose().flatten() for value in values])
         return float_array.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
 

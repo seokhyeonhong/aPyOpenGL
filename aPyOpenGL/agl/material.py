@@ -87,7 +87,7 @@ class Material:
     
     def set_texture(self, texture, texture_type):
         if not isinstance(texture_type, TextureType):
-            texture_type = self.type_dict.get(texture_type, TextureType.eUNKNOWN)
+            texture_type = self.type_dict.get(texture_type, TextureType.eDIFFUSE)
 
         # TextureType: Unknown
         if texture_type == TextureType.eUNKNOWN:
