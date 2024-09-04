@@ -130,30 +130,30 @@ def get_mesh_tangent(fbx_mesh_, vertex_id, i, j):
 def get_mesh_uv(fbx_mesh_, i, j):
     control_point_idx = fbx_mesh_.GetPolygonVertex(i, j)
 
-    for l in range(fbx_mesh_.GetElementUVCount()):
-        le_uv = fbx_mesh_.GetElementUV(l)
+    # for l in range(fbx_mesh_.GetElementUVCount()):
+    le_uv = fbx_mesh_.GetElementUV()
 
-        if le_uv.GetMappingMode() == fbx.FbxLayerElement.eByControlPoint:
-            if le_uv.GetReferenceMode() == fbx.FbxLayerElement.eDirect:
-                uv = le_uv.GetDirectArray().GetAt(control_point_idx)
-                uv = np.array([uv[0], uv[1]], dtype=np.float32)
-            elif le_uv.GetReferenceMode() == fbx.FbxLayerElement.eIndexToDirect:
-                idx = le_uv.GetIndexArray().GetAt(control_point_idx)
-                uv = le_uv.GetDirectArray().GetAt(idx)
-                uv = np.array([uv[0], uv[1]], dtype=np.float32)
-            else:
-                raise Exception("Unknown reference mode")
-        elif le_uv.GetMappingMode() == fbx.FbxLayerElement.eByPolygonVertex:
-            texture_uv_idx = fbx_mesh_.GetTextureUVIndex(i, j)
-            if le_uv.GetReferenceMode() == fbx.FbxLayerElement.eDirect or \
-                le_uv.GetReferenceMode() == fbx.FbxLayerElement.eIndexToDirect:
-                uv = le_uv.GetDirectArray().GetAt(texture_uv_idx)
-                uv = np.array([uv[0], uv[1]], dtype=np.float32)
-            else:
-                raise Exception("Unknown reference mode")
-        elif le_uv.GetMappingMode() in [fbx.FbxLayerElement.eByPolygon, fbx.FbxLayerElement.eAllSame, fbx.FbxLayerelement.eNone]:
-            raise Exception("Not implemented mapping mode")
+    if le_uv.GetMappingMode() == fbx.FbxLayerElement.eByControlPoint:
+        if le_uv.GetReferenceMode() == fbx.FbxLayerElement.eDirect:
+            uv = le_uv.GetDirectArray().GetAt(control_point_idx)
+            uv = np.array([uv[0], uv[1]], dtype=np.float32)
+        elif le_uv.GetReferenceMode() == fbx.FbxLayerElement.eIndexToDirect:
+            idx = le_uv.GetIndexArray().GetAt(control_point_idx)
+            uv = le_uv.GetDirectArray().GetAt(idx)
+            uv = np.array([uv[0], uv[1]], dtype=np.float32)
         else:
-            raise Exception("Unknown mapping mode")
-    
+            raise Exception("Unknown reference mode")
+    elif le_uv.GetMappingMode() == fbx.FbxLayerElement.eByPolygonVertex:
+        texture_uv_idx = fbx_mesh_.GetTextureUVIndex(i, j)
+        if le_uv.GetReferenceMode() == fbx.FbxLayerElement.eDirect or \
+            le_uv.GetReferenceMode() == fbx.FbxLayerElement.eIndexToDirect:
+            uv = le_uv.GetDirectArray().GetAt(texture_uv_idx)
+            uv = np.array([uv[0], uv[1]], dtype=np.float32)
+        else:
+            raise Exception("Unknown reference mode")
+    elif le_uv.GetMappingMode() in [fbx.FbxLayerElement.eByPolygon, fbx.FbxLayerElement.eAllSame, fbx.FbxLayerelement.eNone]:
+        raise Exception("Not implemented mapping mode")
+    else:
+        raise Exception("Unknown mapping mode")
+
     return uv
