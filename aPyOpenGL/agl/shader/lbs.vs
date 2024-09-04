@@ -1,5 +1,5 @@
 #version 430
-#define MAX_JOINT_NUM 100
+#define MAX_JOINT_NUM 150
 uniform mat4 uLbsJoints[MAX_JOINT_NUM];
 
 // --------------------------------------------
