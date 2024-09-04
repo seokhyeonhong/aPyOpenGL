@@ -33,7 +33,7 @@ BACKGROUND_TEXTURE_FILE = "background.hdr"
 TEXTURE_DIR_PATH        = os.path.join(AGL_PATH, "data/textures/")
 
 """ Skeleton constants """
-MAX_JOINT_NUM = 100
+MAX_JOINT_NUM = 150
 
 """ Model constants """
 AXIS_MODEL_PATH = os.path.join(AGL_PATH, "data/fbx/etc/axis.fbx")
