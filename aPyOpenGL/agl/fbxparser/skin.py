@@ -49,8 +49,10 @@ def get_skinning(skinning_data: SkinningData, geometry, control_idx_to_vertex_id
             for k in range(idx_count):
                 control_point_idx = indices[k]
                 vertex_weight     = float(weights[k])
-
-                vertex_indices = control_idx_to_vertex_idx[control_point_idx]
+                vertex_indices = control_idx_to_vertex_idx.get(control_point_idx, None)
+                if vertex_indices is None:
+                    print(f"Warning: Vertex not found at control point {control_point_idx}")
+                    continue
                 for vertex_idx in vertex_indices:
                     if vertex_skinning_count[vertex_idx] == 0:
                         skinning_data.joint_indices1[vertex_idx].x = joint_idx
