@@ -90,6 +90,9 @@ def get_mesh_normal(fbx_mesh_, vertex_id, i, j):
     return normal / (np.linalg.norm(normal) + 1e-8)
 
 def get_mesh_tangent(fbx_mesh_, vertex_id, i, j):
+    if fbx_mesh_.GetElementTangentCount() == 0:
+        return np.array([0, 0, 0], dtype=np.float32)
+    
     for l in range(fbx_mesh_.GetElementTangentCount()):
         le_tangent = fbx_mesh_.GetElementTangent(l)
 
@@ -132,7 +135,9 @@ def get_mesh_uv(fbx_mesh_, i, j):
 
     # for l in range(fbx_mesh_.GetElementUVCount()):
     le_uv = fbx_mesh_.GetElementUV()
-
+    if le_uv is None:
+        return np.array([0, 0], dtype=np.float32)
+    
     if le_uv.GetMappingMode() == fbx.FbxLayerElement.eByControlPoint:
         if le_uv.GetReferenceMode() == fbx.FbxLayerElement.eDirect:
             uv = le_uv.GetDirectArray().GetAt(control_point_idx)
