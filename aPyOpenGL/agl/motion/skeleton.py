@@ -91,3 +91,24 @@ class Skeleton:
 
     def recompute_pre_xform(self):
         self.__pre_xforms = np.stack([joint.pre_xform for joint in self.joints])
+    
+    def find_symmetry_axis(self, pair_indices):
+        assert len(self.joints) == len(pair_indices), f"number of pair indices {len(pair_indices)} must be same with the number of joints {len(self.joints)}"
+
+        offsets = self.pre_xforms[:, :3, -1].copy()
+        offsets = offsets - offsets[pair_indices]
+
+        x = np.max(np.abs(offsets[:, 0]))
+        y = np.max(np.abs(offsets[:, 1]))
+        z = np.max(np.abs(offsets[:, 2]))
+        
+        if x > y and x > z:
+            axis = "x"
+        elif y > x and y > z:
+            axis = "y"
+        elif z > x and z > y:
+            axis = "z"
+        else:
+            raise Exception("Symmetry axis not found")
+        
+        return axis
