@@ -287,17 +287,17 @@ class Render:
             if option._instance_num == 1:
                 T = glm.translate(glm.mat4(1.0), option._position)
                 R = glm.mat4(option._orientation)
-                S = glm.scale(glm.mat4(1.0), option._scale)
+                S = glm.scale(glm.mat4(1.0), glm.vec3(option._scale))
                 transform = T * R * S
                 shader.set_mat4("uModel", transform)
             
             # multiple instances
             else:
                 instance_transforms = []
-                for i in range(option._instance_num):
-                    T = glm.translate(glm.mat4(1.0), option._position[i])
+                for i in range(min(option._instance_num, len(option._position))):
+                    T = glm.translate(glm.mat4(1.0), glm.vec3(option._position[i]))
                     R = glm.mat4(option._orientation[i])
-                    S = glm.scale(glm.mat4(1.0), option._scale[i])
+                    S = glm.scale(glm.mat4(1.0), glm.vec3(option._scale[i]))
                     instance_transforms.append(T * R * S)
                 shader.set_multiple_mat4("uInstanceModel", instance_transforms)
 
@@ -404,16 +404,16 @@ class Render:
             shader.set_bool(f"uIsSkinned", False)
             shader.set_int("uInstanceNum", option._instance_num)
             if option._instance_num == 1:
-                T = glm.translate(glm.mat4(1.0), option._position)
+                T = glm.translate(glm.mat4(1.0), glm.vec3(option._position))
                 R = glm.mat4(option._orientation)
-                S = glm.scale(glm.mat4(1.0), option._scale)
+                S = glm.scale(glm.mat4(1.0), glm.vec3(option._scale))
                 shader.set_mat4("uModel", T * R * S)
             else:
                 instance_transforms = []
                 for i in range(option._instance_num):
-                    T = glm.translate(glm.mat4(1.0), option._position[i])
+                    T = glm.translate(glm.mat4(1.0), glm.vec3(option._position[i]))
                     R = glm.mat4(option._orientation[i])
-                    S = glm.scale(glm.mat4(1.0), option._scale[i])
+                    S = glm.scale(glm.mat4(1.0), glm.vec3(option._scale[i]))
                     instance_transforms.append(T * R * S)
                 shader.set_multiple_mat4("uInstanceModel", instance_transforms)
 
@@ -453,9 +453,9 @@ class Render:
             PVM = glm.ortho(0, Render.render_info.width, 0, Render.render_info.height)
         else:
             PV = Render.render_info.cam_projection * Render.render_info.cam_view
-            M = glm.translate(glm.mat4(1.0), option._position)\
+            M = glm.translate(glm.mat4(1.0), glm.vec3(option._position))\
                 * glm.mat4(option._orientation)\
-                * glm.scale(glm.mat4(1.0), option._scale) # translation * rotation * scale
+                * glm.scale(glm.mat4(1.0), glm.vec3(option._scale)) # translation * rotation * scale
             PVM = PV * M
 
         shader.set_mat4("uPVM", PVM)
