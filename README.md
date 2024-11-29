@@ -110,6 +110,33 @@ It would contain 3 files (fbx.pyd, FbxCommon.py, fbxsip.pyd), and you should mov
 
 If interpreting PythonBindings.py fails, you can try changing the variable vcCompiler and vsCompiler to what you are using. -->
 
+# Publications
+Published papers developed on top of this framework are as follows:
+
+Geometry-Aware Retargeting for Two-Skinned Characters Interaction [Jang et al. SIGGRAPH Asia 2024]
+```
+@article{jang2024geometry,
+  title={Geometry-Aware Retargeting for Two-Skinned Characters Interaction},
+  author={Jang, Inseo and Choi, Soojin and Hong, Seokhyeon and Kim, Chaelin and Noh, Junyong},
+  journal={ACM Transactions on Graphics (TOG)},
+  volume={43},
+  number={6},
+  pages={1--17},
+  year={2024},
+  publisher={ACM New York, NY, USA}
+}
+```
+[Long-term Motion In-Betweening via Keyframe Prediction](https://github.com/seokhyeonhong/long-mib) [Hong et al. SCA2024]
+```
+@inproceedings{hong2024long,
+  title={Long-Term Motion In-Betweening via Keyframe Prediction},
+  author={Hong, Seokhyeon and Kim, Haemin and Cho, Kyungmin and Noh, Junyong},
+  booktitle={Proceedings of the ACM SIGGRAPH/Eurographics Symposium on Computer Animation},
+  pages={1--12},
+  year={2024}
+}
+```
+
 # Acknowledgements
 The overall structure of the rendering modules is inspired by
 [aOpenGL](https://github.com/ltepenguin/aOpenGL)
