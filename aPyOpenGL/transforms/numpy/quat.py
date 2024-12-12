@@ -159,6 +159,9 @@ def to_ortho6d(quat):
 def to_xform(quat, translation=None):
     return rotmat.to_xform(to_rotmat(quat), translation=translation)
 
+def to_euler(quat, order, radians=True):
+    return rotmat.to_euler(to_rotmat(quat), order, radians=radians)
+
 """
 Other representations to quaternion
 """

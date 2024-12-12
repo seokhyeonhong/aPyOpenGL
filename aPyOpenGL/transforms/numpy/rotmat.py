@@ -1,6 +1,6 @@
 import numpy as np
 
-from . import quat, aaxis, ortho6d, xform
+from . import quat, aaxis, ortho6d, xform, euler
 
 """
 Operations
@@ -98,6 +98,38 @@ def to_xform(rotmat, translation=None):
 
     return I
 
+def to_euler(rotmat, order, radians=True):
+    """
+    Assumes extrinsic rotation and Tait-Bryan angles.
+    Alpha, beta, gamma are the angles of rotation about the x, y, z axes respectively.
+    TODO: handle gimbal lock (singularities)
+    """
+    if len(order) != 3:
+        raise ValueError(f"Order must be a 3-element list, but got {len(order)} elements")
+    
+    order = order.lower()
+    if set(order) != set("xyz"):
+        raise ValueError(f"Invalid order: {order}")
+    
+    axis2idx = {"x": 0, "y": 1, "z": 2}
+    idx0, idx1, idx2 = (axis2idx[axis] for axis in order)
+
+    # compute beta
+    sign = -1.0 if (idx0 - idx2) % 3 == 2 else 1.0
+    beta = np.arcsin(sign * rotmat[..., idx0, idx2])
+
+    # compute alpha
+    sign = -1.0 if (idx0 - idx2) % 3 == 1 else 1.0
+    alpha = np.arctan2(sign * rotmat[..., idx1, idx2], rotmat[..., idx2, idx2])
+
+    # compute gamma -> same sign as alpha
+    gamma = np.arctan2(sign * rotmat[..., idx0, idx1], rotmat[..., idx0, idx0])
+
+    if not radians:
+        alpha, beta, gamma = np.rad2deg(alpha), np.rad2deg(beta), np.rad2deg(gamma)
+
+    return np.stack([alpha, beta, gamma], axis=-1)
+
 """
 Other representation to rotation matrix
 """
@@ -112,3 +144,6 @@ def from_ortho6d(r):
 
 def from_xform(x):
     return xform.to_rotmat(x)
+
+def from_euler(angles, order, radians=True):
+    return euler.to_rotmat(angles, order, radians=radians)
