@@ -32,7 +32,7 @@ class RenderMode(Enum):
     eTEXT   = 2
 
 class RenderInfo:
-    sky_color          = glm.vec4(0.8)
+    sky_color          = glm.vec4(1.0)
     cam_position       = glm.vec3(0.0)
     cam_projection     = glm.mat4(1.0)
     cam_view           = glm.mat4(1.0)
@@ -324,10 +324,11 @@ class Render:
             glBindTexture(GL_TEXTURE_2D, 0)
         
         # material settings
-        rgba = [glm.vec4(1) for _ in range(MAX_MATERIAL_NUM)]
+        num_materials = min(len(option._materials), MAX_MATERIAL_NUM)
+        rgba = [glm.vec4(1) for _ in range(num_materials)]
         # attribs = [glm.vec3(0)] * MAX_MATERIAL_NUM
-        texture_id = [glm.ivec3(-1) for _ in range(MAX_MATERIAL_NUM)]
-        pbr_texture_id = [glm.ivec3(-1) for _ in range(MAX_MATERIAL_NUM)]
+        texture_id = [glm.ivec3(-1) for _ in range(num_materials)]
+        pbr_texture_id = [glm.ivec3(-1) for _ in range(num_materials)]
 
         def gl_set_texture(texture_id, count):
             if texture_id == 0 or count[0] >= MAX_MATERIAL_TEXTURES:
@@ -340,7 +341,7 @@ class Render:
             return idx_on_shader
         
         texture_count = [0] # use list to pass by reference
-        for i in range(min(len(option._materials), MAX_MATERIAL_NUM)):
+        for i in range(num_materials):
             material = option._materials[i]
             rgba[i] = glm.vec4(material.albedo, material.alpha)
             
@@ -353,7 +354,7 @@ class Render:
                 pbr_texture_id[i].y = gl_set_texture(material.roughness_map.texture_id, texture_count)
                 pbr_texture_id[i].z = gl_set_texture(material.ao_map.texture_id, texture_count)
         
-        for i in range(min(len(option._materials), MAX_MATERIAL_NUM)):
+        for i in range(num_materials):
             shader.set_vec4 (f"uMaterial[{i}].albedo",       rgba[i])
             shader.set_ivec3(f"uMaterial[{i}].textureID",    texture_id[i])
             shader.set_ivec3(f"uMaterial[{i}].pbrTextureID", pbr_texture_id[i])
