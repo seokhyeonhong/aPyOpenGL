@@ -3,7 +3,6 @@ import numpy as np
 import copy
 import os
 
-from scipy.spatial.transform import Rotation
 from .pose import Pose
 from aPyOpenGL.transforms import n_quat
 from aPyOpenGL import agl
@@ -44,8 +43,8 @@ class Motion:
             pose.skeleton = self.skeleton
             pose.local_quats = np.delete(pose.local_quats, remove_indices, axis=0)
 
-    def export_as_bvh(self, filename):
-        self._save(filename)
+    def export_as_bvh(self, filename, rot_order="XYZ"):
+        self._save(filename, rot_order=rot_order)
 
     def _save(self, filename, scale=100.0, rot_order="ZXY", verbose=False):
         if verbose:
@@ -82,7 +81,8 @@ class Motion:
                 p *= scale
                 f.write("%f %f %f " % (p[0], p[1], p[2]))
                 for quat in self.poses[i].local_quats:
-                    R = self._Q2E(quat, rot_order)
+                    # R = self._Q2E(quat, rot_order)
+                    R = n_quat.to_euler(quat, rot_order, radians=False)
                     f.write("%f %f %f " % (R[0], R[1], R[2]))
                 f.write("\n")
                 t += dt
@@ -137,14 +137,14 @@ class Motion:
         file.write(tab + "}\n")
         return joint_order
 
-    def _Q2E(self, Q, order="yxz", degrees=True):
-        w = Q[0]
-        x = Q[1]
-        y = Q[2]
-        z = Q[3]
-        modifiedQ = [x,y,z,w]
+    # def _Q2E(self, Q, order="yxz", degrees=True):
+    #     w = Q[0]
+    #     x = Q[1]
+    #     y = Q[2]
+    #     z = Q[3]
+    #     modifiedQ = [x,y,z,w]
 
-        return Rotation.from_quat(modifiedQ).as_euler(order, degrees=degrees)
+    #     return Rotation.from_quat(modifiedQ).as_euler(order, degrees=degrees)
     
     def mirror(self, pair_indices, sym_axis=None):
         mirrored_poses = []
