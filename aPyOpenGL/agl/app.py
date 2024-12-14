@@ -85,7 +85,7 @@ class App:
             raise Exception("Failed to create GLFW window")
         
         glfw.make_context_current(window)
-        glfw.swap_interval(0)
+        glfw.swap_interval(1)
 
         # callbacks
         glfw.set_framebuffer_size_callback(window, self.on_resize)

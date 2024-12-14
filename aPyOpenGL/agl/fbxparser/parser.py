@@ -32,10 +32,10 @@ class FBXParser:
         # import the contents of the file into the scene
         importer.Import(self.scene)
 
-        # time setting to 30 fps
+        # time setting to 60 fps
         time_settings = self.scene.GetGlobalSettings()
         time_mode = time_settings.GetTimeMode()
-        time_settings.SetTimeMode(fbx.FbxTime.eFrames30)
+        time_settings.SetTimeMode(fbx.FbxTime.eFrames60)
 
         # triangulate
         fbx.FbxGeometryConverter(self.manager).Triangulate(self.scene, True)
@@ -45,7 +45,7 @@ class FBXParser:
         self.bake_node(self.scene.GetRootNode())
 
         # convert pivot
-        self.scene.GetRootNode().ConvertPivotAnimationRecursive(None, FbxNode.eDestinationPivot, 30, True)
+        self.scene.GetRootNode().ConvertPivotAnimationRecursive(None, FbxNode.eDestinationPivot, 60, True)
 
         # name check
         name_counter = {}
@@ -71,7 +71,7 @@ class FBXParser:
 
         # import in a system that supports rotation order
         # if the rotation order is not supported, do this instead:
-        # node.SetRotationOrder(FbxNode.eDestinationPivot, FbxNode.eEulerXYZ)
+        # node.SetRotationOrder(FbxNode.eDestinationPivot, fbx.EFbxRotationOrder(0))
         order = node.GetRotationOrder(FbxNode.eSourcePivot)
         node.SetRotationOrder(FbxNode.eDestinationPivot, order)
 
@@ -84,7 +84,7 @@ class FBXParser:
         # idem for quaternions
         node.SetQuaternionInterpolation(FbxNode.eDestinationPivot, node.GetQuaternionInterpolation(FbxNode.eSourcePivot))
 
-        node.ConvertPivotAnimationRecursive(None, FbxNode.eDestinationPivot, 30.0, True)
+        node.ConvertPivotAnimationRecursive(None, FbxNode.eDestinationPivot, 60.0, True)
 
         for i in range(node.GetChildCount()):
             self.bake_node(node.GetChild(i))
