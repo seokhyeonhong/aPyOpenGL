@@ -4,8 +4,28 @@ import copy
 import os
 
 from .pose import Pose
+
 from aPyOpenGL.transforms import n_quat
-from aPyOpenGL import agl
+
+
+def _global_xforms_to_skeleton_xforms(global_xforms, parent_idx):
+    nof, noj = global_xforms.shape[:2]
+
+    skeleton_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(noj - 1)], axis=0)
+    skeleton_xforms = np.stack([skeleton_xforms for _ in range(nof)], axis=0)
+
+    for i in range(1, noj):
+        parent_pos = global_xforms[:, parent_idx[i], :3, 3]
+        
+        target_dir = global_xforms[:, i, :3, 3] - parent_pos
+        target_dir = target_dir / (np.linalg.norm(target_dir, axis=-1, keepdims=True) + 1e-8)
+
+        quat = n_quat.between_vecs(np.array([0, 1, 0], dtype=np.float32), target_dir)
+
+        skeleton_xforms[:, i-1, :3, :3] = n_quat.to_rotmat(quat)
+        skeleton_xforms[:, i-1, :3,  3] = (parent_pos + global_xforms[:, i, :3, 3]) / 2
+
+    return skeleton_xforms
 
 class Motion:
     """
@@ -22,31 +42,74 @@ class Motion:
         fps   : float = 30.0,
         name  : str   = "default",
     ):
-        self.poses : list[Pose] = poses
+        self.__poses : list[Pose] = poses
+        self.__name  : str        = name
         self.fps   : float      = fps
-        self.name  : str        = name
+
+        self.update_global_xform(verbose=True)
 
     def __len__(self):
-        return len(self.poses)
+        return len(self.__poses)
     
     @property
     def num_frames(self):
-        return len(self.poses)
+        return len(self.__poses)
+    
     
     @property
     def skeleton(self):
-        return self.poses[0].skeleton
+        return self.__poses[0].skeleton
+    
+
+    @property
+    def poses(self):
+        return self.__poses.copy()
+    
+
+    @property
+    def name(self):
+        return str(self.__name)
+    
+
+    @poses.setter
+    def poses(self, value: list[Pose]):
+        self.__poses = value.copy()
+    
     
     def remove_joint_by_name(self, joint_name):
         remove_indices = self.skeleton.remove_joint_by_name(joint_name)
-        for pose in self.poses:
+        for pose in self.__poses:
             pose.skeleton = self.skeleton
             pose.local_quats = np.delete(pose.local_quats, remove_indices, axis=0)
 
-    def export_as_bvh(self, filename, rot_order="XYZ"):
-        self._save(filename, rot_order=rot_order)
 
-    def _save(self, filename, scale=100.0, rot_order="ZXY", verbose=False):
+    def export_as_bvh(self, filename, rot_order="XYZ"):
+        self.__save(filename, rot_order=rot_order)
+
+    
+    def update_global_xform(self, verbose=False):
+        local_quats = np.stack([pose.local_quats for pose in self.__poses], axis=0) # (T, J, 4)
+        root_pos = np.stack([pose.root_pos for pose in self.__poses], axis=0) # (T, 3)
+
+        # fk
+        gq, gp = n_quat.fk(local_quats, root_pos, self.skeleton)
+        gr = n_quat.to_rotmat(gq)
+        gx = np.stack([np.identity(4, dtype=np.float32) for _ in range(self.skeleton.num_joints)], axis=0)
+        gx = np.stack([gx for _ in range(len(self.__poses))], axis=0)
+        gx[..., :3, :3] = gr
+        gx[..., :3,  3] = gp
+
+        # skeleton xforms
+        sx = _global_xforms_to_skeleton_xforms(gx, self.skeleton.parent_idx)
+
+        for i in range(len(self.__poses)):
+            self.__poses[i].set_global_xform(gx[i], sx[i])
+
+        if verbose:
+            print(f" > Global transformations of {self.name} updated.")
+
+
+    def __save(self, filename, scale=100.0, rot_order="ZXY", verbose=False):
         if verbose:
             print(" >  >  Save BVH file: %s" % filename)
         with open(filename, "w") as f:
@@ -75,12 +138,12 @@ class Motion:
                         % (i + 1, num_frames, self.fps),
                         end=" ",
                     )
-                pose = self.poses[i]
+                pose = self.__poses[i]
 
-                p = self.poses[i].root_pos
+                p = self.__poses[i].root_pos
                 p *= scale
                 f.write("%f %f %f " % (p[0], p[1], p[2]))
-                for quat in self.poses[i].local_quats:
+                for quat in self.__poses[i].local_quats:
                     # R = self._Q2E(quat, rot_order)
                     R = n_quat.to_euler(quat, rot_order, radians=False)
                     f.write("%f %f %f " % (R[0], R[1], R[2]))
@@ -147,7 +210,23 @@ class Motion:
     #     return Rotation.from_quat(modifiedQ).as_euler(order, degrees=degrees)
     
     def mirror(self, pair_indices, sym_axis=None):
+        local_quats = np.stack([pose.local_quats for pose in self.__poses], axis=0)
+        root_pos = np.stack([pose.root_pos for pose in self.__poses], axis=0)
+
+        # swap joint indices
+        local_quats = local_quats[:, pair_indices]
+
+        # mirror by symmetry axis
+        if sym_axis is None:
+            sym_axis = self.skeleton.find_symmetry_axis(pair_indices)
+        else:
+            assert sym_axis in ["x", "y", "z"], f"Invalid axis {sym_axis} for symmetry axis, must be one of ['x', 'y', 'z']"
+
+        idx = {"x": 0, "y": 1, "z": 2}[sym_axis]
+        local_quats[:, :, (0, idx+1)] *= -1
+        root_pos[:, idx] *= -1
+
         mirrored_poses = []
-        for pose in self.poses:
-            mirrored_poses.append(pose.mirror(pair_indices, sym_axis=sym_axis))
-        return Motion(mirrored_poses, self.fps, self.name)
+        for i in range(len(self.__poses)):
+            mirrored_poses.append(Pose(self.skeleton, local_quats[i], root_pos[i]))
+        return Motion(mirrored_poses, self.fps, str(self.__name) + "_mirrored")

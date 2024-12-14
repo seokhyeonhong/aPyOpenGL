@@ -2,10 +2,29 @@ from __future__ import annotations
 from typing import Union
 
 import numpy as np
-import copy
+from copy import deepcopy
 
 from .skeleton import Skeleton
 from aPyOpenGL import transforms as trf
+
+
+def _global_xforms_to_skeleton_xforms(global_xforms, parent_idx):
+    noj = global_xforms.shape[0]
+
+    skeleton_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(noj - 1)], axis=0)
+    for i in range(1, noj):
+        parent_pos = global_xforms[parent_idx[i], :3, 3]
+        
+        target_dir = global_xforms[i, :3, 3] - parent_pos
+        target_dir = target_dir / (np.linalg.norm(target_dir, axis=-1, keepdims=True) + 1e-8)
+
+        quat = trf.n_quat.between_vecs(np.array([0, 1, 0], dtype=np.float32), target_dir)
+
+        skeleton_xforms[i-1, :3, :3] = trf.n_quat.to_rotmat(quat)
+        skeleton_xforms[i-1, :3,  3] = (parent_pos + global_xforms[i, :3, 3]) / 2
+
+    return skeleton_xforms
+        
 
 class Pose:
     """
@@ -26,68 +45,106 @@ class Pose:
         root_pos: np.ndarray = None,
     ):
         # set attributes
-        self.skeleton    = skeleton
-        self.local_quats = np.stack([trf.n_quat.identity()] * skeleton.num_joints, axis=0) if local_quats is None else np.array(local_quats)
-        self.root_pos    = np.zeros(3) if root_pos is None else root_pos
+        self.__skeleton    = skeleton
+        self.__local_quats = np.stack([trf.n_quat.identity()] * skeleton.num_joints, axis=0) if local_quats is None else np.array(local_quats, dtype=np.float32)
+        self.__root_pos    = np.zeros(3, dtype=np.float32) if root_pos is None else np.array(root_pos, dtype=np.float32)
         
         # check shapes
-        if self.skeleton.num_joints == 0:
+        if self.__skeleton.num_joints == 0:
             raise ValueError("Cannot create a pose for an empty skeleton.")
+        
+        # global transformations
+        self.__global_updated = False
+        self.__global_xforms, self.__skeleton_xforms = None, None
     
+    
+    @property
+    def skeleton(self):
+        return deepcopy(self.__skeleton)
+    
+    
+    @property
+    def local_quats(self):
+        return self.__local_quats.copy()
+    
+    
+    @property
+    def root_pos(self):
+        return self.__root_pos.copy()
+    
+
+    @property
     def global_xforms(self):
-        gq, gp = trf.n_quat.fk(self.local_quats, self.root_pos, self.skeleton)
+        if not self.__global_updated:
+            self.update_global_xform()
+        return self.__global_xforms.copy()
+    
+
+    @property
+    def skeleton_xforms(self):
+        if not self.__global_updated:
+            self.update_global_xform()
+        return self.__skeleton_xforms.copy()
+    
+    
+    @local_quats.setter
+    def local_quats(self, value):
+        self.__local_quats = np.array(value)
+        self.__global_updated = False
+
+    
+    @root_pos.setter
+    def root_pos(self, value):
+        self.__root_pos = np.array(value)
+        self.__global_updated = False
+
+    
+    def update_global_xform(self):
+        if self.__global_updated:
+            return
+        
+        # update global xform
+        gq, gp = trf.n_quat.fk(self.__local_quats, self.__root_pos, self.__skeleton)
         gr = trf.n_quat.to_rotmat(gq)
-        gx = np.stack([np.identity(4, dtype=np.float32) for _ in range(self.skeleton.num_joints)], axis=0)
+        gx = np.stack([np.identity(4, dtype=np.float32) for _ in range(self.__skeleton.num_joints)], axis=0)
         gx[:, :3, :3] = gr
         gx[:, :3,  3] = gp
 
-        return gx
+        self.__global_xforms = gx
+
+        # update skeleton xform
+        self.__skeleton_xforms = _global_xforms_to_skeleton_xforms(self.__global_xforms, self.__skeleton.parent_idx)
+
+        self.__global_updated = True
     
-    def skeleton_xforms(self):
-        noj = self.skeleton.num_joints
-        global_xforms = self.global_xforms()
 
-        skeleton_xforms = np.stack([np.identity(4, dtype=np.float32) for _ in range(noj - 1)], axis=0)
-        for i in range(1, noj):
-            parent_pos = global_xforms[self.skeleton.parent_idx[i], :3, 3]
-            
-            target_dir = global_xforms[i, :3, 3] - parent_pos
-            target_dir = target_dir / (np.linalg.norm(target_dir, axis=-1, keepdims=True) + 1e-8)
+    def set_global_xform(self, global_xforms, skeleton_xforms):
+        self.__global_xforms = np.array(global_xforms, dtype=np.float32)
+        self.__skeleton_xforms = np.array(skeleton_xforms, dtype=np.float32)
+        self.__global_updated = True
 
-            quat = trf.n_quat.between_vecs(np.array([0, 1, 0], dtype=np.float32), target_dir)
-
-            skeleton_xforms[i-1, :3, :3] = trf.n_quat.to_rotmat(quat)
-            skeleton_xforms[i-1, :3,  3] = (parent_pos + global_xforms[i, :3, 3]) / 2
-
-        return skeleton_xforms
     
     def remove_joint_by_name(self, joint_name):
-        joint_indices = self.skeleton.remove_joint_by_name(joint_name)
-        self.local_quats = np.delete(self.local_quats, joint_indices, axis=0)
+        joint_indices = self.__skeleton.remove_joint_by_name(joint_name)
+        self.__local_quats = np.delete(self.__local_quats, joint_indices, axis=0)
 
+    
     def mirror(self, pair_indices, sym_axis=None):
-        res = Pose(self.skeleton, self.local_quats.copy(), self.root_pos.copy())
-
         # swap joint indices
-        res.local_quats = res.local_quats[pair_indices]
+        local_quats = self.local_quats[pair_indices]
+        root_pos = self.root_pos
 
         # mirror by symmetry axis
         if sym_axis is None:
-            sym_axis = res.skeleton.find_symmetry_axis(pair_indices)
+            sym_axis = self.__skeleton.find_symmetry_axis(pair_indices)
         else:
             assert sym_axis in ["x", "y", "z"], f"Invalid axis {sym_axis} for symmetry axis, must be one of ['x', 'y', 'z']"
-
-        if sym_axis == "x":
-            res.local_quats[:, (0, 1)] *= -1
-            res.root_pos[0] *= -1
-        elif sym_axis == "y":
-            res.local_quats[:, (0, 2)] *= -1
-            res.root_pos[1] *= -1
-        elif sym_axis == "z":
-            res.local_quats[:, (0, 3)] *= -1
-            res.root_pos[2] *= -1
         
-        return res
+        idx = {"x": 0, "y": 1, "z": 2}[sym_axis]
+        local_quats[:, (0, idx+1)] *= -1
+        root_pos[idx] *= -1
+
+        return Pose(deepcopy(self.__skeleton), local_quats, root_pos)
 
     
     @classmethod
@@ -100,8 +157,8 @@ class Pose:
 
     # """ IK functions """
     # def two_bone_ik(self, base_idx, effector_idx, target_p, eps=1e-8, facing="forward"):
-    #     mid_idx = self.skeleton.parent_idx[effector_idx]
-    #     if self.skeleton.parent_idx[mid_idx] != base_idx:
+    #     mid_idx = self.__skeleton.parent_idx[effector_idx]
+    #     if self.__skeleton.parent_idx[mid_idx] != base_idx:
     #         raise ValueError(f"{base_idx} and {effector_idx} are not in a two bone IK hierarchy")
 
     #     a = self.global_p[base_idx]

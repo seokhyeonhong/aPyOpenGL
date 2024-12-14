@@ -21,6 +21,12 @@ class Model:
         self.skeleton = skeleton
         self.meshes = [Mesh(meshes[i][0], meshes[i][1], skeleton=skeleton, joint_map=joint_map) for i in range(len(meshes))] if meshes is not None else []
     
+    def set_identity_joint_map(self):
+        if self.skeleton is None:
+            raise ValueError("Joint map requires a skeleton")
+        joint_map = {joint.name: joint.name for joint in self.skeleton.joints}
+        self.set_joint_map(joint_map)
+
     def set_joint_map(self, joint_map: dict[str, str]):
         for mesh in self.meshes:
             mesh.joint_map = joint_map
