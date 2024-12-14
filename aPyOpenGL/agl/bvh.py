@@ -27,10 +27,20 @@ ordermap = {
 }
 
 class BVH:
+    """
+    !!!
+    Disclaimer:
+        This implementation is only for character poses with 3D root positions and 3D joint rotations.
+        Therefore, joint positions and scales within the BVH file are not considered.
+    !!!
+    """
     def __init__(self, filename: str, target_fps=30, scale=0.01):
         self.filename = filename
         self.target_fps = target_fps
         self.scale = scale
+
+        self._cumsum_channels = 0
+        self._valid_channel_idx = []
 
         self.poses = []
         self._load()
@@ -81,9 +91,16 @@ class BVH:
                     if any([p not in channelmap for p in parts]):
                         continue
                     order = "".join([channelmap[p] for p in parts])
+
+                    if active == 0:
+                        assert channels == 6, f"Root joint must have 6 channels, but got {channels}"
+                        self._valid_channel_idx += [i for i in range(channels)]
+                    else:
+                        self._valid_channel_idx += [i + self._cumsum_channels for i in range(channelis, channelie)]
+                    self._cumsum_channels += channels
                     continue
 
-                jmatch = re.match("\s*JOINT\s+(\w+)", line)
+                jmatch = re.match(r"\s*JOINT\s+(.+)", line)
                 if jmatch:
                     skeleton.add_joint(jmatch.group(1), parent_idx=active)
                     active = skeleton.num_joints - 1
@@ -96,46 +113,32 @@ class BVH:
                 fmatch = re.match("\s*Frames:\s+(\d+)", line)
                 if fmatch:
                     fnum = int(fmatch.group(1))
-                    positions = np.zeros((fnum, skeleton.num_joints, 3), dtype=np.float32)
-                    rotations = np.zeros((fnum, skeleton.num_joints, 3), dtype=np.float32)
+                    # positions = np.zeros((fnum, skeleton.num_joints, 3), dtype=np.float32)
+                    # rotations = np.zeros((fnum, skeleton.num_joints, 3), dtype=np.float32)
                     continue
 
                 fmatch = re.match("\s*Frame Time:\s+([\d\.]+)", line)
                 if fmatch:
                     frametime = float(fmatch.group(1))
                     fps = round(1. / frametime)
-                    if fps % self.target_fps != 0:
-                        raise Exception(f"Invalid target fps for {self.filename}: {self.target_fps} (fps: {fps})")
+                    # if fps % self.target_fps != 0:
+                    #     raise Exception(f"Invalid target fps for {self.filename}: {self.target_fps} (fps: {fps})")
 
-                    sampling_step = fps // self.target_fps
+                    # sampling_step = fps // self.target_fps
                     continue
 
                 dmatch = line.strip().split(' ')
                 if dmatch:
                     data_block = np.array(list(map(float, dmatch)), dtype=np.float32)
-                    num_joints = skeleton.num_joints
-                    fi = i
-                    if channels == 3:
-                        positions[fi, 0:1] = data_block[0:3] * self.scale
-                        rotations[fi, :]   = data_block[3:].reshape(num_joints, 3)
-                    elif channels == 6:
-                        data_block         = data_block.reshape(num_joints, 6)
-                        positions[fi, :]   = data_block[:, 0:3] * self.scale
-                        rotations[fi, :]   = data_block[:, 3:6]
-                    elif channels == 9: 
-                        positions[fi, 0]   = data_block[0:3] * self.scale
-                        data_block         = data_block[3:].reshape(num_joints - 1, 9)
-                        rotations[fi, 1:]  = data_block[:, 3:6]
-                        positions[fi, 1:]  += data_block[:, 0:3] * data_block[:, 6:9]
-                    else:
-                        raise Exception(f"Invalid channels: {channels}")
+                    data_block = data_block[self._valid_channel_idx]
 
-                    local_quats = n_euler.to_quat(rotations[fi], order, radians=False)
-                    root_pos = positions[fi, 0]
+                    root_pos = data_block[0:3] * self.scale
+                    joint_rots = data_block[3:].reshape(skeleton.num_joints, 3)
+                    local_quats = n_euler.to_quat(joint_rots, order, radians=False)
                     self.poses.append(Pose(skeleton, local_quats, root_pos))
                     i += 1
 
-        self.poses = self.poses[1::sampling_step]
+        # self.poses = self.poses[1::sampling_step]
     
     def motion(self):
         name = os.path.splitext(os.path.basename(self.filename))[0]

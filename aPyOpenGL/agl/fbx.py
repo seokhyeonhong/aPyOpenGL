@@ -62,6 +62,8 @@ class Parser:
     def _init_mesh_data(self, scale):
         # return pickled mesh data if exists and is newer than fbx file
         mesh_pkl_path = self.pkl_path("mesh")
+
+        # TODO: sanity check other than file modification time
         if os.path.exists(mesh_pkl_path) and os.path.getmtime(mesh_pkl_path) > os.path.getmtime(self.path):
             with open(mesh_pkl_path, "rb") as f:
                 self.mesh_data = pickle.load(f)
@@ -126,6 +128,8 @@ class Parser:
     def motions(self, joints: list[fbxparser.JointData]):
         # return pickled motion if exists and is newer than fbx file
         motion_pkl_path = self.pkl_path("motion")
+
+        # TODO: sanity check other than file modification time
         if os.path.exists(motion_pkl_path) and os.path.getmtime(motion_pkl_path) > os.path.getmtime(self.path):
             with open(motion_pkl_path, "rb") as f:
                 return pickle.load(f)
@@ -144,7 +148,7 @@ class Parser:
         for scene in tqdm(scenes, desc="Resampling"):
             frame_idx = [i for i in range(scene.start_frame, scene.end_frame + 1)]
             frame_set.append(frame_idx)
-        
+
         # resampled_scenes = util.run_parallel_sync(_get_resampled_scene, zip(scenes, frame_set), desc="Resampling scenes")
         resampled_scenes = []
         for i in tqdm(range(len(scenes)), desc="Resampling scenes"):

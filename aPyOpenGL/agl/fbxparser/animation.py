@@ -18,9 +18,8 @@ def get_scene_animation(anim_stack, node, scale):
         print(f"Warning: {num_anim_layers} animation layers found, only the first one will be used")
     
     scene_keyframes = SceneKeyframes(anim_stack.GetName())
-    for i in range(num_anim_layers):
-        anim_layer = anim_stack.GetMember(criteria, i)
-        get_animations(scene_keyframes, anim_layer, node, scale)
+    anim_layer = anim_stack.GetMember(criteria, 0)
+    get_animations(scene_keyframes, anim_layer, node, scale)
     
     time_mode = anim_stack.GetScene().GetGlobalSettings().GetTimeMode()
     scene_keyframes.start_frame = anim_stack.LocalStart.Get().GetFrameCount(time_mode)

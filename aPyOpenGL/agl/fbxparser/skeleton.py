@@ -14,18 +14,18 @@ def to_quat(x, order):
 
     if order == FbxEuler.eOrderXYZ:
         return rz * ry * rx
-    if order == FbxEuler.eOrderXZY:
+    elif order == FbxEuler.eOrderXZY:
         return ry * rz * rx
-    if order == FbxEuler.eOrderYXZ:
+    elif order == FbxEuler.eOrderYXZ:
         return rz * rx * ry
-    if order == FbxEuler.eOrderYZX:
+    elif order == FbxEuler.eOrderYZX:
         return rx * rz * ry
-    if order == FbxEuler.eOrderZXY:
+    elif order == FbxEuler.eOrderZXY:
         return ry * rx * rz
-    if order == FbxEuler.eOrderZYX:
+    elif order == FbxEuler.eOrderZYX:
         return rx * ry * rz
-
-    raise ValueError("Unknown Euler order: {}".format(order))
+    else:
+        raise ValueError(f"Unknown Euler order: {order}")
 
 def to_vec3(x):
     return glm.vec3(x[0], x[1], x[2])
