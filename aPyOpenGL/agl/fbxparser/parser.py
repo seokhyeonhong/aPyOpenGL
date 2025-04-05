@@ -10,8 +10,9 @@ FbxAnimLayer = fbx.FbxAnimLayer
 FbxCriteria  = fbx.FbxCriteria
 
 class FBXParser:
-    def __init__(self, filepath):
+    def __init__(self, filepath, fps=30):
         self.filepath = filepath
+        self.fps = fps
         self.init_scene()
     
     def init_scene(self):
@@ -32,10 +33,10 @@ class FBXParser:
         # import the contents of the file into the scene
         importer.Import(self.scene)
 
-        # time setting to 60 fps
+        # time setting with fps
         time_settings = self.scene.GetGlobalSettings()
         time_mode = time_settings.GetTimeMode()
-        time_settings.SetTimeMode(fbx.FbxTime.eFrames60)
+        time_settings.SetTimeMode(eval(f"fbx.FbxTime.eFrames{int(self.fps)}"))
 
         # triangulate
         fbx.FbxGeometryConverter(self.manager).Triangulate(self.scene, True)
@@ -45,7 +46,7 @@ class FBXParser:
         self.bake_node(self.scene.GetRootNode())
 
         # convert pivot
-        self.scene.GetRootNode().ConvertPivotAnimationRecursive(None, FbxNode.eDestinationPivot, 60, True)
+        self.scene.GetRootNode().ConvertPivotAnimationRecursive(None, FbxNode.eDestinationPivot, self.fps, True)
 
         # name check
         name_counter = {}
@@ -84,7 +85,7 @@ class FBXParser:
         # idem for quaternions
         node.SetQuaternionInterpolation(FbxNode.eDestinationPivot, node.GetQuaternionInterpolation(FbxNode.eSourcePivot))
 
-        node.ConvertPivotAnimationRecursive(None, FbxNode.eDestinationPivot, 60.0, True)
+        node.ConvertPivotAnimationRecursive(None, FbxNode.eDestinationPivot, self.fps, True)
 
         for i in range(node.GetChildCount()):
             self.bake_node(node.GetChild(i))
