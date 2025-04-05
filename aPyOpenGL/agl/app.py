@@ -24,6 +24,7 @@ class App:
         camera = Camera(),
         lights = [DirectionalLight() for _ in range(4)],
         fps = 30,
+        show_window = True
     ):
         # render settings
         self.camera = camera
@@ -37,7 +38,7 @@ class App:
         self.io = self.IO()
         self.ui = UI()
         self.capture_path = os.path.join("capture", str(datetime.date.today()))
-        self.window = self.init_glfw()
+        self.window = self.init_glfw(show_window)
 
         self.render_ui = True
 
@@ -69,7 +70,7 @@ class App:
         eSECTION_TO_VID = 1
         # eSECTION_TO_IMG = 3
 
-    def init_glfw(self):
+    def init_glfw(self, show_window=True):
         glfw.init()
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 4)
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
@@ -77,6 +78,8 @@ class App:
         glfw.window_hint(glfw.SAMPLES, 4)
 
         # create window
+        if not show_window:
+            glfw.window_hint(glfw.VISIBLE, False)
         window = glfw.create_window(self.width, self.height, "aPyOpenGL", None, None)
         glfw.make_context_current(window)
 
@@ -85,7 +88,7 @@ class App:
             raise Exception("Failed to create GLFW window")
         
         glfw.make_context_current(window)
-        glfw.swap_interval(1)
+        glfw.swap_interval(1) # vsync
 
         # callbacks
         glfw.set_framebuffer_size_callback(window, self.on_resize)
