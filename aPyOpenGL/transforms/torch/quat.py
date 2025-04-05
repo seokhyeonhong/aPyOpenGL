@@ -2,6 +2,11 @@ import torch
 import torch.nn.functional as F
 from . import rotmat, aaxis, euler, ortho6d, xform
 
+def _cross(a, b):
+    ax, ay, az = torch.split(a, 1, dim=-1)
+    bx, by, bz = torch.split(b, 1, dim=-1)
+    return torch.cat([ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx], dim=-1)
+
 """
 Quaternion operations
 """
@@ -19,8 +24,8 @@ def mul(q0, q1):
     return res
 
 def mul_vec(q, v):
-    t = 2.0 * torch.cross(q[..., 1:], v, dim=-1)
-    res = v + q[..., 0:1] * t + torch.cross(q[..., 1:], t, dim=-1)
+    t = 2.0 * _cross(q[..., 1:], v)
+    res = v + q[..., 0:1] * t + _cross(q[..., 1:], t)
     return res
 
 def inv(q):
@@ -81,7 +86,7 @@ def between_vecs(v_from, v_to):
     v_to_   = F.normalize(v_to,   dim=-1, eps=1e-8) # (..., 3)
 
     dot = torch.sum(v_from_ * v_to_, dim=-1) # (...,)
-    cross = torch.cross(v_from_, v_to_)
+    cross = _cross(v_from_, v_to_)
     cross = F.normalize(cross, dim=-1, eps=1e-8) # (..., 3)
     
     real = torch.sqrt(0.5 * (1.0 + dot))
