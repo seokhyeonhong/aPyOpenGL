@@ -113,3 +113,7 @@ class Camera:
     def switch_projection(self):
         self.__is_perspective = not self.__is_perspective
         self.update()
+    
+    def set_ortho_zoom(self, ortho_zoom):
+        self.__ortho_zoom = ortho_zoom
+        self.update()
