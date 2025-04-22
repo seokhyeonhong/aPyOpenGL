@@ -113,29 +113,11 @@ If interpreting PythonBindings.py fails, you can try changing the variable vcCom
 # Publications
 Published papers developed on top of this framework are as follows:
 
-Geometry-Aware Retargeting for Two-Skinned Characters Interaction [Jang et al. SIGGRAPH Asia 2024]
-```
-@article{jang2024geometry,
-  title={Geometry-Aware Retargeting for Two-Skinned Characters Interaction},
-  author={Jang, Inseo and Choi, Soojin and Hong, Seokhyeon and Kim, Chaelin and Noh, Junyong},
-  journal={ACM Transactions on Graphics (TOG)},
-  volume={43},
-  number={6},
-  pages={1--17},
-  year={2024},
-  publisher={ACM New York, NY, USA}
-}
-```
-[Long-term Motion In-Betweening via Keyframe Prediction](https://github.com/seokhyeonhong/long-mib) [Hong et al. SCA2024]
-```
-@inproceedings{hong2024long,
-  title={Long-Term Motion In-Betweening via Keyframe Prediction},
-  author={Hong, Seokhyeon and Kim, Haemin and Cho, Kyungmin and Noh, Junyong},
-  booktitle={Proceedings of the ACM SIGGRAPH/Eurographics Symposium on Computer Animation},
-  pages={1--12},
-  year={2024}
-}
-```
+* SALAD: Skeleton-aware Latent Diffusion for Text-driven Motion Generation and Editing [Hong et al. CVPR 2025]
+* AnyMoLe: Any Character Motion In-betweening Leveraging Video Diffusion Models [Yun et al. CVPR 2025]
+* ASMR: Adaptive Skeleton-Mesh Rigging and Skinning via 2D Generative Prior [Hong et al. Eurographics 2025]
+* Geometry-Aware Retargeting for Two-Skinned Characters Interaction [Jang et al. SIGGRAPH Asia 2024]
+* [Long-term Motion In-Betweening via Keyframe Prediction](https://github.com/seokhyeonhong/long-mib) [Hong et al. SCA2024]
 
 # Acknowledgements
 The overall structure of the rendering modules is inspired by
