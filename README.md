@@ -113,9 +113,9 @@ If interpreting PythonBindings.py fails, you can try changing the variable vcCom
 # Publications
 Published papers developed on top of this framework are as follows:
 
-* SALAD: Skeleton-aware Latent Diffusion for Text-driven Motion Generation and Editing [Hong et al. CVPR 2025]
-* AnyMoLe: Any Character Motion In-betweening Leveraging Video Diffusion Models [Yun et al. CVPR 2025]
-* ASMR: Adaptive Skeleton-Mesh Rigging and Skinning via 2D Generative Prior [Hong et al. Eurographics 2025]
+* [SALAD: Skeleton-aware Latent Diffusion for Text-driven Motion Generation and Editing](https://kwanyun.github.io/AnyMoLe_page/) [Hong et al. CVPR 2025]
+* [AnyMoLe: Any Character Motion In-betweening Leveraging Video Diffusion Models](https://kwanyun.github.io/AnyMoLe_page/) [Yun et al. CVPR 2025]
+* [ASMR: Adaptive Skeleton-Mesh Rigging and Skinning via 2D Generative Prior](https://seokhyeonhong.github.io/projects/asmr/) [Hong et al. Eurographics 2025]
 * Geometry-Aware Retargeting for Two-Skinned Characters Interaction [Jang et al. SIGGRAPH Asia 2024]
 * [Long-term Motion In-Betweening via Keyframe Prediction](https://github.com/seokhyeonhong/long-mib) [Hong et al. SCA2024]
 

@@ -19,11 +19,13 @@ layout(location=9) in vec4  vLbsWeights2;
 // --------------------------------------------
 // output vertex data
 // --------------------------------------------
-out vec3 fPosition;
-out vec3 fNormal;
-out vec2 fTexCoord;
-flat out int  fMaterialID;
-out vec4 fPosLightSpace;
+out vec3     fPosition;
+out vec2     fTexCoord;
+out vec3     fTangent;
+out vec3     fBitangent;
+out vec3     fNormal;
+flat out int fMaterialID;
+out vec4     fPosLightSpace;
 
 // --------------------------------------------
 // uniform data
@@ -47,6 +49,8 @@ void main()
     mat4 lbsModel  = GetJointMatrix(vLbsJointIDs1, vLbsWeights1) + GetJointMatrix(vLbsJointIDs2, vLbsWeights2);
 
     fPosition      = vec3(lbsModel * vec4(vPosition, 1.0f));
+    fTangent       = normalize(mat3(M) * vTangent);
+    fBitangent     = normalize(mat3(M) * vBitangent);
     fNormal        = normalize(transpose(inverse(mat3(lbsModel))) * vNormal);
     fTexCoord      = vTexCoord;
     fPosLightSpace = uLightSpaceMatrix * vec4(fPosition, 1.0f);
