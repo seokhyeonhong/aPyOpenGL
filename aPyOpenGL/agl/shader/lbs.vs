@@ -49,8 +49,8 @@ void main()
     mat4 lbsModel  = GetJointMatrix(vLbsJointIDs1, vLbsWeights1) + GetJointMatrix(vLbsJointIDs2, vLbsWeights2);
 
     fPosition      = vec3(lbsModel * vec4(vPosition, 1.0f));
-    fTangent       = normalize(mat3(M) * vTangent);
-    fBitangent     = normalize(mat3(M) * vBitangent);
+    fTangent       = normalize(mat3(lbsModel) * vTangent);
+    fBitangent     = normalize(mat3(lbsModel) * vBitangent);
     fNormal        = normalize(transpose(inverse(mat3(lbsModel))) * vNormal);
     fTexCoord      = vTexCoord;
     fPosLightSpace = uLightSpaceMatrix * vec4(fPosition, 1.0f);
