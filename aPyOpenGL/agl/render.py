@@ -195,7 +195,7 @@ class Render:
     
     @staticmethod
     def skeleton(pose: Pose, render_mode="pbr"):
-        skeleton_xforms = pose.skeleton_xforms()
+        skeleton_xforms = pose.skeleton_xforms
 
         ro = Render.pyramid(radius=1, height=1, render_mode=render_mode).instance_num(pose.skeleton.num_joints - 1)
 
