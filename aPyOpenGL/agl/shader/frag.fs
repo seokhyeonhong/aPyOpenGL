@@ -212,7 +212,8 @@ float FilteredChecker(vec2 p)
     vec2 i = (Triangular(p + 0.5f * w) - Triangular(p - 0.5f * w)) / w;
 
     float res = 1.0f - i.x * i.y;
-    return res * 0.5f + 0.5f;
+    // return res * 0.5f + 0.5f; // 0 -> 0.5, 1 -> 1
+    return res * 0.2f + 1.1f;
 }
 
 // --------------------------------------------
@@ -352,6 +353,57 @@ vec3 CookTorranceBRDF(vec3 N, vec3 V, vec3 albedo, float metallic, float roughne
     return (kD * albedo / PI + specular) * radiance * NdotL;
 }
 
+
+
+
+void drawCenterCross(in vec2 fpos_xz, inout vec3 color)
+{
+    float uCrossWidth = 0.5f; // width of the cross lines
+    float uCrossHalfSize = 0.05f;
+
+    // 1) Convert to grid space (same scale as FilteredGrid)
+    vec2 p = fpos_xz * uGridInterval;
+
+    // 2) Compute pixel footprint (AA width)
+    vec2 w = max(abs(dFdx(p)), abs(dFdy(p))) + 0.001f;
+    w *= uGridInterval;
+
+    // 3) Filter for center lines (x = int+0.5, y = int+0.5)
+    //    -> shift p by 0.5 so it behaves like integer grid lines
+    float Nline = 200.0f / uCrossWidth;
+    vec2 a = (p - 0.5f) + 0.5f * w;
+    vec2 b = (p - 0.5f) - 0.5f * w;
+
+    // Coverage estimation (AA) for each axis
+    vec2 iCenter = (Filter(a, Nline) - Filter(b, Nline)) / (Nline * w); // 0~1
+    float crossLine = max(iCenter.x, iCenter.y); // combine horizontal/vertical
+
+    // 4) Restrict visible area of the cross near cell center (square window)
+    //    Use smoothstep with pixel footprint for AA
+    vec2 fracP = abs(fract(p) - 0.5f); 
+    vec2 windowAxis = 1.0f - smoothstep(vec2(uCrossHalfSize),
+                                        vec2(uCrossHalfSize) + 2.0f * w,
+                                        fracP);
+    float windowMask = min(windowAxis.x, windowAxis.y); 
+
+    // Final mask: AA center line * window mask
+    float crossMask = crossLine * windowMask;
+
+    // 5) Choose color based on cell index (4-color rainbow cycle)
+    vec2 cell = floor(p); 
+    int quotient = int(mod(cell.x + cell.y, 4.0));
+    vec3 crossColor =
+        (quotient == 0) ? vec3(0.8f, 0.2f, 0.2f) : // red
+        (quotient == 1) ? vec3(0.8f, 0.8f, 0.2f) : // yellow
+        (quotient == 2) ? vec3(0.2f, 0.8f, 0.2f) : // green
+                          vec3(0.2f, 0.2f, 0.8f);  // blue
+    // vec3 crossColor = vec3(0.0f);
+
+    // 6) Blend: overlay the cross AA mask on top of existing color
+    color = mix(color, crossColor, clamp(crossMask, 0.0, 1.0));
+}
+
+
 // --------------------------------------------
 // main function
 // --------------------------------------------
@@ -485,6 +537,18 @@ void main()
         tile = pow(tile, 3.0f);
 
         floorWeight = 1.0f - tile;
+
+        
+        // ----- cell coloring (checkerboard example) -----
+        vec2 gridPos = fPosition.xz * uGridInterval;
+        vec2 cell    = floor(gridPos);
+        float checker = mod(cell.x + cell.y, 2.0);
+        vec3 cellColor = mix(vec3(0.9), vec3(0.2), checker);
+
+        // ----- center cross overlay -----
+        vec3 crossColor = vec3(1.0, 0.0, 0.0); 
+        drawCenterCross(fPosition.xz, color); // crossMask: 0~1
+        // color = mix(color, crossColor, 1.0f);
     }
     color = (1.0f - floorWeight) * color + floorWeight * (1.0f - 0.95f * shadow) * uGridColor;
     
